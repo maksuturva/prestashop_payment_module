@@ -2,14 +2,6 @@ Maksuturva/eMaksut payment module for Prestashop ecommerce
 ==========================================================
 Copyright (C) 2012 Suomen Maksuturva Oy
 
-
-Note
-----
-This module version supports Prestashop software up to version 1.4.9 only. 
-Other limitations are listed in the Installation Guide.
-
-
-
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either

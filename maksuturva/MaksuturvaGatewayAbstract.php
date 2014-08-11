@@ -465,7 +465,7 @@ abstract class MaksuturvaGatewayAbstract
                 case 'pmt_invoicefromseller':
                 case 'pmt_paymentmethod':
                 case 'pmt_buyeridentificationcode':
-                    if (in_array($hashData, $this->_formData)) {
+                    if (in_array($hashData, array_keys($this->_formData))) {
                         $hashString .= $this->_formData[$hashData] . '&';
                     }
                     break;
@@ -850,6 +850,20 @@ abstract class MaksuturvaGatewayAbstract
     	}
     	
     	return $changes;
+    }
+    
+    /* 
+     * small function to filter out problematic characters
+     * So far only quotation marks have been needed to filter out
+     */
+    function filterCharacters($string) {
+    	$newString = str_replace('"', "", $string);
+    	if(is_null($newString) === false && strlen($newString) > 0){
+    		return $newString;
+    	}
+    	else{
+    		return " ";
+    	}
     }
 }
 

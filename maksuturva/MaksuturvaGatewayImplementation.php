@@ -45,16 +45,20 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 			$desc = Tools::htmlentitiesDecodeUTF8(strip_tags($product["description_short"]));
 			$orderAmount += $product["total_wt"]; // with taxes
 		    $row = array(
-		        'pmt_row_name' => $product["name"],                                                        //alphanumeric        max lenght 40             -
-            	'pmt_row_desc' => $desc,                                           //alphanumeric        max lenght 1000      min lenght 1
-            	'pmt_row_quantity' => $product["cart_quantity"],                                           //numeric             max lenght 8         min lenght 1
-            	'pmt_row_deliverydate' => date("d.m.Y"),                                                   //alphanumeric        max lenght 10        min lenght 10        dd.MM.yyyy
-		    	 // vat excluded:
-            	'pmt_row_price_gross' => str_replace('.', ',', sprintf("%.2f", $product["price_wt"])),          //alphanumeric        max lenght 17        min lenght 4         n,nn
-            	'pmt_row_vat' => str_replace('.', ',', sprintf("%.2f", $product["rate"])),                 //alphanumeric        max lenght 5         min lenght 4         n,nn
-            	'pmt_row_discountpercentage' => "0,00",                                                    //alphanumeric        max lenght 5         min lenght 4         n,nn
-            	'pmt_row_type' => 1,
-		    );
+		        'pmt_row_name' => $this->filterCharacters($product["name"]),                                                        //alphanumeric        max lenght 40
+            	'pmt_row_desc' => $this->filterCharacters($desc),                                           //alphanumeric        max lenght 1000      min lenght 1
+            	'pmt_row_quantity' => $product["cart_quantity"]						//numeric             max lenght 8         min lenght 1
+		    );       
+		    if($product["ean13"] != NULL && isset($product["ean13"])){
+		    	$row['pmt_row_articlenr'] = $product["ean13"];
+		    }
+		    $row['pmt_row_deliverydate'] = date("d.m.Y");							//alphanumeric        max lenght 10        min lenght 10        dd.MM.yyyy
+		    // vat excluded:
+            $row['pmt_row_price_gross'] = str_replace('.', ',', sprintf("%.2f", $product["price_wt"]));          //alphanumeric        max lenght 17        min lenght 4         n,nn                           
+		    $row['pmt_row_vat'] = str_replace('.', ',', sprintf("%.2f", $product["rate"]));               //alphanumeric        max lenght 5         min lenght 4         n,nn
+            $row['pmt_row_discountpercentage'] = "0,00";                                                    //alphanumeric        max lenght 5         min lenght 4         n,nn
+            $row['pmt_row_type'] = 1;
+		   
 		    array_push($products_rows, $row);
 		}
 
@@ -74,7 +78,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 
 		// Adding the shipping cost as a row
 		$row = array(
-		    'pmt_row_name' => $module->l('Shipping Costs'),
+		    'pmt_row_name' => (($carrier != NULL && isset($carrier->name)) ? $carrier->name : $module->l('Shipping Costs')),
         	'pmt_row_desc' => (($carrier != NULL && isset($carrier->name)) ? $carrier->name : $module->l('Shipping Costs')),
         	'pmt_row_quantity' => 1,
         	'pmt_row_deliverydate' => date("d.m.Y"),
@@ -150,6 +154,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 			"pmt_cancelreturn"	=> $moduleUrl . "?cancel=1",
 			"pmt_delayedpayreturn"	=> $moduleUrl . "?delayed=1",
 			"pmt_amount" 		=> str_replace('.', ',', sprintf("%.2f", $orderAmount)),
+			//"pmt_paymentmethod" => "FI03", /* possibility to add pre-selected payment method as a hard-coded parameter. Currently pre-selecting payment method dynamically during checkout is not supported by this module */
 
 			// Customer Information
 			"pmt_buyername" 	=> trim($order_summary["invoice"]->firstname . " " . $order_summary["invoice"]->lastname),

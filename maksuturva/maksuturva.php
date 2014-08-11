@@ -43,19 +43,19 @@ class Maksuturva extends PaymentModule
 	{
 		$this->name = 'maksuturva';
 		$this->tab = 'payments_gateways';
-		$this->version = '1.0';
+		$this->version = '121';
 		$this->author = 'Maksuturva';
 
 		$this->currencies = true;
 		$this->currencies_mode = 'checkbox';
 
 		$this->_checkConfig(false);
-		$this->displayName = $this->l('Maksuturva/eMaksut');
+		$this->displayName = $this->l('Maksuturva');
 		$this->description = $this->l('Accepts payments using Maksuturva/eMaksut');
 		$this->_errors = array();
 
 		parent::__construct();
-		$this->confirmUninstall = $this->l('Are you sure you want to delete Maksuturva/eMaksut module?');
+		$this->confirmUninstall = $this->l('Are you sure you want to delete Maksuturva module?');
 
 		/* For 1.4.3 and less compatibility */
 		$updateConfig = array(
