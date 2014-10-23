@@ -48,8 +48,11 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 		        'pmt_row_name' => $this->filterCharacters($product["name"]),                                                        //alphanumeric        max lenght 40
             	'pmt_row_desc' => $this->filterCharacters($desc),                                           //alphanumeric        max lenght 1000      min lenght 1
             	'pmt_row_quantity' => $product["cart_quantity"]						//numeric             max lenght 8         min lenght 1
-		    );       
-		    if($product["ean13"] != NULL && isset($product["ean13"])){
+		    );
+		    if($product["reference"] != NULL && isset($product["reference"])){
+		    	$row['pmt_row_articlenr'] = $product["reference"];
+		    }
+		    else if($product["ean13"] != NULL && isset($product["ean13"])){
 		    	$row['pmt_row_articlenr'] = $product["ean13"];
 		    }
 		    $row['pmt_row_deliverydate'] = date("d.m.Y");							//alphanumeric        max lenght 10        min lenght 10        dd.MM.yyyy
@@ -139,6 +142,11 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 			}
 		}
 
+		$userlocale = "";
+		$fields = $order->getFields();
+		if(Language::getIsoById($fields["id_lang"]) != null && Country::getIsoById($order_summary["invoice"]->id_country) != null ){
+			$userlocale = Language::getIsoById($fields["id_lang"]).'_'.Country::getIsoById($order_summary["invoice"]->id_country);
+		}
 		$options = array(
 			// key version
 			"pmt_keygeneration" => Configuration::get('MAKSUTURVA_SECRET_KEY_VERSION'),
@@ -148,6 +156,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 			"pmt_reference" => $id,
 			"pmt_sellerid" 	=> $sellerId,
 			"pmt_duedate" 	=> date("d.m.Y"),
+			"pmt_userlocale" => $userlocale,
 
 			"pmt_okreturn"	=> $moduleUrl,
 			"pmt_errorreturn"	=> $moduleUrl . "?error=1",

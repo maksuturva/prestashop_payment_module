@@ -12,7 +12,7 @@
 {include file="$tpl_dir./order-steps.tpl"}
 
 {if $nbProducts <= 0}
-	<p class="warning">{l s='Your shopping cart is empty.'}</p>
+	<p class="warning">{l s='Your shopping cart is empty.' mod='maksuturva'}</p>
 {else}
 
 {if $emaksut == "1"}
@@ -22,19 +22,18 @@
 {/if}
 
 <form action="{$form_action}" method="post">
-<p>
+<div>
     {if $emaksut == "1"}
         <img src="{$this_path}emaksut.png" alt="{l s='Pay with eMaksut' mod='maksuturva'}" width="144" height="50" style="float:left; margin: 0px 10px 5px 0px;"/>
-        {l s='You have chosen to pay with eMaksut.' mod='maksuturva'}
+        <p>{l s='You have chosen to pay with eMaksut.' mod='maksuturva'}</p>
     {else}
         <img src="{$this_path}maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29" style="float:left; margin: 0px 10px 5px 0px;"/>
-        {l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}
+        <p>{l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}</p>
     {/if}
-	<br/><br />
-	{l s='Here is a short summary of your order:' mod='maksuturva'}
-</p>
+	<div style="clear:both"></div>
+</div>
 <p style="margin-top:20px;">
-	- {l s='The total amount of your order is' mod='maksuturva'}
+	{l s='The total amount of your order is' mod='maksuturva'}
 	<span id="amount" class="price">{displayPrice price=$total}</span>
 	{if $use_taxes == 1}
     	{l s='(tax incl.)' mod='maksuturva'}

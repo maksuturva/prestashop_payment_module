@@ -11,7 +11,7 @@
     {/if}
 {/if}
 {if $status == 'ok'}
-	<p>{l s='Your order on' mod='maksuturva'} <span class="bold">{$shop_name}</span> {l s='is complete.' mod='maksuturva'}
+	<p>{l s='Your order on' mod='maksuturva' mod='maksuturva'} <span class="bold">{$shop_name}</span> {l s='is complete.' mod='maksuturva'}
 		<br /><br /><span class="bold">{l s='Your order will be shipped as soon as possible.' mod='maksuturva'}</span>
 		<br /><br />{l s='For any questions or for further information, please contact our' mod='maksuturva'} <a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
 	</p>
@@ -25,7 +25,7 @@
         <br /><br />{l s='For any questions or for further information, please contact our' mod='maksuturva'} <a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
     </p>
 {else}
-	<p class="warning">{l s='An error occurred while processing the payment.'}</p>
+	<p class="warning">{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
 	<p class="warning" style="font-weight: bold;">{$message}</p>
 	<p class="warning">
 		{l s='For further questions you can contact our' mod='maksuturva'}

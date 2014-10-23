@@ -43,19 +43,19 @@ class Maksuturva extends PaymentModule
 	{
 		$this->name = 'maksuturva';
 		$this->tab = 'payments_gateways';
-		$this->version = '121';
+		$this->version = '122';
 		$this->author = 'Maksuturva';
 
 		$this->currencies = true;
 		$this->currencies_mode = 'checkbox';
 
 		$this->_checkConfig(false);
-		$this->displayName = $this->l('Maksuturva');
-		$this->description = $this->l('Accepts payments using Maksuturva/eMaksut');
+		$this->displayName = $this->l('ADMIN: Maksuturva');
+		$this->description = $this->l('ADMIN: Accepts payments using Maksuturva/eMaksut');
 		$this->_errors = array();
 
 		parent::__construct();
-		$this->confirmUninstall = $this->l('Are you sure you want to delete Maksuturva module?');
+		$this->confirmUninstall = $this->l('ADMIN: Are you sure you want to delete Maksuturva module?');
 
 		/* For 1.4.3 and less compatibility */
 		$updateConfig = array(
@@ -106,7 +106,7 @@ class Maksuturva extends PaymentModule
 		}
 		if (!sizeof(Currency::checkPaymentCurrencies($this->id))) {
 			if ($warn) {
-				$this->warning .= $this->l('No currency set for this module') . ', ';
+				$this->warning .= $this->l('ADMIN: No currency set for this module') . ', ';
 			}
 			$fail = true;
 		}
@@ -131,6 +131,7 @@ class Maksuturva extends PaymentModule
 	      	'MAKSUTURVA_SANDBOX',
 	      	'MAKSUTURVA_EMAKSUT',
     		'MAKSUTURVA_OS_AUTHORIZATION',
+    		'MAKSUTURVA_PAYMENT_FEE_ID'    		
       	);
     }
 
@@ -156,7 +157,8 @@ class Maksuturva extends PaymentModule
 			!Configuration::updateValue('MAKSUTURVA_URL', 'https://www.maksuturva.fi') ||
 			!Configuration::updateValue('MAKSUTURVA_ENCODING', 'UTF-8') ||
 			!Configuration::updateValue('MAKSUTURVA_SANDBOX', '1') ||
-			!Configuration::updateValue('MAKSUTURVA_EMAKSUT', '0')) {
+			!Configuration::updateValue('MAKSUTURVA_EMAKSUT', '0') ||
+    		!Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', '')) {
 			return false;
 		}
 
@@ -283,56 +285,60 @@ class Maksuturva extends PaymentModule
 		<form method="post" action="'.htmlentities($_SERVER['REQUEST_URI']).'">
 			<div id="cfg-pane-1" style="width:70%; margin: 10px auto;">
 				 <div class="tab-page" id="step1">
-					<h4 class="tab">'.$this->l('Maksuturva/eMaksut configuration').'</h4>
-					<h2>'.$this->l('Settings').'</h2>
+					<h4 class="tab">'.$this->l('ADMIN: Maksuturva/eMaksut configuration').'</h4>
+					<h2>'.$this->l('ADMIN: Settings').'</h2>
 
-					<label>'.$this->l('Seller ID').':</label>
+					<label>'.$this->l('ADMIN: Seller ID').':</label>
 					<div class="margin-form" style="padding-top:2px;">
 						<input type="text" name="seller_id_mks" value="'.htmlentities(Tools::getValue('seller_id_mks', Configuration::get('MAKSUTURVA_SELLER_ID')), ENT_COMPAT, 'UTF-8').'" size="10" />
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('Secret Key').':</label>
+					<label>'.$this->l('ADMIN: Secret Key').':</label>
 					<div class="margin-form" style="padding-top:2px;">
 						<input type="text" name="secret_key_mks" value="'.htmlentities(Tools::getValue('secret_key_mks', Configuration::get('MAKSUTURVA_SECRET_KEY')), ENT_COMPAT, 'UTF-8').'" size="30" />
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('Secret Key Version').':</label>
+					<label>'.$this->l('ADMIN: Secret Key Version').':</label>
 					<div class="margin-form" style="padding-top:2px;">
 						<input type="text" name="secret_key_version_mks" value="'.htmlentities(Tools::getValue('secret_key_version_mks', Configuration::get('MAKSUTURVA_SECRET_KEY_VERSION')), ENT_COMPAT, 'UTF-8').'" size="5" />
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('Communication Encoding').':</label>
+					<label>'.$this->l('ADMIN: Communication Encoding').':</label>
 					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="mks_encoding" id="mks_utf" value="UTF-8" '.($encoding != "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_utf" class="t">'.$this->l('UTF-8').'</label>
-						<input type="radio" name="mks_encoding" id="mks_iso" value="ISO-8859-1" style="margin-left:15px;" '.($encoding == "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_iso" class="t">'.$this->l('ISO-8859-1').'</label>
+						<input type="radio" name="mks_encoding" id="mks_utf" value="UTF-8" '.($encoding != "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_utf" class="t">'.$this->l('ADMIN: UTF-8').'</label>
+						<input type="radio" name="mks_encoding" id="mks_iso" value="ISO-8859-1" style="margin-left:15px;" '.($encoding == "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_iso" class="t">'.$this->l('ADMIN: ISO-8859-1').'</label>
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('eMaksut').':</label>
+					<label>'.$this->l('ADMIN: eMaksut').':</label>
 					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="mks_emaksut" id="mks_emaksut_1" value="1" '.($emaksut? 'checked="checked" ' : '').'/> <label for="mks_emaksut_1" class="t">'.$this->l('Active').'</label>
-						<input type="radio" name="mks_emaksut" id="mks_emaksut_0" value="0" style="margin-left:15px;" '.(!$emaksut ? 'checked="checked" ' : '').'/> <label for="mks_emaksut_0" class="t">'.$this->l('Inactive').'</label>
+						<input type="radio" name="mks_emaksut" id="mks_emaksut_1" value="1" '.($emaksut? 'checked="checked" ' : '').'/> <label for="mks_emaksut_1" class="t">'.$this->l('ADMIN: Active').'</label>
+						<input type="radio" name="mks_emaksut" id="mks_emaksut_0" value="0" style="margin-left:15px;" '.(!$emaksut ? 'checked="checked" ' : '').'/> <label for="mks_emaksut_0" class="t">'.$this->l('ADMIN: Inactive').'</label>
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('Sandbox mode (tests)').':</label>
+					<label>'.$this->l('ADMIN: Sandbox mode (tests)').':</label>
 					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="sandbox_mode" id="sandbox_mode_1" value="1" '.($sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_1" class="t">'.$this->l('Active').'</label>
-						<input type="radio" name="sandbox_mode" id="sandbox_mode_0" value="0" style="margin-left:15px;" '.(!$sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_0" class="t">'.$this->l('Inactive').'</label>
+						<input type="radio" name="sandbox_mode" id="sandbox_mode_1" value="1" '.($sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_1" class="t">'.$this->l('ADMIN: Active').'</label>
+						<input type="radio" name="sandbox_mode" id="sandbox_mode_0" value="0" style="margin-left:15px;" '.(!$sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_0" class="t">'.$this->l('ADMIN: Inactive').'</label>
 					</div>
 					<div class="clear"></div>
 
-					<label>'.$this->l('Communication URL').':</label>
+					<label>'.$this->l('ADMIN: Communication URL').':</label>
 					<div class="margin-form" style="padding-top:2px;">
 						<input type="text" name="mks_communication_url" value="'.htmlentities(Tools::getValue('mks_communication_url', Configuration::get('MAKSUTURVA_URL')), ENT_COMPAT, 'UTF-8').'" size="30" />
 					</div>
 					<div class="clear"></div>
-
+			
+					<label>'.$this->l('ADMIN: Additional payment fee product ID').':</label>
+					<div class="margin-form" style="padding-top:2px;">
+						<input type="text" name="mks_additional_payment_fee_product_id" value="'.htmlentities(Tools::getValue('mks_additional_payment_fee_product_id', Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID')), ENT_COMPAT, 'UTF-8').'" size="6" />
+					</div>
 					<div class="clear"></div>
-					<p class="center"><input class="button" type="submit" name="submitMaksuturva" value="'.$this->l('Save settings').'" /></p>
+					<p class="center"><input class="button" type="submit" name="submitMaksuturva" value="'.$this->l('ADMIN: Save settings').'" /></p>
 				</div>
 			</div>
 			<div class="clear"></div>
@@ -364,30 +370,38 @@ class Maksuturva extends PaymentModule
 		// seller id and secret key are validated if not in sandbox mode
 		if (Tools::getValue('sandbox_mode') == "0") {
 			if (strlen(Tools::getValue('seller_id_mks')) > 15 || strlen(Tools::getValue('seller_id_mks')) == 0) {
-				$this->_errors[] = $this->l('Invalid Seller ID');
+				$this->_errors[] = $this->l('ADMIN: Invalid Seller ID');
 			}
 			if (strlen(Tools::getValue('secret_key_mks')) == 0) {
-				$this->_errors[] = $this->l('Invalid Secret Key');
+				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
 			}
 			if (!preg_match('/^[0-9]{3}$/', Tools::getValue('secret_key_version_mks'))) {
-				$this->_errors[] = $this->l('Invalid Secret Key Version (should be numeric, 3 digits long)');
+				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version (should be numeric, 3 digits long)');
 			}
 		}
 		if (!Validate::isUnsignedInt(Tools::getValue('secret_key_version_mks'))) {
-			$this->_errors[] = $this->l('Invalid Secret Key Version');
+			$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version');
 		}
 		if (Tools::getValue('mks_encoding') != "UTF-8" && Tools::getValue('mks_encoding') != "ISO-8859-1") {
-			$this->_errors[] = $this->l('Invalid Encoding');
+			$this->_errors[] = $this->l('ADMIN: Invalid Encoding');
 		}
 		if (Tools::getValue('mks_emaksut') != "0" && Tools::getValue('mks_emaksut') != "1") {
-			$this->_errors[] = $this->l('Invalid eMaksut flag');
+			$this->_errors[] = $this->l('ADMIN: Invalid eMaksut flag');
 		}
 		if (Tools::getValue('sandbox_mode') != "0" && Tools::getValue('sandbox_mode') != "1") {
-			$this->_errors[] = $this->l('Invalid Sandbox flag');
+			$this->_errors[] = $this->l('ADMIN: Invalid Sandbox flag');
 		}
-		if (Tools::getValue('mks_communication_url') != NULL AND !Validate::isUrl(Tools::getValue('mks_communication_url'))) {
-			$this->_errors[] = $this->l('Communication url is invalid');
+		if (Tools::getValue('mks_communication_url') != NULL && !Validate::isUrl(Tools::getValue('mks_communication_url'))) {
+			$this->_errors[] = $this->l('ADMIN: Communication url is invalid');
 		}
+
+		$additional_payment_fee_product = new Product((int)preg_replace("/[^0-9]/", "", Tools::getValue('mks_additional_payment_fee_product_id')));
+		if (Tools::getValue('mks_additional_payment_fee_product_id') != NULL){
+			if (!Validate::isLoadedObject($additional_payment_fee_product)) {
+				$this->_errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
+			}	
+		}
+
 
 		if (!sizeof($this->_errors)) {
 			Configuration::updateValue('MAKSUTURVA_SELLER_ID', Tools::getValue('seller_id_mks'));
@@ -397,7 +411,8 @@ class Maksuturva extends PaymentModule
 			Configuration::updateValue('MAKSUTURVA_EMAKSUT', trim(Tools::getValue('mks_emaksut')));
 			Configuration::updateValue('MAKSUTURVA_SANDBOX', trim(Tools::getValue('sandbox_mode')));
 			Configuration::updateValue('MAKSUTURVA_URL', trim(Tools::getValue('mks_communication_url')));
-			$this->_html = $this->displayConfirmation($this->l('Settings updated'));
+			Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', trim(Tools::getValue('mks_additional_payment_fee_product_id')));				
+			$this->_html = $this->displayConfirmation($this->l('ADMIN: Settings updated'));
 		} else {
 			$error_msg = '';
 			foreach ($this->_errors AS $error) {
@@ -449,6 +464,7 @@ class Maksuturva extends PaymentModule
 	{
 		// accumulate the errors
 		$errors = array();
+		$admin_messages = array();
 		$action = "ok";
 		if (isset($parameters["delayed"]) && $parameters["delayed"] == "1") {
 			$action = "delayed";
@@ -460,7 +476,7 @@ class Maksuturva extends PaymentModule
 
 		// test the currency: EUR only
 		if (!$this->checkCurrency($cart)) {
-			$errors[] = $this->l("The cart currency is not supported");
+			$errors[] = $this->l('The cart currency is not supported');
 		}
 
 		$totalPaid = 0;
@@ -470,7 +486,7 @@ class Maksuturva extends PaymentModule
   	    		break;
 
   	    	case "error":
-  	    		$errors[] = $this->l("There was an error processing your payment. Please, try again or contact Maksuturva/eMaksut.");
+  	    		$errors[] = $this->l('There was an error processing your payment. Please, try again or contact Suomen Maksuturva (www.maksuturva.fi)');
   	    		break;
 
   	    	case "delayed":
@@ -486,18 +502,18 @@ class Maksuturva extends PaymentModule
 	            	if (isset($parameters[$field])) {
 	            	    $values[$field] = $parameters[$field];
 	                } else {
-	                	$errors[] = $this->l("Missing payment field in response:") . " " . $field;
+	                	$errors[] = $this->l('Missing payment field in response:') . " " . $field;
 	                }
 	            }
 
 	  	    	// first, check if the cart id exists with the payment id provided
 	      	    if (!isset($values['pmt_id']) || (intval($values['pmt_id']) - 100) != $cart->id) {
-	      	    	$errors[] = $this->l("The payment didnt match any order.");
+	      	    	$errors[] = $this->l('The payment didnt match any order');
 	    	    }
 
 	    	    // then, check if the mk_status knows of such cart_id
 	    	    if (count($this->getCartInMkStatusByIdCart($cart->id)) != 1) {
-	    	    	$errors[] = $this->l("Could not find an order related to Maksuturva/eMaksut.");
+	    	    	$errors[] = $this->l('Could not find an order related to payment');
 	    	    }
 
 	    		// now, validate the hash
@@ -508,26 +524,75 @@ class Maksuturva extends PaymentModule
 	        	$calculatedHash = $gateway->generateReturnHash($values);
 	        	// test the hash
 	        	if (!($calculatedHash == $values['pmt_hash'])) {
-	        		$errors[] = $this->l("The payment verification code does not match.");
+	        		$errors[] = $this->l('The payment verification code does not match');
 	        	}
 
 	        	// validate amounts, values, etc
-	        	// fields which will be ignored
-	        	$ignore = array("pmt_hash", "pmt_paymentmethod", "pmt_reference");
+	        	// hash, reference number and sellercosts are validated separately, paymentmethod is not
+	        	$ignore = array("pmt_hash", "pmt_paymentmethod", "pmt_reference", "pmt_sellercosts");
 	        	foreach ($values as $key => $value) {
 	        		// just pass if ignore is on
 	        		if (in_array($key, $ignore)) {
 	        			continue;
 	        		}
 	        		if ($gateway->{$key} != $value) {
-	        			$errors[] = $this->l("The following field differs from your order: ") .
+	        			$errors[] = $this->l('The following field differs from your order: ') .
 	        				$key .
-	        				" (" . $this->l("obtained") . " " . $value . ", " . $this->l("expecting") . " " . $gateway->{$key} . ")";
+	        				" (" . $this->l('obtained') . " " . $value . ", " . $this->l('expecting') . " " . $gateway->{$key} . ")";
 	        		}
 	        	}
+	        	
+	        	//SELLERCOSTS VALIDATION
+	        	$original_payment_feeFloat = floatval(str_replace(",", ".", $gateway->{'pmt_sellercosts'}));
+	        	$new_payment_feeFloat = floatval(str_replace(",", ".", $values['pmt_sellercosts']));
+	        	$customerTotalPaid = $new_payment_feeFloat + floatval(str_replace(",", ".", $values['pmt_amount']));
+	        	if($original_payment_feeFloat != $new_payment_feeFloat){
+	        		// validate that payment_fee have not dropped
+	        		if($new_payment_feeFloat <  $original_payment_feeFloat) {
+	        			$errors[] = $this->l('Order is not saved. 	Invalid change in shipping and payment costs') .
+        				 " (" . $this->l('obtained') . " " . $values['pmt_sellercosts'] . ", " . $this->l('expecting') . " " . $gateway->{'pmt_sellercosts'} . "  )";
+	        		}
+	        		else {
+	        			// validate additional costs product (given by admin in module configurations)
+	        			// Product validation DOES NOT prevent saving the order
+	        			$seller_costs_product = new Product((int)Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID'));
+						if (!Validate::isLoadedObject($seller_costs_product)) {
+							$admin_messages[] = "***ADMIN: ".$this->l('ADMIN: Failed to add payment fee of')." ".number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " ")." EUR) ";
+							$admin_messages[] = $this->l('ADMIN: Payment fee product does not exist');
+							$admin_messages[] = $this->l('ADMIN: Customer paid total of')." ".number_format($customerTotalPaid, 2, ",", " ")." EUR) ";
+						}
+						else {
+							// PrestaShop 1.5+
+							if(method_exists('Product', 'getProductName')){
+								$seller_costs_product_name = Product::getProductName($seller_costs_product->id);
+							}
+							//PrestaShop 1.4
+							else{
+								$seller_costs_product_name = $seller_costs_product->name[$id_lang_default = (int)Configuration::get('PS_LANG_DEFAULT')];
+							}
+							if(Product::getQuantity($seller_costs_product->id) < 1) {
+								$admin_messages[] = "***ADMIN: ".$this->l('ADMIN: Failed to add payment fee of')." ".number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " ")." EUR) ";
+								$admin_messages[] = $this->l('ADMIN: Product')." '".$seller_costs_product_name."' ".$this->l('ADMIN: has run out');
+								$admin_messages[] = $this->l('ADMIN: Customer paid total of')." ".number_format($customerTotalPaid, 2, ",", " ")." EUR) ";
+							}
+							else{
+								//everything ok, inserting new product row
+								$cart->updateQty(1, (int)Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID'));
+							}
+							if(number_format(floatval($seller_costs_product->getPrice()),2,',','') != number_format($new_payment_feeFloat-$original_payment_feeFloat, 2, ',','')){
+								$admin_messages[] = "***ADMIN: ".$this->l('ADMIN: Customer paid additional payment fee')." (".number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " ")." EUR) ".
+										$this->l('ADMIN: differs from the product')." '".$seller_costs_product_name."' ".
+										$this->l('ADMIN: price')." (".number_format($seller_costs_product->getPrice(), 2, ",", " ")." EUR)";
+								$admin_messages[] = $this->l('ADMIN: Customer paid total of')." ".number_format($customerTotalPaid, 2, ",", " ")." EUR) ";
+							}
+						}
+	        		}
+	        	}
+	        	
+	        	
 	        	// pmt_reference is calculated
 	        	if ($gateway->calcPmtReferenceCheckNumber() != $values["pmt_reference"]) {
-	        		$errors[] = $this->l("One or more verification parameters could not be validated");
+	        		$errors[] = $this->l('One or more verification parameters could not be validated');
 	        	}
 	        	$totalPaid = (($gateway->pmt_amount != "") ? floatval(str_replace(",", ".", $gateway->pmt_amount)) : 0);
 	        	break;
@@ -543,30 +608,38 @@ class Maksuturva extends PaymentModule
   	    	}
   	    } else if ($action == "delayed") {
   	    	$id_order_state = Configuration::get('MAKSUTURVA_OS_AUTHORIZATION');
-  	    	$message = $this->l("Your payment is awaiting confirmation");
+  	    	$message = $this->l('Payment is awaiting confirmation');
   	    	$totalPaid = $cart->getOrderTotal();
   	    } else if ($action == "cancel") {
   	    	$id_order_state = Configuration::get('PS_OS_CANCELED');
-  	    	$message = $this->l("Your payment was canceled");
+  	    	$message = $this->l('Payment was canceled');
   	    } else {
   	    	$id_order_state = Configuration::get('PS_OS_PAYMENT');
-  	    	$message = $this->l("Your payment was successfully registered");
+  	    	$message = $this->l('Payment was successfully registered');
   	    }
 		// Get current reference number
 		require_once dirname(__FILE__) . '/MaksuturvaGatewayImplementation.php';
 		$gateway = new MaksuturvaGatewayImplementation($cart->id, $cart, Configuration::get('MAKSUTURVA_ENCODING'), $this);
 		$this->displayName .= ' PMT: ' . $gateway->getReferenceNumber($cart->id);
 		
-  	    // convert the message
-  	    $message = Tools::htmlentitiesUTF8(str_replace('\'', '', $message));
+		// convert the message
+		//change in rev 122, umlauts converted to url encoding in redirectLink-request
+  	    $message = str_replace('\'', '', $message);
+  	    $admin_message_string = "";
+  	    if(count($admin_messages) > 0){
+  	    	foreach ($admin_messages as $admin_message){
+  	    		$admin_message_string .= $admin_message . ". ";
+  	    	}
+  	    }
   	    // finally, validate the order with error or not
-  	    $this->validateOrder($cart->id, $id_order_state, $cart->getOrderTotal(), $this->displayName , $message, array(), $cart->id_currency, false, $customer->secure_key);
+  	    $this->validateOrder($cart->id, $id_order_state, $cart->getOrderTotal(), $this->displayName , $message.' '.$admin_message_string, array(), $cart->id_currency, false, $customer->secure_key);
 		// fetch the recent-created order
 		$order = new Order((int)($this->currentOrder));
 		// attatch to mk_status
 		$this->updateCartInMkStatusByIdCart($cart->id, (int)($this->currentOrder), $id_order_state);
+		
 		// redirect to display messages for this given order
-		Tools::redirectLink(__PS_BASE_URI__.'order-confirmation.php?id_cart='.(int)($cart->id).'&id_module='.(int)$this->id.'&id_order='.(int)($this->currentOrder).'&key='.$customer->secure_key.'&mks_msg=' . $message);
+		Tools::redirectLink(__PS_BASE_URI__.'order-confirmation.php?id_cart='.(int)($cart->id).'&id_module='.(int)$this->id.'&id_order='.(int)($this->currentOrder).'&key='.$customer->secure_key.'&mks_msg=' . rawurlencode($message));
 	}
 
 	/**
@@ -648,7 +721,7 @@ class Maksuturva extends PaymentModule
 
 		    	// errors
 		    	if ($response === false) {
-		    		$messages[] = $this->l("Error while communicating with maksuturva: Invalid hash or network error.");
+		    		$messages[] = $this->l('ADMIN: Error while communicating with maksuturva: Invalid hash or network error');
 		    		$checkAgain = true;
 		    	} else {
 			    	switch ($response["pmtq_returncode"]) {
@@ -662,10 +735,10 @@ class Maksuturva extends PaymentModule
 			    				$order = new Order(intval($status["id_order"]));
 			    				$order->setCurrentState(Configuration::get('PS_OS_PAYMENT'));
 			    			} else {
-			    				$confirmMessage = $this->l("Payment confirmed by Maksuturva");
+			    				$confirmMessage = $this->l('ADMIN: Payment confirmed by Maksuturva');
 			    				$this->validateOrder($cart->id, Configuration::get('PS_OS_PAYMENT'), $cart->getOrderTotal(), $this->displayName, $confirmMessage, array(), $cart->id_currency, false, $customer->secure_key);
 			    			}
-			    			$messages[] = $this->l("The payment confirmation was received - payment accepted");
+			    			$messages[] = $this->l('ADMIN: The payment confirmation was received - payment accepted');
 			    			break;
 
 			    		// set payment cancellation with the notice
@@ -681,17 +754,17 @@ class Maksuturva extends PaymentModule
 			    				$order = new Order(intval($status["id_order"]));
 			    				$order->setCurrentState(Configuration::get('PS_OS_CANCELED'));
 			    			} else {
-			    				$confirmMessage = $this->l("Payment canceled in Maksuturva");
+			    				$confirmMessage = $this->l('Payment canceled in Maksuturva');
 			    				$this->validateOrder($cart->id, Configuration::get('PS_OS_CANCELED'), $cart->getOrderTotal(), $this->displayName, $confirmMessage, array(), $cart->id_currency, false, $customer->secure_key);
 			    			}
 
-			    			$messages[] = $this->l("The payment was canceled in Maksuturva");
+			    			$messages[] = $this->l('The payment was canceled in Maksuturva');
 		    				break;
 
 		    			// this is the case where the buyer changed the payment method while the
 		    			// mk_status was created: we stop checking the order
 		    			case MaksuturvaGatewayImplementation::STATUS_QUERY_NOT_FOUND:
-		    				$messages[] = $this->l("The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method");
+		    				$messages[] = $this->l('ADMIN: The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method');
 		    				$this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"], Configuration::get('PS_OS_CANCELED'));
 		    				break;
 
@@ -701,7 +774,7 @@ class Maksuturva extends PaymentModule
 		    			case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID:
 		    			case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID_DELIVERY:
 		    			default:
-		    				$messages[] = $this->l("The payment is still awaiting for confirmation");
+		    				$messages[] = $this->l('ADMIN: The payment is still awaiting for confirmation');
 		    				$checkAgain = true;
 			    			break;
 			    	}
@@ -709,25 +782,25 @@ class Maksuturva extends PaymentModule
 				break;
 
 			case Configuration::get('PS_OS_PAYMENT'):
-				$messages[] = $this->l("The payment was confirmed by Maksuturva/eMaksut");
+				$messages[] = $this->l('ADMIN: The payment was confirmed by Maksuturva');
 				break;
 
 			case Configuration::get('PS_OS_CANCELED'):
 				if (intval($status["id_order"]) != 0) {
 					$order = new Order(intval($status["id_order"]));
 					if ($order->getCurrentState() != Configuration::get('PS_OS_CANCELED')) {
-						$messages[] = $this->l("The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method.");
+						$messages[] = $this->l('ADMIN: The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method');
 					} else {
-						$messages[] = $this->l("The payment was canceled by the customer");
+						$messages[] = $this->l('ADMIN: The payment was canceled by the customer');
 					}
 				} else {
-					$messages[] = $this->l("The payment was canceled by the customer");
+					$messages[] = $this->l('ADMIN: The payment was canceled by the customer');
 				}
 				break;
 
 			case Configuration::get('PS_OS_ERROR'):
 			default:
-				$messages[] = $this->l("An error occurred and the payment was not confirmed. Please check manually.");
+				$messages[] = $this->l('ADMIN: An error occurred and the payment was not confirmed. Please check manually');
 				$checkAgain = true;
 				break;
 		}
@@ -737,13 +810,13 @@ class Maksuturva extends PaymentModule
 			$messageHtml .= "<p style='font-weight: bold;'>" . $message . "</p>";
 		}
 		if ($checkAgain) {
-			$messageHtml .= "<p style='text-decoration: underline;'>" . $this->l("Refresh this page to check again.") . "</p>";
+			$messageHtml .= "<p style='text-decoration: underline;'>" . $this->l('ADMIN: Refresh this page to check again') . "</p>";
 		}
 
 		$html = "<br/>
 		<fieldset>
 		    <legend>
-		    	<img src='" . $this->_path . "/logo.png' width='20'/>" . $this->l("Payment status update") . "</legend>
+		    	<img src='" . $this->_path . "/logo.png' width='20'/>" . $this->l('ADMIN: Payment status update') . "</legend>
 		    " . $messageHtml . "
 		</fieldset>
 		";
