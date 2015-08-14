@@ -375,12 +375,9 @@ class Maksuturva extends PaymentModule
 			if (strlen(Tools::getValue('secret_key_mks')) == 0) {
 				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
 			}
-			if (!preg_match('/^[0-9]{3}$/', Tools::getValue('secret_key_version_mks'))) {
-				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version (should be numeric, 3 digits long)');
-			}
 		}
-		if (!Validate::isUnsignedInt(Tools::getValue('secret_key_version_mks'))) {
-			$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version');
+		if (!Maksuturva::validateHashGenerationNumber(Tools::getValue('secret_key_version_mks'))) {
+			$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numberic and 3 digits long, e.g. 001. ');
 		}
 		if (Tools::getValue('mks_encoding') != "UTF-8" && Tools::getValue('mks_encoding') != "ISO-8859-1") {
 			$this->_errors[] = $this->l('ADMIN: Invalid Encoding');
@@ -528,8 +525,8 @@ class Maksuturva extends PaymentModule
 	        	}
 
 	        	// validate amounts, values, etc
-	        	// hash, reference number and sellercosts are validated separately, paymentmethod is not
-	        	$ignore = array("pmt_hash", "pmt_paymentmethod", "pmt_reference", "pmt_sellercosts");
+	        	// hash, reference number and sellercosts are validated separately, paymentmethod and escrow are not
+	        	$ignore = array("pmt_hash", "pmt_paymentmethod", "pmt_reference", "pmt_sellercosts", "pmt_escrow");
 	        	foreach ($values as $key => $value) {
 	        		// just pass if ignore is on
 	        		if (in_array($key, $ignore)) {
@@ -918,5 +915,14 @@ class Maksuturva extends PaymentModule
 	public function getCartsInMkStatusByStatus($status)
 	{
 		return Db::getInstance()->s('SELECT * FROM `'._DB_PREFIX_.'mk_status` WHERE status = ' . intval($status) . ';');
+	}
+	
+	/**
+	 *
+	 * @param int $value
+	 * @return boolean - matches Maksuturva hash generation format or not
+	 */
+	public function validateHashGenerationNumber($value){
+		return (preg_match('#^[0-9]{3}$#', (string)$value) && $value < 4294967296 && $value >= 0);
 	}
 }
