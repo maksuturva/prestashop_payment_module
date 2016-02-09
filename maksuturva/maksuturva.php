@@ -1,28 +1,51 @@
 <?php
 /**
- * Maksuturva Payment Module
- * Creation date: 01/12/2011
+ * 2016 Maksuturva Group Oy
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to info@maksuturva.fi so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to http://www.prestashop.com for more information.
+ *
+ * @author    Maksuturva Group Oy <info@maksuturva.fi>
+ * @copyright 2016 Maksuturva Group Oy
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
-if (!defined('_PS_VERSION_')) {
+
+if (!defined('_PS_VERSION_'))
 	exit;
-}
 
 /**
- * Main class for gateway payments
- * @author Maksuturva
+ * Payment module for accepts payments using Maksuturva.
+ *
+ * @property ContextCore|Context $context
+ *
+ * @method string l($string, $specific = false)
+ * @method string displayConfirmation($string)
+ * @method string displayWarning($warning)
+ * @method string displayError($error)
  */
 class Maksuturva extends PaymentModule
 {
-	private $_html = '';
-	private $_postErrors = array();
-
 	/**
-	 * Module configuration values
 	 * @var array
 	 */
-	public  $config = array();
+	public $config = array();
 
-	// variables from GET on payment return
+	/**
+	 * @var array
+	 */
     private $_mandatoryFields = array(
     	"pmt_action",
     	"pmt_version",
@@ -51,8 +74,10 @@ class Maksuturva extends PaymentModule
 
 		$this->_checkConfig(false);
 		$this->displayName = $this->l('ADMIN: Maksuturva');
-		$this->description = $this->l('ADMIN: Accepts payments using Maksuturva/eMaksut');
+		$this->description = $this->l('ADMIN: Accepts payments using Maksuturva');
 		$this->_errors = array();
+
+		$this->bootstrap = true;
 
 		parent::__construct();
 		$this->confirmUninstall = $this->l('ADMIN: Are you sure you want to delete Maksuturva module?');
@@ -83,6 +108,10 @@ class Maksuturva extends PaymentModule
 		}
 
 		$this->_checkConfig();
+
+		/* Backward compatibility */
+		if (_PS_VERSION_ < '1.5')
+			require_once(_PS_MODULE_DIR_.$this->name.'/backward_compatibility/backward.php');
 	}
 
 	/**
@@ -129,7 +158,6 @@ class Maksuturva extends PaymentModule
 	        'MAKSUTURVA_URL',
 	      	'MAKSUTURVA_ENCODING',
 	      	'MAKSUTURVA_SANDBOX',
-	      	'MAKSUTURVA_EMAKSUT',
     		'MAKSUTURVA_OS_AUTHORIZATION',
     		'MAKSUTURVA_PAYMENT_FEE_ID'    		
       	);
@@ -157,7 +185,6 @@ class Maksuturva extends PaymentModule
 			!Configuration::updateValue('MAKSUTURVA_URL', 'https://www.maksuturva.fi') ||
 			!Configuration::updateValue('MAKSUTURVA_ENCODING', 'UTF-8') ||
 			!Configuration::updateValue('MAKSUTURVA_SANDBOX', '1') ||
-			!Configuration::updateValue('MAKSUTURVA_EMAKSUT', '0') ||
     		!Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', '')) {
 			return false;
 		}
@@ -230,7 +257,6 @@ class Maksuturva extends PaymentModule
 				'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
 				'form_action' => MaksuturvaGatewayImplementation::getPaymentUrl(Configuration::get('MAKSUTURVA_URL')),
 				'maksuturva_fields' => $gateway->getFieldArray(),
-				'emaksut'  => Configuration::get('MAKSUTURVA_EMAKSUT'),
 			)
 		);
 
@@ -263,86 +289,157 @@ class Maksuturva extends PaymentModule
 	 */
 	public function getContent()
 	{
-		$this->_html = "";
-
-		$this->_postProcess();
-		$this->_setConfigurationForm();
-		return $this->_html;
+		$html = '';
+		$html .= $this->_postProcess();
+		$html .= $this->_displayForm();
+		return $html;
 	}
 
 	/**
-	 * Administration
-	 * Renders the configuration form
+	 * @return string
 	 */
-	private function _setConfigurationForm()
+	private function _displayForm()
 	{
-		$sandboxMode = (int)(Tools::getValue('sandbox_mode', Configuration::get('MAKSUTURVA_SANDBOX')));
-		$encoding = (Tools::getValue('mks_encoding', Configuration::get('MAKSUTURVA_ENCODING')));
-		$emaksut = (int)(Tools::getValue('mks_emaksut', Configuration::get('MAKSUTURVA_EMAKSUT')));
+		$form_data = array(
+			array(
+				'form' => array(
+					'legend' => array(
+						'title' => $this->l('ADMIN: Account Settings'),
+						'icon' => 'icon-user'
+					),
+					'input' => array(
+						array(
+							'type' => 'text',
+							'label' => $this->l('ADMIN: Seller ID'),
+							'name' => 'MAKSUTURVA_SELLER_ID',
+							'required' => true
+						),
+						array(
+							'type' => 'text',
+							'label' => $this->l('ADMIN: Secret Key'),
+							'name' => 'MAKSUTURVA_SECRET_KEY',
+							'required' => true
+						),
+						array(
+							'type' => 'text',
+							'label' => $this->l('ADMIN: Secret Key Version'),
+							'name' => 'MAKSUTURVA_SECRET_KEY_VERSION',
+							'required' => true
+						),
+						array(
+							'type' => 'text',
+							'label' => $this->l('ADMIN: Additional payment fee product ID'),
+							'name' => 'MAKSUTURVA_PAYMENT_FEE_ID',
+							'required' => false
+						),
+					),
+					'submit' => array(
+						'title' => $this->l('ADMIN: Save'),
+						'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
+					)
+				),
+			),
+			array(
+				'form' => array(
+					'legend' => array(
+						'title' => $this->l('ADMIN: Advanced Settings'),
+						'icon' => 'icon-cog'
+					),
+					'input' => array(
+						array(
+							'type' => 'text',
+							'label' => $this->l('ADMIN: Communication URL'),
+							'name' => 'MAKSUTURVA_URL',
+							'required' => true
+						),
+						array(
+							'type' => 'radio',
+							'label' => $this->l('ADMIN: Sandbox mode (tests)'),
+							'name' => 'MAKSUTURVA_SANDBOX',
+							'class' => 't',
+							'required' => true,
+							'is_bool' => true,
+							'values' => array(
+								array(
+									'id'    => 'sandbox_mode_0',
+									'value' => 0,
+									'label' => $this->l('ADMIN: Off')
+								),
+								array(
+									'id'    => 'sandbox_mode_1',
+									'value' => 1,
+									'label' => $this->l('ADMIN: On')
+								),
+							),
+						),
+						array(
+							'type' => 'radio',
+							'label' => $this->l('ADMIN: Communication Encoding'),
+							'name' => 'MAKSUTURVA_ENCODING',
+							'class' => 't',
+							'required' => true,
+							'is_bool' => false,
+							'values' => array(
+								array(
+									'id'    => 'mks_utf',
+									'value' => 'UTF-8',
+									'label' => 'UTF-8'
+								),
+								array(
+									'id'    => 'mks_iso',
+									'value' => 'ISO-8859-1',
+									'label' => 'ISO-8859-1'
+								),
+							),
+						),
+					),
+					'submit' => array(
+						'title' => $this->l('ADMIN: Save'),
+						'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
+					)
+				),
+			)
+		);
 
-		$this->_html .= '
-		<style>.tab-row .tab { width: 180px; }</style>
-		<form method="post" action="'.htmlentities($_SERVER['REQUEST_URI']).'">
-			<div id="cfg-pane-1" style="width:70%; margin: 10px auto;">
-				 <div class="tab-page" id="step1">
-					<h4 class="tab">'.$this->l('ADMIN: Maksuturva/eMaksut configuration').'</h4>
-					<h2>'.$this->l('ADMIN: Settings').'</h2>
+		/** @var HelperFormCore|HelperForm $helper */
+		$helper = new HelperForm();
+		$helper->module = $this;
+		$helper->title = $this->displayName;
+		$helper->name_controller = $this->name;
+		$helper->identifier = $this->identifier;
+		$helper->table = $this->table;
+		$helper->submit_action = 'submit'.$this->name;
+		$helper->show_toolbar = false;
+		$helper->default_form_language = (int)Configuration::get('PS_LANG_DEFAULT');
+		$helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
+			? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
+			: 0;
+		$helper->token = Tools::getAdminTokenLite('AdminModules');
+		$helper->currentIndex = $this->getAdminLink('AdminModules', false)
+			.'&configure='.$this->name
+			.'&tab_module='.$this->tab
+			.'&module_name='.$this->name;
+		$helper->tpl_vars = array(
+			'fields_value' => $this->_getFormConfig(),
+		);
 
-					<label>'.$this->l('ADMIN: Seller ID').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="text" name="seller_id_mks" value="'.htmlentities(Tools::getValue('seller_id_mks', Configuration::get('MAKSUTURVA_SELLER_ID')), ENT_COMPAT, 'UTF-8').'" size="10" />
-					</div>
-					<div class="clear"></div>
+		return $helper->generateForm($form_data);
+	}
 
-					<label>'.$this->l('ADMIN: Secret Key').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="text" name="secret_key_mks" value="'.htmlentities(Tools::getValue('secret_key_mks', Configuration::get('MAKSUTURVA_SECRET_KEY')), ENT_COMPAT, 'UTF-8').'" size="30" />
-					</div>
-					<div class="clear"></div>
-
-					<label>'.$this->l('ADMIN: Secret Key Version').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="text" name="secret_key_version_mks" value="'.htmlentities(Tools::getValue('secret_key_version_mks', Configuration::get('MAKSUTURVA_SECRET_KEY_VERSION')), ENT_COMPAT, 'UTF-8').'" size="5" />
-					</div>
-					<div class="clear"></div>
-
-					<label>'.$this->l('ADMIN: Communication Encoding').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="mks_encoding" id="mks_utf" value="UTF-8" '.($encoding != "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_utf" class="t">'.$this->l('ADMIN: UTF-8').'</label>
-						<input type="radio" name="mks_encoding" id="mks_iso" value="ISO-8859-1" style="margin-left:15px;" '.($encoding == "ISO-8859-1" ? 'checked="checked" ' : '').'/> <label for="mks_iso" class="t">'.$this->l('ADMIN: ISO-8859-1').'</label>
-					</div>
-					<div class="clear"></div>
-
-					<label>'.$this->l('ADMIN: eMaksut').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="mks_emaksut" id="mks_emaksut_1" value="1" '.($emaksut? 'checked="checked" ' : '').'/> <label for="mks_emaksut_1" class="t">'.$this->l('ADMIN: Active').'</label>
-						<input type="radio" name="mks_emaksut" id="mks_emaksut_0" value="0" style="margin-left:15px;" '.(!$emaksut ? 'checked="checked" ' : '').'/> <label for="mks_emaksut_0" class="t">'.$this->l('ADMIN: Inactive').'</label>
-					</div>
-					<div class="clear"></div>
-
-					<label>'.$this->l('ADMIN: Sandbox mode (tests)').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="radio" name="sandbox_mode" id="sandbox_mode_1" value="1" '.($sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_1" class="t">'.$this->l('ADMIN: Active').'</label>
-						<input type="radio" name="sandbox_mode" id="sandbox_mode_0" value="0" style="margin-left:15px;" '.(!$sandboxMode ? 'checked="checked" ' : '').'/> <label for="sandbox_mode_0" class="t">'.$this->l('ADMIN: Inactive').'</label>
-					</div>
-					<div class="clear"></div>
-
-					<label>'.$this->l('ADMIN: Communication URL').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="text" name="mks_communication_url" value="'.htmlentities(Tools::getValue('mks_communication_url', Configuration::get('MAKSUTURVA_URL')), ENT_COMPAT, 'UTF-8').'" size="30" />
-					</div>
-					<div class="clear"></div>
-			
-					<label>'.$this->l('ADMIN: Additional payment fee product ID').':</label>
-					<div class="margin-form" style="padding-top:2px;">
-						<input type="text" name="mks_additional_payment_fee_product_id" value="'.htmlentities(Tools::getValue('mks_additional_payment_fee_product_id', Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID')), ENT_COMPAT, 'UTF-8').'" size="6" />
-					</div>
-					<div class="clear"></div>
-					<p class="center"><input class="button" type="submit" name="submitMaksuturva" value="'.$this->l('ADMIN: Save settings').'" /></p>
-				</div>
-			</div>
-			<div class="clear"></div>
-		</form>';
+	/**
+	 * @return array
+	 */
+	private function _getFormConfig()
+	{
+		return array(
+			'MAKSUTURVA_SELLER_ID' => Tools::getValue('MAKSUTURVA_SELLER_ID', Configuration::get('MAKSUTURVA_SELLER_ID')),
+			'MAKSUTURVA_SECRET_KEY' => Tools::getValue('MAKSUTURVA_SECRET_KEY', Configuration::get('MAKSUTURVA_SECRET_KEY')),
+			'MAKSUTURVA_SECRET_KEY_VERSION' => Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION', Configuration::get('MAKSUTURVA_SECRET_KEY_VERSION')),
+			'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID', Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID')),
+			'MAKSUTURVA_URL' => Tools::getValue('MAKSUTURVA_URL', Configuration::get('MAKSUTURVA_URL')),
+			'MAKSUTURVA_SANDBOX' => Tools::getValue('MAKSUTURVA_SANDBOX', Configuration::get('MAKSUTURVA_SANDBOX')),
+			'MAKSUTURVA_ENCODING' => Tools::getValue('MAKSUTURVA_ENCODING', Configuration::get('MAKSUTURVA_ENCODING')),
+		);
 	}
 
 	/**
@@ -351,72 +448,73 @@ class Maksuturva extends PaymentModule
 	 */
 	private function _postProcess()
 	{
-		// administration section, config
-		if (Tools::isSubmit('submitMaksuturva')) {
-			$this->_postProcessConfigurations();
+		$html = '';
+
+		if (Tools::isSubmit('submitmaksuturva')) {
+			if (Tools::getValue('MAKSUTURVA_SANDBOX') == "0") {
+				if (strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) > 15 || strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) == 0) {
+					$this->_errors[] = $this->l('ADMIN: Invalid Seller ID');
+				}
+				if (strlen(Tools::getValue('MAKSUTURVA_SECRET_KEY')) == 0) {
+					$this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
+				}
+			}
+			if (!Maksuturva::validateHashGenerationNumber(Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION'))) {
+				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
+			}
+			if (Tools::getValue('MAKSUTURVA_ENCODING') != "UTF-8" && Tools::getValue('MAKSUTURVA_ENCODING') != "ISO-8859-1") {
+				$this->_errors[] = $this->l('ADMIN: Invalid Encoding');
+			}
+			if (Tools::getValue('MAKSUTURVA_SANDBOX') != "0" && Tools::getValue('MAKSUTURVA_SANDBOX') != "1") {
+				$this->_errors[] = $this->l('ADMIN: Invalid Sandbox flag');
+			}
+			if (Tools::getValue('MAKSUTURVA_URL') != NULL && !Validate::isUrl(Tools::getValue('MAKSUTURVA_URL'))) {
+				$this->_errors[] = $this->l('ADMIN: Communication url is invalid');
+			}
+
+            $product = new Product((int)preg_replace("/[^0-9]/", "", Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID')));
+            if (Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID') != NULL){
+                if (!Validate::isLoadedObject($product)) {
+                    $this->_errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
+                }
+            }
+
+			if (!sizeof($this->_errors)) {
+				Configuration::updateValue('MAKSUTURVA_SELLER_ID', Tools::getValue('MAKSUTURVA_SELLER_ID'));
+				Configuration::updateValue('MAKSUTURVA_SECRET_KEY', trim(Tools::getValue('MAKSUTURVA_SECRET_KEY')));
+				Configuration::updateValue('MAKSUTURVA_SECRET_KEY_VERSION', Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION'));
+				Configuration::updateValue('MAKSUTURVA_ENCODING', trim(Tools::getValue('MAKSUTURVA_ENCODING')));
+				Configuration::updateValue('MAKSUTURVA_SANDBOX', trim(Tools::getValue('MAKSUTURVA_SANDBOX')));
+				Configuration::updateValue('MAKSUTURVA_URL', trim(Tools::getValue('MAKSUTURVA_URL')));
+				Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', trim(Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID')));
+				$html .= $this->displayConfirmation($this->l('ADMIN: Settings updated'));
+			} else {
+				$html .= $this->displayError(implode('<br />', $this->_errors));
+			}
 		}
 
-		// any other administration content handling comes here
-		// (for expansion purposes)
+		return $html;
 	}
 
 	/**
-	 * Administration:
-	 * Handles the configuration administration updates
-	 * and validations
+	 * Create a admin link URL.
+	 *
+	 * This is a copy of the same method in the "LinkCore" class with added support for PS 1.4.
+	 *
+	 * @param string $controller the name of the controller to link to.
+	 * @param boolean $with_token include or not the token in the url.
+	 * @return string the URL.
 	 */
-	private function _postProcessConfigurations()
+	public function getAdminLink($controller, $with_token = true)
 	{
-		// seller id and secret key are validated if not in sandbox mode
-		if (Tools::getValue('sandbox_mode') == "0") {
-			if (strlen(Tools::getValue('seller_id_mks')) > 15 || strlen(Tools::getValue('seller_id_mks')) == 0) {
-				$this->_errors[] = $this->l('ADMIN: Invalid Seller ID');
-			}
-			if (strlen(Tools::getValue('secret_key_mks')) == 0) {
-				$this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
-			}
-		}
-		if (!Maksuturva::validateHashGenerationNumber(Tools::getValue('secret_key_version_mks'))) {
-			$this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numberic and 3 digits long, e.g. 001. ');
-		}
-		if (Tools::getValue('mks_encoding') != "UTF-8" && Tools::getValue('mks_encoding') != "ISO-8859-1") {
-			$this->_errors[] = $this->l('ADMIN: Invalid Encoding');
-		}
-		if (Tools::getValue('mks_emaksut') != "0" && Tools::getValue('mks_emaksut') != "1") {
-			$this->_errors[] = $this->l('ADMIN: Invalid eMaksut flag');
-		}
-		if (Tools::getValue('sandbox_mode') != "0" && Tools::getValue('sandbox_mode') != "1") {
-			$this->_errors[] = $this->l('ADMIN: Invalid Sandbox flag');
-		}
-		if (Tools::getValue('mks_communication_url') != NULL && !Validate::isUrl(Tools::getValue('mks_communication_url'))) {
-			$this->_errors[] = $this->l('ADMIN: Communication url is invalid');
-		}
+		if (_PS_VERSION_ >= '1.5')
+			return $this->context->link->getAdminLink('AdminModules', false);
 
-		$additional_payment_fee_product = new Product((int)preg_replace("/[^0-9]/", "", Tools::getValue('mks_additional_payment_fee_product_id')));
-		if (Tools::getValue('mks_additional_payment_fee_product_id') != NULL){
-			if (!Validate::isLoadedObject($additional_payment_fee_product)) {
-				$this->_errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
-			}	
-		}
+		$params = array('tab' => $controller);
+		if ($with_token)
+			$params['token'] = Tools::getAdminTokenLite($controller);
 
-
-		if (!sizeof($this->_errors)) {
-			Configuration::updateValue('MAKSUTURVA_SELLER_ID', Tools::getValue('seller_id_mks'));
-			Configuration::updateValue('MAKSUTURVA_SECRET_KEY', trim(Tools::getValue('secret_key_mks')));
-			Configuration::updateValue('MAKSUTURVA_SECRET_KEY_VERSION', Tools::getValue('secret_key_version_mks'));
-			Configuration::updateValue('MAKSUTURVA_ENCODING', trim(Tools::getValue('mks_encoding')));
-			Configuration::updateValue('MAKSUTURVA_EMAKSUT', trim(Tools::getValue('mks_emaksut')));
-			Configuration::updateValue('MAKSUTURVA_SANDBOX', trim(Tools::getValue('sandbox_mode')));
-			Configuration::updateValue('MAKSUTURVA_URL', trim(Tools::getValue('mks_communication_url')));
-			Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', trim(Tools::getValue('mks_additional_payment_fee_product_id')));				
-			$this->_html = $this->displayConfirmation($this->l('ADMIN: Settings updated'));
-		} else {
-			$error_msg = '';
-			foreach ($this->_errors AS $error) {
-				$error_msg .= $error.'<br />';
-			}
-			$this->_html = $this->displayError($error_msg);
-		}
+		return 'index.php?'.http_build_query($params);
 	}
 
 	/**
@@ -443,7 +541,6 @@ class Maksuturva extends PaymentModule
 			array(
 				'this_path' => $this->_path,
 				'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
-				'emaksut'  => Configuration::get('MAKSUTURVA_EMAKSUT'),
 			)
 		);
 
@@ -674,7 +771,6 @@ class Maksuturva extends PaymentModule
 		$smarty->assign(array(
 			'this_path' => $this->_path,
 			'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
-			'emaksut'  => Configuration::get('MAKSUTURVA_EMAKSUT'),
 			'status' => $status,
 			'message' => str_replace('. ', '.<br/>', Tools::getValue('mks_msg'))
 		));
