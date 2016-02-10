@@ -26,15 +26,31 @@
 if (!defined('_PS_VERSION_'))
 	exit;
 
+/*
+ * Only try to load class files if we can resolve the __FILE__ global to the current file.
+ * We need to do this as this module file is parsed with eval() on the modules page, and eval() messes up the __FILE__.
+ */
+if ((basename(__FILE__) === 'maksuturva.php'))
+{
+	$module_dir = dirname(__FILE__);
+	require_once($module_dir.'/MaksuturvaGatewayImplementation.php');
+}
+
 /**
  * Payment module for accepts payments using Maksuturva.
  *
+ * @property int $id
+ * @property string $_path
  * @property ContextCore|Context $context
+ *
+ * @property int currentOrder
  *
  * @method string l($string, $specific = false)
  * @method string displayConfirmation($string)
  * @method string displayWarning($warning)
  * @method string displayError($error)
+ *
+ * @method bool validateOrder($id_cart, $id_order_state, $amount_paid, $payment_method = 'Unknown', $message = null, $extra_vars = array(), $currency_special = null, $dont_touch_amount = false, $secure_key = false, Shop $shop = null)
  */
 class Maksuturva extends PaymentModule
 {
@@ -241,7 +257,6 @@ class Maksuturva extends PaymentModule
 		}
 
 		// build up the "post to pay" form
-		require_once dirname(__FILE__) . "/MaksuturvaGatewayImplementation.php";
 		$gateway = new MaksuturvaGatewayImplementation($cart->id, $cart, Configuration::get('MAKSUTURVA_ENCODING'), $this);
 
 		// insert the order in mk_status to be verified later
@@ -254,7 +269,7 @@ class Maksuturva extends PaymentModule
 				'currencies' => $this->getCurrency((int)$cart->id_currency),
 				'total' => $cart->getOrderTotal(true, Cart::BOTH),
 				'this_path' => $this->_path,
-				'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
+				'this_path_ssl' => $this->getPathSSL(),
 				'form_action' => MaksuturvaGatewayImplementation::getPaymentUrl(Configuration::get('MAKSUTURVA_URL')),
 				'maksuturva_fields' => $gateway->getFieldArray(),
 			)
@@ -520,27 +535,22 @@ class Maksuturva extends PaymentModule
 	/**
 	 * Processes the payment
 	 * @param array $params
+	 *
+	 * @return string
 	 */
 	public function hookPayment($params)
 	{
-		global $smarty;
-		
-		if (!$this->active) {
-			return;
-		}
-
 		// only EUR is supported - we validate it against
 		// 1) shop (if it has EUR)
 		// 2) cart (if it has only EUR products within)
 		if (!$this->checkCurrency($params['cart'])) {
-			return;
+			return '';
 		}
 
-		// render the form
-		$smarty->assign(
+		$this->context->smarty->assign(
 			array(
 				'this_path' => $this->_path,
-				'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
+				'this_path_ssl' => $this->getPathSSL(),
 			)
 		);
 
@@ -573,7 +583,6 @@ class Maksuturva extends PaymentModule
 			$errors[] = $this->l('The cart currency is not supported');
 		}
 
-		$totalPaid = 0;
 		// regular payment
   	    switch ($action) {
   	    	case "cancel":
@@ -611,7 +620,6 @@ class Maksuturva extends PaymentModule
 	    	    }
 
 	    		// now, validate the hash
-	            require_once dirname(__FILE__) . '/MaksuturvaGatewayImplementation.php';
 	            // instantiate the gateway with the original order
 	        	$gateway = new MaksuturvaGatewayImplementation($cart->id, $cart, Configuration::get('MAKSUTURVA_ENCODING'), $this);
 	    		// calculate the hash for order
@@ -682,28 +690,21 @@ class Maksuturva extends PaymentModule
 						}
 	        		}
 	        	}
-	        	
-	        	
+
 	        	// pmt_reference is calculated
 	        	if ($gateway->calcPmtReferenceCheckNumber() != $values["pmt_reference"]) {
 	        		$errors[] = $this->l('One or more verification parameters could not be validated');
 	        	}
-	        	$totalPaid = (($gateway->pmt_amount != "") ? floatval(str_replace(",", ".", $gateway->pmt_amount)) : 0);
 	        	break;
   	    }
 
-  	    $message = "";
   	    // for actions "ok" and "error"
   	    if (count($errors) > 0) {
   	    	$id_order_state = Configuration::get('PS_OS_ERROR');
-  	    	// assembly the error message
-  	    	foreach ($errors as $error) {
-  	    		$message .= $error . ". ";
-  	    	}
+			$message = implode('. ', $errors).'.';
   	    } else if ($action == "delayed") {
   	    	$id_order_state = Configuration::get('MAKSUTURVA_OS_AUTHORIZATION');
   	    	$message = $this->l('Payment is awaiting confirmation');
-  	    	$totalPaid = $cart->getOrderTotal();
   	    } else if ($action == "cancel") {
   	    	$id_order_state = Configuration::get('PS_OS_CANCELED');
   	    	$message = $this->l('Payment was canceled');
@@ -711,69 +712,70 @@ class Maksuturva extends PaymentModule
   	    	$id_order_state = Configuration::get('PS_OS_PAYMENT');
   	    	$message = $this->l('Payment was successfully registered');
   	    }
+
 		// Get current reference number
-		require_once dirname(__FILE__) . '/MaksuturvaGatewayImplementation.php';
 		$gateway = new MaksuturvaGatewayImplementation($cart->id, $cart, Configuration::get('MAKSUTURVA_ENCODING'), $this);
 		$this->displayName .= ' PMT: ' . $gateway->getReferenceNumber($cart->id);
 		
 		// convert the message
-		//change in rev 122, umlauts converted to url encoding in redirectLink-request
+		// change in rev 122, umlauts converted to url encoding in redirectLink-request
   	    $message = str_replace('\'', '', $message);
-  	    $admin_message_string = "";
-  	    if(count($admin_messages) > 0){
-  	    	foreach ($admin_messages as $admin_message){
-  	    		$admin_message_string .= $admin_message . ". ";
-  	    	}
-  	    }
+		$admin_message = (count($admin_messages) > 0) ? implode('. ', $admin_messages).'.' : '';
+
   	    // finally, validate the order with error or not
-  	    $this->validateOrder($cart->id, $id_order_state, $cart->getOrderTotal(), $this->displayName , $message.' '.$admin_message_string, array(), $cart->id_currency, false, $customer->secure_key);
+  	    $this->validateOrder($cart->id, $id_order_state, $cart->getOrderTotal(), $this->displayName , $message.' '.$admin_message, array(), $cart->id_currency, false, $customer->secure_key);
 		// fetch the recent-created order
-		$order = new Order((int)($this->currentOrder));
-		// attatch to mk_status
-		$this->updateCartInMkStatusByIdCart($cart->id, (int)($this->currentOrder), $id_order_state);
+		new Order((int)$this->currentOrder);
+		// attach to mk_status
+		$this->updateCartInMkStatusByIdCart((int)$cart->id, (int)$this->currentOrder, (int)$id_order_state);
 		
 		// redirect to display messages for this given order
-		Tools::redirectLink(__PS_BASE_URI__.'order-confirmation.php?id_cart='.(int)($cart->id).'&id_module='.(int)$this->id.'&id_order='.(int)($this->currentOrder).'&key='.$customer->secure_key.'&mks_msg=' . rawurlencode($message));
+		$query_string = http_build_query(array(
+			'id_cart' => $cart->id,
+			'id_module' => $this->id,
+			'id_order' => $this->currentOrder,
+			'key' => $customer->secure_key,
+			'mks_msg' => $message,
+		));
+		if (_PS_VERSION_ >= '1.5')
+			Tools::redirect('index.php?controller=order-confirmation&'.$query_string);
+		else
+			Tools::redirectLink(__PS_BASE_URI__.'order-confirmation.php?'.$query_string);
 	}
 
 	/**
 	 * Used in order-confirmation.tpl to display a payment successful (or pending) message
 	 * @param array $params
+	 *
+	 * @return string
 	 */
 	public function hookPaymentReturn($params)
 	{
-		global $smarty;
-
-		if (!$this->active) {
-			return;
+		if (!isset($params['objOrder'])) {
+			return '';
 		}
 
-		$state = $params['objOrder']->getCurrentState();
-		switch ($state) {
-			case Configuration::get('MAKSUTURVA_OS_AUTHORIZATION'):
-				$status = "pending";
-				break;
+		/** @var OrderCore|Order $order */
+		$order = $params['objOrder'];
 
-			case Configuration::get('PS_OS_PAYMENT'):
-				$status = "ok";
-				break;
+		$status_map = array(
+			Configuration::get('PS_OS_PAYMENT') => 'ok',
+			Configuration::get('PS_OS_OUTOFSTOCK') => 'ok',
+			Configuration::get('PS_OS_OUTOFSTOCK_PAID') => 'ok',
+			Configuration::get('MAKSUTURVA_OS_AUTHORIZATION') => 'pending',
+			Configuration::get('PS_OS_CANCELED') => 'cancel',
+		);
+		$status = isset($status_map[$order->getCurrentState()])
+			? $status_map[$order->getCurrentState()]
+			: 'error';
 
-			case Configuration::get('PS_OS_CANCELED'):
-				$status = "cancel";
-				break;
-
-			case Configuration::get('PS_OS_ERROR'):
-			default:
-				$status = "error";
-				break;
-
-		}
-		$smarty->assign(array(
+		$this->context->smarty->assign(array(
 			'this_path' => $this->_path,
-			'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/',
+			'this_path_ssl' => $this->getPathSSL(),
 			'status' => $status,
 			'message' => str_replace('. ', '.<br/>', Tools::getValue('mks_msg'))
 		));
+
 		return $this->display(__FILE__, 'payment_return.tpl');
 	}
 
@@ -783,8 +785,6 @@ class Maksuturva extends PaymentModule
 	 */
 	public function hookAdminOrder($params)
 	{
-		global $smarty;
-
 		$mkStatus = $this->getCartInMkStatusByIdOrder($params["id_order"]);
 		if (!$mkStatus || count($mkStatus) != 1) {
 			return;
@@ -800,7 +800,6 @@ class Maksuturva extends PaymentModule
 			case Configuration::get('MAKSUTURVA_OS_AUTHORIZATION'):
 			case "":
 			case "0":
-				require_once dirname(__FILE__) . "/MaksuturvaGatewayImplementation.php";
 				$gateway = new MaksuturvaGatewayImplementation($cart->id, $cart, Configuration::get('MAKSUTURVA_ENCODING'), $this);
 
 				$newStatus = $status["payment_status"];
@@ -1020,5 +1019,13 @@ class Maksuturva extends PaymentModule
 	 */
 	public function validateHashGenerationNumber($value){
 		return (preg_match('#^[0-9]{3}$#', (string)$value) && $value < 4294967296 && $value >= 0);
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPathSSL()
+	{
+		return Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/';
 	}
 }
