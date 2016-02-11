@@ -121,37 +121,37 @@ abstract class MaksuturvaGatewayAbstract
      * @var array mandatory properties in the payment data.
      */
     private static $mandatory_data = array(
-        'pmt_action',               //alphanumeric        max length 50        min length 4        NEW_PAYMENT_EXTENDED
-        'pmt_version',              //alphanumeric        max length 4         min length 4        0004
-        'pmt_sellerid',             //alphanumeric        max length 15             -
-        'pmt_id',                   //alphanumeric        max length 20             -
-        'pmt_orderid',              //alphanumeric        max length 50             -
-        'pmt_reference',            //numeric             max length 20        min length 4        Reference number + check digit
-        'pmt_duedate',              //alphanumeric        max length 10        min length 10       dd.MM.yyyy
-        'pmt_amount',               //alphanumeric        max length 17        min length 4
-        'pmt_currency',             //alphanumeric        max length 3         min length 3        EUR
-        'pmt_okreturn',             //alphanumeric        max length 200            -
-        'pmt_errorreturn',          //alphanumeric        max length 200            -
-        'pmt_cancelreturn',         //alphanumeric        max length 200            -
-        'pmt_delayedpayreturn',     //alphanumeric        max length 200            -
-        'pmt_escrow',               //alpha               max length 1         min length 1         Maksuturva=Y, eMaksut=N
-        'pmt_escrowchangeallowed',  //alpha               max length 1         min length 1         N
-        'pmt_buyername',            //alphanumeric        max length 40             -
-        'pmt_buyeraddress',         //alphanumeric        max length 40             -
-        'pmt_buyerpostalcode',      //numeric             max length 5              -
-        'pmt_buyercity',            //alphanumeric        max length 40             -
-        'pmt_buyercountry',         //alpha               max length 2              -               Respecting the ISO 3166
-        'pmt_deliveryname',         //alphanumeric        max length 40             -
-        'pmt_deliveryaddress',      //alphanumeric        max length 40             -
-        'pmt_deliverypostalcode',   //numeric             max length 5              -
-        'pmt_deliverycountry',      //alpha               max length 2              -               Respecting the ISO 3166
-        'pmt_sellercosts',          //alphanumeric        max length 17        min length 4         n,nn
-        'pmt_rows',                 //numeric             max length 4         min length 1
-        'pmt_charset',              //alphanumeric        max length 15             -               {ISO-8859-1, ISO-8859-15, UTF-8}
-        'pmt_charsethttp',          //alphanumeric        max length 15             -               {ISO-8859-1, ISO-8859-15, UTF-8}
-        'pmt_hashversion',          //alphanumeric        max length 10             -               {SHA-512, SHA-256, SHA-1, MD5}
-        'pmt_keygeneration',        //numeric             max length 3              -
-//        'pmt_hash',                 //alphanumeric        max length 128       min length 32
+        'pmt_action',               //alphanumeric  max-length: 50   min-length: 4   NEW_PAYMENT_EXTENDED
+        'pmt_version',              //alphanumeric  max-length: 4    min-length: 4   0004
+        'pmt_sellerid',             //alphanumeric  max-length: 15   -
+        'pmt_id',                   //alphanumeric  max-length: 20   -
+        'pmt_orderid',              //alphanumeric  max-length: 50   -
+        'pmt_reference',            //numeric       max-length: 20   min-length: 4   Reference number + check digit
+        'pmt_duedate',              //alphanumeric  max-length: 10   min-length: 10  dd.MM.yyyy
+        'pmt_amount',               //alphanumeric  max-length: 17   min-length: 4
+        'pmt_currency',             //alphanumeric  max-length: 3    min-length: 3   EUR
+        'pmt_okreturn',             //alphanumeric  max-length: 200  -
+        'pmt_errorreturn',          //alphanumeric  max-length: 200  -
+        'pmt_cancelreturn',         //alphanumeric  max-length: 200  -
+        'pmt_delayedpayreturn',     //alphanumeric  max-length: 200  -
+        'pmt_escrow',               //alpha         max-length: 1    min-length: 1   Maksuturva=Y, eMaksut=N
+        'pmt_escrowchangeallowed',  //alpha         max-length: 1    min-length: 1   N
+        'pmt_buyername',            //alphanumeric  max-length: 40   -
+        'pmt_buyeraddress',         //alphanumeric  max-length: 40   -
+        'pmt_buyerpostalcode',      //numeric       max-length: 5    -
+        'pmt_buyercity',            //alphanumeric  max-length: 40   -
+        'pmt_buyercountry',         //alpha         max-length: 2    -               Respecting the ISO 3166
+        'pmt_deliveryname',         //alphanumeric  max-length: 40   -
+        'pmt_deliveryaddress',      //alphanumeric  max-length: 40   -
+        'pmt_deliverypostalcode',   //numeric       max-length: 5    -
+        'pmt_deliverycountry',      //alpha         max-length: 2    -               Respecting the ISO 3166
+        'pmt_sellercosts',          //alphanumeric  max-length: 17   min-length: 4   n,nn
+        'pmt_rows',                 //numeric       max-length: 4    min-length: 1
+        'pmt_charset',              //alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
+        'pmt_charsethttp',          //alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
+        'pmt_hashversion',          //alphanumeric  max-length: 10   -               {SHA-512, SHA-256, SHA-1, MD5}
+        'pmt_keygeneration',        //numeric       max-length: 3    -
+//        'pmt_hash',                 //alphanumeric  max-length: 128  min-length: 32
     );
 
     /**
@@ -171,15 +171,15 @@ abstract class MaksuturvaGatewayAbstract
      * @var array mandatory properties for the payment data rows.
      */
     private static $row_mandatory_data = array(
-        'pmt_row_name',                  //alphanumeric        max length 40             -
-        'pmt_row_desc',                  //alphanumeric        max length 1000      min length 1
-        'pmt_row_quantity',              //numeric             max length 8         min length 1
-        'pmt_row_deliverydate',          //alphanumeric        max length 10        min length 10        dd.MM.yyyy
-        'pmt_row_price_gross',           //alphanumeric        max length 17        min length 4         n,nn
-        'pmt_row_price_net',             //alphanumeric        max length 17        min length 4         n,nn
-        'pmt_row_vat',                   //alphanumeric        max length 5         min length 4         n,nn
-        'pmt_row_discountpercentage',    //alphanumeric        max length 5         min length 4         n,nn
-        'pmt_row_type',                  //numeric             max length 5         min length 1
+        'pmt_row_name',                  //alphanumeric  max-length: 40    -
+        'pmt_row_desc',                  //alphanumeric  max-length: 1000  min-length: 1
+        'pmt_row_quantity',              //numeric       max-length: 8     min-length: 1
+        'pmt_row_deliverydate',          //alphanumeric  max-length: 10    min-length: 10  dd.MM.yyyy
+        'pmt_row_price_gross',           //alphanumeric  max-length: 17    min-length: 4   n,nn
+        'pmt_row_price_net',             //alphanumeric  max-length: 17    min-length: 4   n,nn
+        'pmt_row_vat',                   //alphanumeric  max-length: 5     min-length: 4   n,nn
+        'pmt_row_discountpercentage',    //alphanumeric  max-length: 5     min-length: 4   n,nn
+        'pmt_row_type',                  //numeric       max-length: 5     min-length: 1
     );
 
     /**
@@ -499,9 +499,8 @@ abstract class MaksuturvaGatewayAbstract
     private function filterFields()
     {
         foreach ($this->payment_data as $k => $value) {
-            // Mandatory.
-            if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data)) ||
-                array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
+            if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data))
+                || array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
             ) {
                 if (mb_strlen($value) < self::$field_filters[$k][0]) {
                     throw new MaksuturvaGatewayException(
@@ -515,11 +514,8 @@ abstract class MaksuturvaGatewayAbstract
                     $this->payment_data[$k] = $this->encode($this->payment_data[$k]);
                 }
                 continue;
-            } // Optional.
-            elseif ((array_key_exists($k, self::$field_filters) && in_array($k,
-                        self::$optional_data) && mb_strlen($value)) ||
-                (array_key_exists($k, self::$field_filters) && in_array($k,
-                        self::$row_optional_data) && mb_strlen($value))
+            } elseif ((array_key_exists($k, self::$field_filters) && in_array($k, self::$optional_data) && mb_strlen($value))
+                || (array_key_exists($k, self::$field_filters) && in_array($k, self::$row_optional_data) && mb_strlen($value))
             ) {
                 if (mb_strlen($value) < self::$field_filters[$k][0]) {
                     throw new MaksuturvaGatewayException(
@@ -536,7 +532,6 @@ abstract class MaksuturvaGatewayAbstract
             }
         }
 
-        // Product rows.
         foreach ($this->payment_data['pmt_rows_data'] as $i => $p) {
             // Putting desc or title to not be blank.
             if (array_key_exists('pmt_row_name', $p) && array_key_exists('pmt_row_desc', $p)) {
@@ -548,9 +543,8 @@ abstract class MaksuturvaGatewayAbstract
             }
 
             foreach ($p as $k => $value) {
-                // Mandatory.
-                if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data)) ||
-                    array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
+                if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data))
+                    || array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
                         throw new MaksuturvaGatewayException(
@@ -566,11 +560,8 @@ abstract class MaksuturvaGatewayAbstract
                         $this->payment_data['pmt_rows_data'][$i][$k] = $this->encode($this->payment_data['pmt_rows_data'][$i][$k]);
                     }
                     continue;
-                } // Optional.
-                elseif ((array_key_exists($k, self::$field_filters) && in_array($k,
-                            self::$optional_data) && mb_strlen($value)) ||
-                    (array_key_exists($k, self::$field_filters) && in_array($k,
-                            self::$row_optional_data) && mb_strlen($value))
+                } elseif ((array_key_exists($k, self::$field_filters) && in_array($k, self::$optional_data) && mb_strlen($value))
+                    || (array_key_exists($k, self::$field_filters) && in_array($k, self::$row_optional_data) && mb_strlen($value))
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
                         throw new MaksuturvaGatewayException(

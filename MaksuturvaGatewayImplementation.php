@@ -23,8 +23,6 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-require_once dirname(__FILE__) . '/MaksuturvaGatewayAbstract.php';
-
 /**
  * Main class for gateway payments
  * @author Maksuturva
@@ -237,9 +235,12 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
                 $discount_total += $discount_value;
                 $this->order_total += $discount_value;
 
+                $row_name = (!empty($discount['name']) ? $discount['name'] : $module->l('Discounts'));
+                $row_desc = (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts'));
+
                 $payment_rows_discount[] = array(
-                    'pmt_row_name' => (!empty($discount['name']) ? $discount['name'] : $module->l('Discounts')),
-                    'pmt_row_desc' => (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts')),
+                    'pmt_row_name' => $row_name,
+                    'pmt_row_desc' => $row_desc,
                     'pmt_row_quantity' => 1,
                     'pmt_row_deliverydate' => date('d.m.Y'),
                     'pmt_row_price_gross' => $this->filterPrice($discount_value),

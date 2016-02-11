@@ -36,9 +36,9 @@
 
 <h3>{l s='Maksuturva payment' mod='maksuturva'}</h3>
 
-<form action="{$form_action}" method="post">
+<form action="{$form_action|escape:'htmlall':'UTF-8'}" method="post">
 <div>
-    <img src="{$this_path}/views/img/maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29" style="float:left; margin: 0px 10px 5px 0px;"/>
+    <img src="{$this_path|escape:'htmlall':'UTF-8'}/views/img/maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29" style="float:left; margin: 0px 10px 5px 0px;"/>
     <p>{l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}</p>
 	<div style="clear:both"></div>
 </div>
@@ -59,7 +59,7 @@
 	<input type="submit" name="submit" value="{l s='I confirm my order' mod='maksuturva'}" class="exclusive_large" />
 </p>
     {foreach $maksuturva_fields as $fieldname => $value}
-        <input type="hidden" name="{$fieldname}" value="{$value}"/>
+        <input type="hidden" name="{$fieldname|escape:'htmlall':'UTF-8'}" value="{$value|escape:'htmlall':'UTF-8'}"/>
     {/foreach}
 </form>
 {/if}

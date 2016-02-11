@@ -33,6 +33,7 @@ if (!defined('_PS_VERSION_')) {
  */
 if ((basename(__FILE__) === 'maksuturva.php')) {
     $module_dir = dirname(__FILE__);
+    require_once($module_dir . '/MaksuturvaGatewayAbstract.php');
     require_once($module_dir . '/MaksuturvaGatewayImplementation.php');
 }
 
@@ -58,11 +59,6 @@ class Maksuturva extends PaymentModule
     /**
      * @var array
      */
-    public $config = array();
-
-    /**
-     * @var array
-     */
     private $_mandatoryFields = array(
         'pmt_action',
         'pmt_version',
@@ -85,82 +81,20 @@ class Maksuturva extends PaymentModule
         $this->tab = 'payments_gateways';
         $this->version = '122';
         $this->author = 'Maksuturva';
-
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
-
-        $this->_checkConfig(false);
-        $this->displayName = $this->l('Maksuturva');
-        $this->description = $this->l('Accepts payments using Maksuturva');
-        $this->_errors = array();
-
         $this->bootstrap = true;
 
         parent::__construct();
-        $this->confirmUninstall = $this->l('ADMIN: Are you sure you want to delete Maksuturva module?');
 
-        /* For 1.4.3 and less compatibility */
-        $updateConfig = array(
-            'PS_OS_CHEQUE' => 1,
-            'PS_OS_PAYMENT' => 2,
-            'PS_OS_PREPARATION' => 3,
-            'PS_OS_SHIPPING' => 4,
-            'PS_OS_DELIVERED' => 5,
-            'PS_OS_CANCELED' => 6,
-            'PS_OS_REFUND' => 7,
-            'PS_OS_ERROR' => 8,
-            'PS_OS_OUTOFSTOCK' => 9,
-            'PS_OS_BANKWIRE' => 10,
-            'PS_OS_PAYPAL' => 11,
-            'PS_OS_WS_PAYMENT' => 12
-        );
-        foreach ($updateConfig as $u => $v) {
-            if (!Configuration::get($u) || (int)Configuration::get($u) < 1) {
-                if (defined('_' . $u . '_') && (int)constant('_' . $u . '_') > 0) {
-                    Configuration::updateValue($u, constant('_' . $u . '_'));
-                } else {
-                    Configuration::updateValue($u, $v);
-                }
-            }
-        }
-
-        $this->_checkConfig();
+        $this->displayName = $this->l('Maksuturva');
+        $this->description = $this->l('Accepts payments using Maksuturva');
+        $this->confirmUninstall = $this->l('Are you sure you want to delete Maksuturva module?');
 
         /* Backward compatibility */
         if (_PS_VERSION_ < '1.5') {
             require_once(_PS_MODULE_DIR_ . $this->name . '/backward_compatibility/backward.php');
         }
-    }
-
-    /**
-     * Retrieves the configuration parameters and checks the existence of
-     * all required configuration entries.
-     * @return boolean
-     */
-    private function _checkConfig($warn = true)
-    {
-        $fail = false;
-        $config = Configuration::getMultiple($this->_getConfigKeys());
-        foreach ($this->_getConfigKeys() as $key) {
-            if (isset($config[$key])) {
-                $this->config[$key] = $config[$key];
-            } else {
-                if ($warn) {
-                    $this->warning .= $this->l($key . '_WARNING') . ', ';
-                }
-                $fail = true;
-            }
-        }
-        if (!sizeof(Currency::checkPaymentCurrencies($this->id))) {
-            if ($warn) {
-                $this->warning .= $this->l('ADMIN: No currency set for this module') . ', ';
-            }
-            $fail = true;
-        }
-        if ($warn) {
-            $this->warning = trim($this->warning, ', ');
-        }
-        return !$fail;
     }
 
     /**
@@ -188,17 +122,15 @@ class Maksuturva extends PaymentModule
      */
     public function install()
     {
-        // hooks
         if (!parent::install()
-            OR !$this->registerHook('payment')
-            OR !$this->registerHook('paymentReturn')
-            OR !$this->registerHook('rightColumn')
-            OR !$this->registerHook('adminOrder')
+            || !$this->registerHook('payment')
+            || !$this->registerHook('paymentReturn')
+            || !$this->registerHook('rightColumn')
+            || !$this->registerHook('adminOrder')
         ) {
             return false;
         }
 
-        // config keys/values
         if (!Configuration::updateValue('MAKSUTURVA_SELLER_ID', '') ||
             !Configuration::updateValue('MAKSUTURVA_SECRET_KEY', '') ||
             !Configuration::updateValue('MAKSUTURVA_SECRET_KEY_VERSION', '001') ||
@@ -228,7 +160,7 @@ class Maksuturva extends PaymentModule
         if (!$this->getConfigOption('MAKSUTURVA_OS_AUTHORIZATION')) {
             $orderState = new OrderState();
             $orderState->name = array();
-            foreach (Language::getLanguages() AS $language) {
+            foreach (Language::getLanguages() as $language) {
                 if (Tools::strtolower($language['iso_code']) == 'fr') {
                     $orderState->name[$language['id_lang']] = 'En attendant la confirmation de Maksuturva';
                 } else {
@@ -242,11 +174,41 @@ class Maksuturva extends PaymentModule
             $orderState->logable = true;
             $orderState->invoice = true;
             if ($orderState->add()) {
-                copy(dirname(__FILE__) . '/logo.gif',
-                    dirname(__FILE__) . '/../../img/os/' . (int)$orderState->id . '.gif');
+                copy(
+                    dirname(__FILE__) . '/logo.gif',
+                    dirname(__FILE__) . '/../../img/os/' . (int)$orderState->id . '.gif'
+                );
             }
             Configuration::updateValue('MAKSUTURVA_OS_AUTHORIZATION', (int)$orderState->id);
         }
+
+        /* For 1.4.3 and less compatibility */
+        /* todo: is this actually needed??
+        $updateConfig = array(
+            'PS_OS_CHEQUE' => 1,
+            'PS_OS_PAYMENT' => 2,
+            'PS_OS_PREPARATION' => 3,
+            'PS_OS_SHIPPING' => 4,
+            'PS_OS_DELIVERED' => 5,
+            'PS_OS_CANCELED' => 6,
+            'PS_OS_REFUND' => 7,
+            'PS_OS_ERROR' => 8,
+            'PS_OS_OUTOFSTOCK' => 9,
+            'PS_OS_BANKWIRE' => 10,
+            'PS_OS_PAYPAL' => 11,
+            'PS_OS_WS_PAYMENT' => 12
+        );
+        foreach ($updateConfig as $u => $v) {
+            if (!Configuration::get($u) || (int)Configuration::get($u) < 1) {
+                if (defined('_' . $u . '_') && (int)constant('_' . $u . '_') > 0) {
+                    Configuration::updateValue($u, constant('_' . $u . '_'));
+                } else {
+                    Configuration::updateValue($u, $v);
+                }
+            }
+        }
+        */
+
         return true;
     }
 
@@ -453,20 +415,38 @@ class Maksuturva extends PaymentModule
     private function _getFormConfig()
     {
         return array(
-            'MAKSUTURVA_SELLER_ID' => Tools::getValue('MAKSUTURVA_SELLER_ID',
-                $this->getConfigOption('MAKSUTURVA_SELLER_ID')),
-            'MAKSUTURVA_SECRET_KEY' => Tools::getValue('MAKSUTURVA_SECRET_KEY',
-                $this->getConfigOption('MAKSUTURVA_SECRET_KEY')),
-            'MAKSUTURVA_SECRET_KEY_VERSION' => Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION',
-                $this->getConfigOption('MAKSUTURVA_SECRET_KEY_VERSION')),
-            'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID',
-                $this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID')),
-            'MAKSUTURVA_URL' => Tools::getValue('MAKSUTURVA_URL', $this->getConfigOption('MAKSUTURVA_URL')),
-            'MAKSUTURVA_PMT_ID_PREFIX' => Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX',
-                $this->getConfigOption('MAKSUTURVA_PMT_ID_PREFIX')),
-            'MAKSUTURVA_SANDBOX' => Tools::getValue('MAKSUTURVA_SANDBOX', $this->getConfigOption('MAKSUTURVA_SANDBOX')),
-            'MAKSUTURVA_ENCODING' => Tools::getValue('MAKSUTURVA_ENCODING',
-                $this->getConfigOption('MAKSUTURVA_ENCODING')),
+            'MAKSUTURVA_SELLER_ID' => Tools::getValue(
+                'MAKSUTURVA_SELLER_ID',
+                $this->getConfigOption('MAKSUTURVA_SELLER_ID')
+            ),
+            'MAKSUTURVA_SECRET_KEY' => Tools::getValue(
+                'MAKSUTURVA_SECRET_KEY',
+                $this->getConfigOption('MAKSUTURVA_SECRET_KEY')
+            ),
+            'MAKSUTURVA_SECRET_KEY_VERSION' => Tools::getValue(
+                'MAKSUTURVA_SECRET_KEY_VERSION',
+                $this->getConfigOption('MAKSUTURVA_SECRET_KEY_VERSION')
+            ),
+            'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue(
+                'MAKSUTURVA_PAYMENT_FEE_ID',
+                $this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID')
+            ),
+            'MAKSUTURVA_URL' => Tools::getValue(
+                'MAKSUTURVA_URL',
+                $this->getConfigOption('MAKSUTURVA_URL')
+            ),
+            'MAKSUTURVA_PMT_ID_PREFIX' => Tools::getValue(
+                'MAKSUTURVA_PMT_ID_PREFIX',
+                $this->getConfigOption('MAKSUTURVA_PMT_ID_PREFIX')
+            ),
+            'MAKSUTURVA_SANDBOX' => Tools::getValue(
+                'MAKSUTURVA_SANDBOX',
+                $this->getConfigOption('MAKSUTURVA_SANDBOX')
+            ),
+            'MAKSUTURVA_ENCODING' => Tools::getValue(
+                'MAKSUTURVA_ENCODING',
+                $this->getConfigOption('MAKSUTURVA_ENCODING')
+            ),
         );
     }
 
