@@ -433,7 +433,7 @@ abstract class MaksuturvaGatewayAbstract
             $j++;
         }
 
-        $next_ten = ceil(intval($sum) / 10) * 10;
+        $next_ten = ceil((int)$sum / 10) * 10;
         return $str . (string)(abs($next_ten - $sum));
     }
 

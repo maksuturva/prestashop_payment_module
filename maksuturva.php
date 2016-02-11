@@ -671,9 +671,9 @@ class Maksuturva extends PaymentModule
                 }
 
                 //SELLERCOSTS VALIDATION
-                $original_payment_feeFloat = floatval(str_replace(",", ".", $gateway->{'pmt_sellercosts'}));
-                $new_payment_feeFloat = floatval(str_replace(",", ".", $values['pmt_sellercosts']));
-                $customerTotalPaid = $new_payment_feeFloat + floatval(str_replace(",", ".", $values['pmt_amount']));
+                $original_payment_feeFloat = (float)str_replace(",", ".", $gateway->{'pmt_sellercosts'});
+                $new_payment_feeFloat = (float)str_replace(",", ".", $values['pmt_sellercosts']);
+                $customerTotalPaid = $new_payment_feeFloat + (float)str_replace(",", ".", $values['pmt_amount']);
                 if ($original_payment_feeFloat != $new_payment_feeFloat) {
                     // validate that payment_fee have not dropped
                     if ($new_payment_feeFloat < $original_payment_feeFloat) {
@@ -695,7 +695,7 @@ class Maksuturva extends PaymentModule
                                 $seller_costs_product_name = Product::getProductName($seller_costs_product->id);
                             } //PrestaShop 1.4
                             else {
-                                $seller_costs_product_name = $seller_costs_product->name[$id_lang_default = (int)Configuration::get('PS_LANG_DEFAULT')];
+                                $seller_costs_product_name = $seller_costs_product->name[(int)Configuration::get('PS_LANG_DEFAULT')];
                             }
                             if (Product::getQuantity($seller_costs_product->id) < 1) {
                                 $admin_messages[] = "***ADMIN: " . $this->l('ADMIN: Failed to add payment fee of') . " " . number_format($new_payment_feeFloat - $original_payment_feeFloat,
@@ -707,7 +707,7 @@ class Maksuturva extends PaymentModule
                                 //everything ok, inserting new product row
                                 $cart->updateQty(1, (int)$this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID'));
                             }
-                            if (number_format(floatval($seller_costs_product->getPrice()), 2, ',',
+                            if (number_format($seller_costs_product->getPrice(), 2, ',',
                                     '') != number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ',', '')
                             ) {
                                 $admin_messages[] = "***ADMIN: " . $this->l('ADMIN: Customer paid additional payment fee') . " (" . number_format($new_payment_feeFloat - $original_payment_feeFloat,
@@ -826,8 +826,12 @@ class Maksuturva extends PaymentModule
             return;
         }
 
-        $order = new Order(intval($params["id_order"]));
-        $cart = new Cart(intval($order->id_cart));
+        /** @var OrderCore|Order $order */
+        $order = new Order((int)$params["id_order"]);
+        /** @var CartCore|Cart $cart */
+        $cart = new Cart((int)$order->id_cart);
+        /** @var CustomerCore|Customer $customer */
+        $customer = new Customer($order->id_customer);
 
         $status = $mkStatus[0];
         $checkAgain = false;
@@ -838,7 +842,6 @@ class Maksuturva extends PaymentModule
             case "0":
                 $gateway = new MaksuturvaGatewayImplementation($this, $cart);
 
-                $newStatus = $status["payment_status"];
                 $messages = array();
 
                 try {
@@ -860,8 +863,8 @@ class Maksuturva extends PaymentModule
                             $this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"],
                                 Configuration::get('PS_OS_PAYMENT'));
                             // try to change order's status
-                            if (intval($status["id_order"]) != 0) {
-                                $order = new Order(intval($status["id_order"]));
+                            if ((int)$status["id_order"] != 0) {
+                                $order = new Order((int)$status["id_order"]);
                                 $order->setCurrentState(Configuration::get('PS_OS_PAYMENT'));
                             } else {
                                 $confirmMessage = $this->l('ADMIN: Payment confirmed by Maksuturva');
@@ -882,8 +885,8 @@ class Maksuturva extends PaymentModule
                             $this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"],
                                 Configuration::get('PS_OS_CANCELED'));
                             // try to change order's status
-                            if (intval($status["id_order"]) != 0) {
-                                $order = new Order(intval($status["id_order"]));
+                            if ((int)$status["id_order"] != 0) {
+                                $order = new Order((int)$status["id_order"]);
                                 $order->setCurrentState(Configuration::get('PS_OS_CANCELED'));
                             } else {
                                 $confirmMessage = $this->l('Payment canceled in Maksuturva');
@@ -921,8 +924,8 @@ class Maksuturva extends PaymentModule
                 break;
 
             case Configuration::get('PS_OS_CANCELED'):
-                if (intval($status["id_order"]) != 0) {
-                    $order = new Order(intval($status["id_order"]));
+                if ((int)$status["id_order"] != 0) {
+                    $order = new Order((int)$status["id_order"]);
                     if ($order->getCurrentState() != Configuration::get('PS_OS_CANCELED')) {
                         $messages[] = $this->l('ADMIN: The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method');
                     } else {
@@ -996,9 +999,9 @@ class Maksuturva extends PaymentModule
             Db::getInstance()->execute(
                 'INSERT INTO `' . _DB_PREFIX_ . 'mk_status` (`id_cart`, `id_order`, `payment_status`) ' .
                 'VALUES ( ' .
-                intval($id_cart) . ', ' .
-                ($id_order == null ? "NULL" : intval($id_order)) . ', ' .
-                intval($status) .
+                (int)$id_cart . ', ' .
+                ($id_order == null ? "NULL" : (int)$id_order) . ', ' .
+                (int)$status .
                 ' );'
             );
         }
@@ -1014,16 +1017,16 @@ class Maksuturva extends PaymentModule
     private function _updateCartInMkStatusByColumn($col, $id_cart, $id_order = null, $status = 0)
     {
         if ($col == "id_order") {
-            $where = 'id_order = ' . intval($id_cart);
+            $where = 'id_order = ' . (int)$id_cart;
         } else {
-            $where = 'id_cart = ' . intval($id_cart);
+            $where = 'id_cart = ' . (int)$id_cart;
         }
 
         Db::getInstance()->execute(
             'UPDATE `' . _DB_PREFIX_ . 'mk_status` SET ' .
-            'id_cart = ' . intval($id_cart) . ', ' .
-            'id_order = ' . ($id_order == null ? "NULL" : intval($id_order)) . ', ' .
-            'payment_status = ' . intval($status) . ' ' .
+            'id_cart = ' . (int)$id_cart . ', ' .
+            'id_order = ' . ($id_order == null ? "NULL" : (int)$id_order) . ', ' .
+            'payment_status = ' . (int)$status . ' ' .
             'WHERE ' . $where
         );
     }
@@ -1034,7 +1037,7 @@ class Maksuturva extends PaymentModule
      */
     public function getCartInMkStatusByIdCart($id_cart)
     {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_cart = ' . intval($id_cart) . ';');
+        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_cart = ' . (int)$id_cart . ';');
     }
 
     /**
@@ -1043,7 +1046,7 @@ class Maksuturva extends PaymentModule
      */
     public function getCartInMkStatusByIdOrder($id_order)
     {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_order = ' . intval($id_order) . ';');
+        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_order = ' . (int)$id_order . ';');
     }
 
     /**
@@ -1052,7 +1055,7 @@ class Maksuturva extends PaymentModule
      */
     public function getCartsInMkStatusByStatus($status)
     {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE status = ' . intval($status) . ';');
+        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE status = ' . (int)$status . ';');
     }
 
     /**
