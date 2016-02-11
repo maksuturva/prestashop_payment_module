@@ -275,7 +275,7 @@ class Maksuturva extends PaymentModule
             )
         );
 
-        return $this->display(__FILE__, 'payment_execution.tpl');
+        return $this->display(__FILE__, 'views/templates/front/payment_execution.tpl');
     }
 
     /**
@@ -578,7 +578,7 @@ class Maksuturva extends PaymentModule
             )
         );
 
-        return $this->display(__FILE__, 'payment.tpl');
+        return $this->display(__FILE__, 'views/templates/front/payment.tpl');
     }
 
     /**
@@ -812,7 +812,7 @@ class Maksuturva extends PaymentModule
             'message' => str_replace('. ', '.<br/>', Tools::getValue('mks_msg'))
         ));
 
-        return $this->display(__FILE__, 'payment_return.tpl');
+        return $this->display(__FILE__, 'views/templates/front/payment_return.tpl');
     }
 
     /**

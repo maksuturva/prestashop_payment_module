@@ -24,7 +24,7 @@
 
 <p class="payment_module">
     <a href="{$this_path_ssl}payment.php" title="{l s='Pay with Maksuturva' mod='maksuturva'}">
-        <img src="{$this_path}maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29"/>
+        <img src="{$this_path}/views/img/maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29"/>
         {l s='Pay with Maksuturva' mod='maksuturva'}
     </a>
 </p>

@@ -38,7 +38,7 @@
 
 <form action="{$form_action}" method="post">
 <div>
-    <img src="{$this_path}maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29" style="float:left; margin: 0px 10px 5px 0px;"/>
+    <img src="{$this_path}/views/img/maksuturva.gif" alt="{l s='Pay with Maksuturva' mod='maksuturva'}" width="115" height="29" style="float:left; margin: 0px 10px 5px 0px;"/>
     <p>{l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}</p>
 	<div style="clear:both"></div>
 </div>

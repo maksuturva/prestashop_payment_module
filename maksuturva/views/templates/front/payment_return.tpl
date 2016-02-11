@@ -23,7 +23,7 @@
 *}
 
 {if $status != "error"}
-	<img src="{$this_path}maksuturva.gif" width="115" height="29" style="float: right;"/>
+	<img src="{$this_path}/views/img/maksuturva.gif" width="115" height="29" style="float: right;"/>
 {/if}
 {if $status == 'ok'}
 	<p>{l s='Your order on' mod='maksuturva' mod='maksuturva'} <span class="bold">{$shop_name}</span> {l s='is complete.' mod='maksuturva'}
