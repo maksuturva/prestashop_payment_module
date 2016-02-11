@@ -1,4 +1,4 @@
-﻿TESTING THE PAYMENT MODULE WITH MAKSUTURVA PAYMENT SERVICE
+TESTING THE PAYMENT MODULE WITH MAKSUTURVA PAYMENT SERVICE
 ==========================================================
 We encourage you to test the functionalities of the module and how it suits your needs in a good time before the planned release of your webstore. 
 
