@@ -23,35 +23,15 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-// Helpful functions to work better with MB
-function mb_str_replace($needle, $replacement, $haystack)
-{
-    $needle_len = mb_strlen($needle);
-    $replacement_len = mb_strlen($replacement);
-    $pos = mb_strpos($haystack, $needle);
-    while ($pos !== false)
-    {
-        $haystack = mb_substr($haystack, 0, $pos) . $replacement
-                . mb_substr($haystack, $pos + $needle_len);
-        $pos = mb_strpos($haystack, $needle, $pos + $replacement_len);
-    }
-    return $haystack;
-}
-
-function mb_concat($str1, $str2)
-{
-	return $str1 . $str2;
-}
- 
 /**
- * Main class for gateway payments
- * @author Maksuturva
+ * Payment gateway abstract.
+ *
+ * Provides the core payment gateway implementation and should be extended with app specific behavior.
+ *
+ * @property int $pmt_orderid
  */
 abstract class MaksuturvaGatewayAbstract
 {
-	/**
-	 * Status query codes
-	 */
 	const STATUS_QUERY_NOT_FOUND 		= "00";
 	const STATUS_QUERY_FAILED 			= "01";
 	const STATUS_QUERY_WAITING 			= "10";
@@ -66,7 +46,7 @@ abstract class MaksuturvaGatewayAbstract
 	const STATUS_QUERY_PAYER_RECLAMATION 				= "95";
 	const STATUS_QUERY_CANCELLED 						= "99";
 	
-	const EXCEPTION_CODE_ALGORITHMS_NOT_SUPORTED          = '00';
+	const EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED         = '00';
 	const EXCEPTION_CODE_URL_GENERATION_ERRORS            = '01';
 	const EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS    = '02';
 	const EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100       = '03';
@@ -75,51 +55,74 @@ abstract class MaksuturvaGatewayAbstract
 	const EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED           = '06';
 	const EXCEPTION_CODE_HASHES_DONT_MATCH                = '07';
 
-
-    protected $_formData = array();
-
-    protected $_secretKey = null;
-
-    protected $_hashAlgoDefined = null;
+    const ROUTE_PAYMENT = '/NewPaymentExtended.pmt';
+    const ROUTE_STATUS_QUERY = '/PaymentStatusQuery.pmt';
 
     /**
-     * Url used to redirect the user to
-     * @var string
+     * @var string gateway URL for making new payments.
      */
-    protected $_baseUrl = null;
+    protected $base_url = 'https://www.maksuturva.fi/NewPaymentExtended.pmt';
 
     /**
-     * Status query channel
-     * @var string
+     * @var string gateway URL for checking payment statuses.
      */
-    protected $_statusQueryBaseUrl = "https://www.maksuturva.fi/PaymentStatusQuery.pmt";
-    /**
-     * Data POSTed to maksuturva
-     * @var array
-     */
-    protected $_statusQueryData = array();
-
-    protected $_charset = 'UTF-8';
-
-    protected $_charsethttp = 'UTF-8';
+    protected $base_url_status_query = 'https://www.maksuturva.fi/PaymentStatusQuery.pmt';
 
     /**
-     * @var array
+     * @var string seller ID to use for identification when calling the gateway.
      */
-    protected $_optionalData = array(
-        'pmt_selleriban',
-        'pmt_userlocale',
-        'pmt_invoicefromseller',
-        'pmt_paymentmethod',
-    	'pmt_buyeridentificationcode',
-        'pmt_buyerphone',
-        'pmt_buyeremail',
+    protected $seller_id;
+
+    /**
+     * @var string seller secret key to use for identification when calling the gateway.
+     */
+    protected $secret_key;
+
+    /**
+     * @var string charset for the payment data.
+     */
+    protected $charset = 'UTF-8';
+
+    /**
+     * @var string charset for the payment http data.
+     */
+    protected $charset_http = 'UTF-8';
+
+	/**
+	 * @var mixed prefix used for the `pmt_id` field.
+	 */
+	protected $pmt_id_prefix;
+
+    /**
+     * @var string algorithm used for hashing (sha512, sha256, sha1 or md5).
+     */
+    protected $hash_algorithm;
+
+    /**
+     * @var array the payment data.
+     */
+	protected $payment_data = array(
+        'pmt_action'              => 'NEW_PAYMENT_EXTENDED',
+        'pmt_version'             => '0004',
+        'pmt_escrow'              => 'Y',
+        'pmt_keygeneration'       => '001',
+        'pmt_currency'            => 'EUR',
+        'pmt_escrowchangeallowed' => 'N',
+		'pmt_charset' 			  => 'UTF-8',
+		'pmt_charsethttp' 		  => 'UTF-8',
     );
 
-    protected $_compulsoryData = array(
+    /**
+     * @var array payment query status data.
+     */
+    protected $status_query_data = array();
+
+    /**
+     * @var array mandatory properties in the payment data.
+     */
+    private static $mandatory_data = array(
         'pmt_action',                    //alphanumeric        max lenght 50        min lenght 4        NEW_PAYMENT_EXTENDED
         'pmt_version',                   //alphanumeric        max lenght 4         min lenght 4        0004
-
         'pmt_sellerid',                  //alphanumeric        max lenght 15             -
         'pmt_id',                        //alphanumeric        max lenght 20             -
         'pmt_orderid',                   //alphanumeric        max lenght 50             -
@@ -127,43 +130,47 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_duedate',                   //alphanumeric        max lenght 10        min lenght 10       dd.MM.yyyy
         'pmt_amount',                    //alphanumeric        max lenght 17        min lenght 4
         'pmt_currency',                  //alphanumeric        max lenght 3         min lenght 3        EUR
-
         'pmt_okreturn',                  //alphanumeric        max lenght 200            -
         'pmt_errorreturn',               //alphanumeric        max lenght 200            -
         'pmt_cancelreturn',              //alphanumeric        max lenght 200            -
         'pmt_delayedpayreturn',          //alphanumeric        max lenght 200            -
-
         'pmt_escrow',                    //alpha               max lenght 1         min lenght 1         Maksuturva=Y, eMaksut=N
         'pmt_escrowchangeallowed',       //alpha               max lenght 1         min lenght 1         N
-
         'pmt_buyername',                 //alphanumeric        max lenght 40             -
         'pmt_buyeraddress',              //alphanumeric        max lenght 40             -
         'pmt_buyerpostalcode',           //numeric             max lenght 5              -
         'pmt_buyercity',                 //alphanumeric        max lenght 40             -
         'pmt_buyercountry',              //alpha               max lenght 2              -               Respecting the ISO 3166
-
         'pmt_deliveryname',              //alphanumeric        max lenght 40             -
         'pmt_deliveryaddress',           //alphanumeric        max lenght 40             -
         'pmt_deliverypostalcode',        //numeric             max lenght 5              -
         'pmt_deliverycountry',           //alpha               max lenght 2              -               Respecting the ISO 3166
-
         'pmt_sellercosts',               //alphanumeric        max lenght 17        min lenght 4         n,nn
-
     	'pmt_rows',                      //numeric             max lenght 4         min lenght 1
-
     	'pmt_charset',                   //alphanumeric        max lenght 15             -               {ISO-8859-1, ISO-8859-15, UTF-8}
     	'pmt_charsethttp',               //alphanumeric        max lenght 15             -               {ISO-8859-1, ISO-8859-15, UTF-8}
     	'pmt_hashversion',               //alphanumeric        max lenght 10             -               {SHA-512, SHA-256, SHA-1, MD5}
-      /*'pmt_hash',                      //alphanumeric        max lenght 128       min lenght 32*/
     	'pmt_keygeneration',             //numeric             max lenght 3              -
+        //'pmt_hash',                      //alphanumeric        max lenght 128       min lenght 32
     );
 
-    protected $_rowOptionalData = array(
-     	'pmt_row_articlenr',
-        'pmt_row_unit',
+    /**
+     * @var array optional properties in the payment data.
+     */
+    private static $optional_data = array(
+        'pmt_selleriban',
+        'pmt_userlocale',
+        'pmt_invoicefromseller',
+        'pmt_paymentmethod',
+        'pmt_buyeridentificationcode',
+        'pmt_buyerphone',
+        'pmt_buyeremail',
     );
 
-    protected $_rowCompulsoryData = array(
+    /**
+     * @var array mandatory properties for the payment data rows.
+     */
+    private static $row_mandatory_data = array(
         'pmt_row_name',                  //alphanumeric        max lenght 40             -
     	'pmt_row_desc',                  //alphanumeric        max lenght 1000      min lenght 1
     	'pmt_row_quantity',              //numeric             max lenght 8         min lenght 1
@@ -175,7 +182,18 @@ abstract class MaksuturvaGatewayAbstract
     	'pmt_row_type',                  //numeric             max lenght 5         min lenght 1
     );
 
-    protected $_hashData = array(
+    /**
+     * @var array optional properties for the payment data rows.
+     */
+    private static $row_optional_data = array(
+        'pmt_row_articlenr',
+        'pmt_row_unit',
+    );
+
+    /**
+     * @var array properties used for hashing.
+     */
+    private static $hash_data = array(
         'pmt_action',
         'pmt_version',
 		'pmt_selleriban',
@@ -205,20 +223,13 @@ abstract class MaksuturvaGatewayAbstract
 		'pmt_deliverycity',
 		'pmt_deliverycountry',
 		'pmt_sellercosts',
-		/*'pmt_row_* fields in specified order, one row at a time',
-		'<merchant’s secret key >'*/
+		//'pmt_row_* fields in specified order, one row at a time', '<merchant’s secret key >'
     );
 
-    private $_errors = array();
-
     /**
-     * To be duplicated before trimming the content
-     * @var array
+     * @var array field filters (min, max).
      */
-    private $_originalFormData = array();
-    
-    private $_fieldLength = array(
-    	// min, max, required 
+    private static $field_filters = array(
     	'pmt_action'	=> array(4, 50),
         'pmt_version' 	=> array(4, 4),
     	'pmt_sellerid' 	=> array(1, 15),
@@ -268,11 +279,14 @@ abstract class MaksuturvaGatewayAbstract
     	'pmt_keygeneration'	=> array(1, 3),
     );
 
-    protected function dataIsValid()
+    /**
+     * Checks if the payment data is valid.
+     *
+     * @throws MaksuturvaGatewayException
+     */
+    protected function validatePaymentData()
     {
-        $isvalid = true;
-		
-		$DELIVERY_FIELDS = array(
+		$delivery_fields = array(
 			'pmt_deliveryname' => 'pmt_buyername' ,
 			'pmt_deliveryaddress' => 'pmt_buyeraddress' ,
 			'pmt_deliverypostalcode' => 'pmt_buyerpostalcode' , 
@@ -280,326 +294,340 @@ abstract class MaksuturvaGatewayAbstract
 			'pmt_deliverycountry' => 'pmt_buyercountry'
 		);
 		
-		foreach ($DELIVERY_FIELDS as $dfield => $bfield){
-			if  ( (! isset($this->_formData[$dfield])) || mb_strlen(trim($this->_formData[$dfield])) == 0  || $this->_formData[$dfield] == NULL)
-				$this->_formData[$dfield] = $this->_formData[$bfield];
-		}
+		foreach ($delivery_fields as $k => $v)
+			if ((!isset($this->payment_data[$k])) || mb_strlen(trim($this->payment_data[$k])) == 0  || is_null($this->payment_data[$k]))
+				$this->payment_data[$k] = $this->payment_data[$v];
 		
-        foreach ($this->_compulsoryData as $compulsoryData) {
-            if (array_key_exists($compulsoryData, $this->_formData)) {
-                switch ($compulsoryData) {
-                    case 'pmt_reference':
-                        if (mb_strlen((string)$this->_formData['pmt_reference']) < 3) {
-                            $isvalid = false;
-                            $this->_errors[] = "$compulsoryData need to have at least 3 digits";
-                        }
-                        break;
-                }
-            } else {
-                $isvalid = false;
-                $this->_errors[] = "$compulsoryData is mandatory";
-                //break;
+        foreach (self::$mandatory_data as $field)
+        {
+			if (!array_key_exists($field, $this->payment_data))
+				throw new MaksuturvaGatewayException(
+					sprintf('Field "%s" is mandatory', $field),
+					self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
+				);
+
+			if ($field === 'pmt_reference')
+				if (mb_strlen((string)$this->payment_data['pmt_reference']) < 3)
+					throw new MaksuturvaGatewayException(
+						sprintf('Field "%s" needs to have at least 3 digits', $field),
+						self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
+					);
+        }
+
+        $count_rows = 0;
+        if (array_key_exists('pmt_rows_data', $this->payment_data))
+            foreach ($this->payment_data['pmt_rows_data'] as $row_data)
+            {
+                $this->validatePaymentDataItem($row_data, $count_rows);
+                $count_rows++;
             }
-        }
 
-        if (array_key_exists("pmt_rows_data", $this->_formData)) {
-            $countRows = 1;
-            foreach ($this->_formData['pmt_rows_data'] as $rowData) {
-                $isvalid = $this->itemIsValid($rowData, $countRows, $isvalid);
-                $countRows++;
-            }
+        if ($count_rows != $this->payment_data['pmt_rows'])
+			throw new MaksuturvaGatewayException(
+				sprintf(
+					'The amount of items (%s) passed in field "pmt_rows" does not match with real amount(%s)',
+					$this->payment_data['pmt_rows'],
+					$count_rows
+				),
+				self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
+			);
 
-        } else {
-            $isvalid = false;
-        }
-
-        if (($countRows - 1) != $this->_formData['pmt_rows']) {
-            $isvalid = false;
-            $this->_errors[] = "The amount(" .  $this->_formData['pmt_rows'] . ") of items passed in the field 'pmt_rows' don't match with real amount(" . ($countRows - 1) . ") of items";
-        }
-
-        // now, filter the content
-        $tmp = $this->filterFieldsLength();
-
-        return $isvalid;
+        $this->filterFields();
     }
 
-    protected function itemIsValid($data, $countRows= null, $isvalid = true)
+    /**
+     * Checks if an payment data row item is valid.
+     *
+     * @param array $data
+     * @param mixed $count_rows
+	 *
+	 * @throws MaksuturvaGatewayException
+     */
+    protected function validatePaymentDataItem(array $data, $count_rows = null)
     {
-        foreach ($this->_rowCompulsoryData as $rowCompulsoryKeyData) {
-            if (array_key_exists($rowCompulsoryKeyData, $data)) {
-                switch ($rowCompulsoryKeyData) {
-                    case 'pmt_row_price_gross':
-                        if (array_key_exists('pmt_row_price_net', $data)) {
-                            $isvalid = false;
-                            $this->_errors[] = "pmt_row_price_net$countRows and pmt_row_price_gross$countRows are both supplied, when only one of them should be";
-                        }
-                        break;
-                }
-            } else {
-                switch ($rowCompulsoryKeyData) {
-                    case 'pmt_row_price_gross':
-                        if (array_key_exists('pmt_row_price_net', $data)) {
-        			        break;
-        			    }
-        			case 'pmt_row_price_net':
-        			    if (array_key_exists('pmt_row_price_gross', $data)) {
-        			        break;
-        			    }
-        			default:
-        			    $isvalid = false;
-                        $this->_errors[] = "$rowCompulsoryKeyData$countRows is mandatory";
-                }
-
+        foreach (self::$row_mandatory_data as $field)
+        {
+            if (array_key_exists($field, $data))
+            {
+				if ($field === 'pmt_row_price_gross' && array_key_exists('pmt_row_price_net', $data))
+					throw new MaksuturvaGatewayException(
+						sprintf(
+							'pmt_row_price_net%d and pmt_row_price_gross%d are both supplied, when only one of them should be',
+							$count_rows,
+							$count_rows
+						)
+					);
             }
-        }
+            else
+            {
+				if ($field === 'pmt_row_price_gross' && array_key_exists('pmt_row_price_net', $data))
+					continue;
+				elseif ($field === 'pmt_row_price_net' && array_key_exists('pmt_row_price_gross', $data))
+					continue;
 
-        return $isvalid;
-    }
-
-    public function __construct($secretKey, $data = null, $encoding = null, $url = 'https://www.maksuturva.fi')
-    {
-        if ($encoding) {
-            $this->_charset = $encoding;
-            $this->_charsethttp = $encoding;
-        }
-        
-        $this->_secretKey                           = $secretKey;
-        $this->_baseUrl                             = self::getPaymentUrl($url);
-        $this->_statusQueryBaseUrl                  = self::getStatusQueryUrl($url);
-
-        $this->_formData['pmt_action']              = 'NEW_PAYMENT_EXTENDED';
-        $this->_formData['pmt_version']             = '0004';
-        $this->_formData['pmt_escrow']              = 'Y';
-        $this->_formData['pmt_keygeneration']       = '001';
-        $this->_formData['pmt_currency']            = 'EUR';
-        $this->_formData['pmt_escrowchangeallowed'] = 'N';
-        
-    	$this->_formData['pmt_charset']             = $this->_charset;
-    	$this->_formData['pmt_charsethttp']         = $this->_charsethttp;
-
-//        if ($data) {
-//             $this->_formData = array_merge($this->_formData, $data);
-//        }
-        // Force to cut off all amps and merge in current array_data
-        foreach ($data as $key => $value ){
-            if ($key == 'pmt_rows_data') {
-                $rows = array(); 
-                foreach ($value as $k => $v){
-                    $rows[$k] = str_replace('&amp;', '', $v);
-                }
-                $this->_formData[$key] = $rows;
-            } else {
-                $this->_formData[$key] = str_replace('&amp;', '', $value);
+				throw new MaksuturvaGatewayException(sprintf('Field %s%d is mandatory', $field, $count_rows));
             }
-        }
-        $hashAlgos = hash_algos();
-
-        if (in_array("sha512", $hashAlgos)) {
-            $this->_formData['pmt_hashversion'] = 'SHA-512';
-            $this->_hashAlgoDefined = "sha512";
-        } else if (in_array("sha256", $hashAlgos)) {
-            $this->_formData['pmt_hashversion'] = 'SHA-256';
-            $this->_hashAlgoDefined = "sha256";
-        } else if (in_array("sha1", $hashAlgos)) {
-            $this->_formData['pmt_hashversion'] = 'SHA-1';
-            $this->_hashAlgoDefined = "sha1";
-        } else if (in_array("md5", $hashAlgos)) {
-            $this->_formData['pmt_hashversion'] = 'MD5';
-            $this->_hashAlgoDefined = "md5";
-        } else {
-           throw new MaksuturvaGatewayException(array('the hash algorithms SHA-512, SHA-256, SHA-1 and MD5 are not supported!'), self::EXCEPTION_CODE_ALGORITHMS_NOT_SUPORTED);
-        }
-
-    }
-
-    public function getUrl()
-    {
-
-        $url = $this->convert_encoding($this->_baseUrl . "?", $this->_charsethttp);
-
-        if ($this->dataIsValid()) {
-
-            //Generate the check number for pmt_reference
-            $this->_formData['pmt_reference']  = $this->getPmtReferenceNumber($this->_formData['pmt_reference']);
-
-            foreach ($this->_formData as $key => $data) {
-                if ($key == 'pmt_rows_data') {
-                    $rowCount = 1;
-                    foreach ($data as $rowData) {
-                        foreach ($rowData as $rowKey => $rowInnerData) {
-                            $url .= $this->convert_encoding($rowKey . $rowCount . '=' . $rowInnerData . '&', $this->_charsethttp);
-                        }
-                        $rowCount++;
-                    }
-                } else {
-                    $url .= $this->convert_encoding($key . '=' . $data . '&', $this->charsethttp);
-                }
-            }
-
-            $url .= $this->convert_encoding('pmt_hash=', $this->_charsethttp) . $this->convert_encoding($this->generateHash(), $this->_charset);
-
-            return $url;
-        } else {
-            throw new MaksuturvaGatewayException($this->getErrors(), self::EXCEPTION_CODE_URL_GENERATION_ERRORS);
         }
     }
 
-    public function getFieldArray()
+    /**
+     * Creates a hash of the payment data.
+     *
+     * @return string
+     */
+    protected function createPaymentHash()
     {
-        if ($this->dataIsValid()) {
-            $returnArray = array();
-
-            //Generate the check number for pmt_reference
-            $this->_formData['pmt_reference']  = $this->getPmtReferenceNumber($this->_formData['pmt_reference']);
-
-            foreach ($this->_formData as $key => $data) {
-                if ($key == 'pmt_rows_data') {
-                    $rowCount = 1;
-                    foreach ($data as $rowData) {
-                        foreach ($rowData as $rowKey => $rowInnerData) {
-                            $returnArray[$this->convert_encoding($rowKey . $rowCount, $this->charsethttp)] = $this->convert_encoding($rowInnerData, $this->charsethttp);
-                        }
-                        $rowCount++;
-                    }
-                } else {
-                    $returnArray[$this->convert_encoding($key, $this->charsethttp)] = $this->convert_encoding($data, $this->charsethttp);
-                }
-            }
-
-            $returnArray[$this->convert_encoding('pmt_hash', $this->charsethttp)] = $this->convert_encoding($this->generateHash(), $this->_charset);
-
-            return $returnArray;
-        } else {
-            throw new MaksuturvaGatewayException($this->getErrors(), self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS);
-        }
-    }
-
-    protected function generateHash()
-    {
-        $hashString = '';
-        foreach ($this->_hashData as $hashData) {
-            switch ($hashData) {
+        $hash_data = array();
+        foreach (self::$hash_data as $field)
+        {
+            switch ($field)
+            {
                 case 'pmt_selleriban':
                 case 'pmt_invoicefromseller':
                 case 'pmt_paymentmethod':
                 case 'pmt_buyeridentificationcode':
-                    if (in_array($hashData, array_keys($this->_formData))) {
-                        $hashString .= $this->_formData[$hashData] . '&';
-                    }
+                    if (in_array($field, array_keys($this->payment_data)))
+						$hash_data[$field] = $this->payment_data[$field];
                     break;
+
                 default:
-                    $hashString .= $this->_formData[$hashData] . '&';
+					$hash_data[$field] = $this->payment_data[$field];
+                    break;
             }
         }
 
-        foreach ($this->_formData['pmt_rows_data'] as $order) {
-            foreach ($order as $data) {
-                $hashString .= $data . '&';
-            }
-        }
+        foreach ($this->payment_data['pmt_rows_data'] as $i => $row)
+            foreach ($row as $k => $v)
+				$hash_data[$k.$i] = $v;
 
-        $hashString .= $this->_secretKey . '&';
-
-        return hash($this->_hashAlgoDefined, $hashString);
+        return strtolower($this->createHash($hash_data));
     }
 
     /**
-     * Calculate the hash based on the paraeters returned from maksuturva
-     * @param array $hashData
+     * Turn the given reference number into a Maksuturva reference number.
+     *
+     * @param int $number
+     * @return string
+     * @throws MaksuturvaGatewayException
      */
-    public function generateReturnHash($hashData)
-    {
-        $hashString = '';
-        foreach ($hashData as $key => $data) {
-            //Ignore the hash itself if passed
-            if ($key != 'pmt_hash') {
-                $hashString .= $data . '&';
-            }
-        }
-
-        $hashString .= $this->_secretKey . '&';
-
-        return strtoupper(hash($this->_hashAlgoDefined, $hashString));
-
-    }
-
     protected function getPmtReferenceNumber($number)
     {
-        if ($number < 100) {
-        	throw new MaksuturvaGatewayException(array("Cannot generate reference numbers for an ID smaller than 100"), self::EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100);
+        if ($number < 100)
+        	throw new MaksuturvaGatewayException(
+				'Cannot generate reference numbers for an ID smaller than 100',
+				self::EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100
+			);
+
+        $multiples = array(7, 3, 1);
+        $str = (string)$number;
+        $sum = 0;
+        $j = 0;
+        for ($i=strlen($str)-1; $i>=0; $i--) {
+            $sum += intval(substr($str, $i, 1)) * intval($multiples[$j % 3]);
+            $j++;
         }
 
-        // Painoarvot
-        $tmpMultip = array(7, 3, 1);
-        // Muutetaan parametri merkkijonoksi
-        $tmpStr = (string)$number;
-        $tmpSum = 0;
-        $tmpIndex = 0;
-        for ($i=strlen($tmpStr)-1; $i>=0; $i--) {
-            $tmpSum += intval(substr($tmpStr, $i, 1)) * intval($tmpMultip[$tmpIndex % 3]);
-            $tmpIndex++;
-        }
-
-        // Laskettua summaa vastaava seuraava täysi kymmenluku:
-        $nextTen = ceil(intval($tmpSum)/10)*10;
-
-        return $tmpStr . (string)(abs($nextTen-$tmpSum));
+        $next_ten = ceil(intval($sum)/10)*10;
+        return $str . (string)(abs($next_ten-$sum));
     }
 
-    public function getErrors()
+    /**
+     * Validates the consistency of maksuturva responses for a given status query.
+     *
+     * @param array $data
+     * @return boolean
+     */
+    private function verifyStatusQueryResponse($data)
     {
-        return $this->_errors;
+    	$hash_fields = array(
+			'pmtq_action',
+			'pmtq_version',
+			'pmtq_sellerid',
+			'pmtq_id',
+			'pmtq_amount',
+			'pmtq_returncode',
+			'pmtq_returntext',
+    		'pmtq_sellercosts',
+			'pmtq_paymentmethod',
+			'pmtq_escrow'
+    	);
+
+    	$optional_hash_fields = array(
+    		'pmtq_sellercosts',
+			'pmtq_paymentmethod',
+			'pmtq_escrow'
+    	);
+
+    	$hash_data = array();
+    	foreach ($hash_fields as $field)
+        {
+    		if (!isset($data[$field]) && !in_array($field, $optional_hash_fields))
+    			return false;
+    		elseif (!isset($data[$field]))
+    			continue;
+
+    		// Test the validity of data as well, when the field exists.
+    		if  (isset($this->status_query_data[$field]) &&
+    			($data[$field] != $this->status_query_data[$field]))
+    			return false;
+
+			$hash_data[$field] = $data[$field];
+    	}
+
+    	if ($this->createHash($hash_data) != $data['pmtq_hash'])
+    		return false;
+
+    	return true;
+    }
+    
+    /**
+     * Traverses the payment data and filters/trims them as needed.
+     *
+     * If a required field is missing or with length below required, throws an exception.
+     *
+     * @throws MaksuturvaGatewayException
+     */
+    private function filterFields()
+    {
+    	foreach ($this->payment_data as $k => $value)
+        {
+    		// Mandatory.
+    		if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data)) ||
+    			array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data))
+            {
+    			if (mb_strlen($value) < self::$field_filters[$k][0])
+    				throw new MaksuturvaGatewayException(
+                        sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0])
+                    );
+
+                if (mb_strlen($value) > self::$field_filters[$k][1])
+                {
+    				// Auto trim.
+    				$this->payment_data[$k] = mb_substr($value, 0, self::$field_filters[$k][1]);
+					$this->payment_data[$k] = $this->encode($this->payment_data[$k]);
+    			}
+    			continue;
+    		}
+    		// Optional.
+            elseif ((array_key_exists($k, self::$field_filters) && in_array($k, self::$optional_data) && mb_strlen($value)) ||
+    			(array_key_exists($k, self::$field_filters) && in_array($k, self::$row_optional_data) && mb_strlen($value)))
+            {
+    			if (mb_strlen($value) < self::$field_filters[$k][0])
+    				throw new MaksuturvaGatewayException(
+                        sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0])
+                    );
+
+                if (mb_strlen($value) > self::$field_filters[$k][1])
+                {
+    				// Auto trim.
+    				$this->payment_data[$k] = mb_substr($value, 0, self::$field_filters[$k][1]);
+					$this->payment_data[$k] = $this->encode($this->payment_data[$k]);
+    			}
+    			continue;
+    		}
+    	}
+    	
+    	// Product rows.
+    	foreach ($this->payment_data['pmt_rows_data'] as $i => $p)
+        {
+            // Putting desc or title to not be blank.
+            if (array_key_exists('pmt_row_name', $p) && array_key_exists('pmt_row_desc', $p))
+                if (!trim($p['pmt_row_name']))
+                    $this->payment_data['pmt_rows_data'][$i]['pmt_row_name'] = $p['pmt_row_name'] = $p['pmt_row_desc'];
+                elseif (!trim($p['pmt_row_desc']))
+                    $this->payment_data['pmt_rows_data'][$i]['pmt_row_desc'] = $p['pmt_row_desc'] = $p['pmt_row_name'];
+
+    		foreach ($p as $k => $value)
+            {
+	    		// Mandatory.
+	    		if ((array_key_exists($k, self::$field_filters) && in_array($k, self::$mandatory_data)) ||
+	    			array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data))
+                {
+	    			if (mb_strlen($value) < self::$field_filters[$k][0])
+	    				throw new MaksuturvaGatewayException(
+                            sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0])
+                        );
+
+                    if (mb_strlen($value) > self::$field_filters[$k][1])
+                    {
+	    				// Auto trim.
+	    				$this->payment_data['pmt_rows_data'][$i][$k] = mb_substr($value, 0, self::$field_filters[$k][1]);
+						$this->payment_data['pmt_rows_data'][$i][$k] = $this->encode($this->payment_data['pmt_rows_data'][$i][$k]);
+	    			}
+	    			continue;
+	    		}
+	    		// Optional.
+                elseif ((array_key_exists($k, self::$field_filters) && in_array($k, self::$optional_data) && mb_strlen($value)) ||
+	    			(array_key_exists($k, self::$field_filters) && in_array($k, self::$row_optional_data) && mb_strlen($value)))
+                {
+	    			if (mb_strlen($value) < self::$field_filters[$k][0])
+	    				throw new MaksuturvaGatewayException(
+                            sprintf('Field "%s" should be at least %d characters long.',$k, self::$field_filters[$k][0])
+                        );
+
+                    if (mb_strlen($value) > self::$field_filters[$k][1])
+                    {
+	    				// Auto trim.
+	    				$this->payment_data['pmt_rows_data'][$i][$k] = mb_substr($value, 0, self::$field_filters[$k][1]);
+						$this->payment_data['pmt_rows_data'][$i][$k] = $this->encode($this->payment_data['pmt_rows_data'][$i][$k]);
+	    			}
+	    			continue;
+	    		}
+    		}
+    	}
+    }
+    
+    /**
+     * Helper function to filter out problematic characters.
+     *
+     * So far only quotation marks have been needed to filter out.
+     *
+     * @param string $string
+     * @return string
+     */
+    public function filterCharacters($string)
+    {
+    	$new_string = str_replace('"', "", $string);
+    	if (!is_null($new_string) && strlen($new_string) > 0)
+    		return $new_string;
+
+        return ' ';
     }
 
+    /**
+     * Magic get for fetching payment data fields.
+     *
+     * @param string $name
+     * @return null
+     */
     public function __get($name)
     {
-        if (in_array($name, $this->_compulsoryData) || in_array($name, $this->_optionalData) || $name == 'pmt_rows_data') {
-            return $this->_formData[$name];
-        }
-        return null;
-    }
-
-    public function __set($name, $value)
-    {
-        if (in_array($name, $this->_compulsoryData) || in_array($name, $this->_optionalData)) {
-            $this->_formData[$name] = $value;
-        } else {
-            throw new MaksuturvaGatewayException(array("Field $name is not part of the form"), self::EXCEPTION_CODE_FIELD_MISSING);
-        }
-    }
-
-    public function addItem($data)
-    {
-        if (!$this->itemIsValid($data)) {
-            throw new MaksuturvaGatewayException($this->getErrors(), self::EXCEPTION_CODE_INVALID_ITEM);
-        }
-
-        $this->_formData['pmt_rows_data'][] = $data;
-        $this->_formData['pmt_rows']++;
-
-    }
-
-    public function setItemData($index, $dataKey, $value)
-    {
-        if (in_array($dataKey, $this->_rowCompulsoryData) || $dataKey($name, $this->_rowOptionalData)) {
-            $this->_formData['pmt_rows_data'][$index][$dataKey] = $value;
-        } else {
-            throw new MaksuturvaGatewayException(array("Item field $name is not part of the form"), self::EXCEPTION_CODE_FIELD_MISSING);
-        }
-    }
-
-    public function getItemData($index, $dataKey)
-    {
-        if (in_array($dataKey, $this->_rowCompulsoryData) || $dataKey($name, $this->_rowOptionalData)) {
-            return $this->_formData['pmt_rows_data'][$index][$dataKey];
-        }
+        if (in_array($name, self::$mandatory_data) || in_array($name, self::$optional_data) || $name == 'pmt_rows_data')
+            return $this->payment_data[$name];
 
         return null;
     }
 
     /**
-     * Perform a status query to maksuturva's server using the current order
+     * Calculate a hash for given data.
+     *
+     * @param array $hash_data
+     * @return string
+     */
+    public function createHash(array $hash_data)
+    {
+        $hash_string = '';
+        foreach ($hash_data as $key => $data)
+            if ($key != 'pmt_hash')
+                $hash_string .= $data.'&';
+
+        $hash_string .= $this->secret_key.'&';
+        return strtoupper(hash($this->hash_algorithm, $hash_string));
+    }
+
+    /**
+     * Perform a status query to maksuturva's server using the current payment data.
+     *
      * <code>
      * array(
      * 		"pmtq_action",
@@ -607,294 +635,259 @@ abstract class MaksuturvaGatewayAbstract
      * 		"pmtq_sellerid",
      * 		"pmtq_id",
      * 		"pmtq_resptype",
-     * 		"pmqt_return",
+     * 		"pmtq_return",
      * 		"pmtq_hashversion",
      * 		"pmtq_keygeneration"
      * );
      * </code>
+     *
      * The return data is an array if the order is successfully organized;
      * Otherwise, possible situations of errors:
+     *
      * 1) Exceptions in case of not having curl in PHP - exception
      * 2) Network problems (cannot connect, etc) - exception
      * 3) Invalid returned data (hash or consistency) - return false
      *
      * @param array $data Configuration values to be used
-     * @return array|boolean
+     * @return array|bool
+     * @throws MaksuturvaGatewayException
      */
     public function statusQuery($data = array())
     {
-    	// curl is mandatory
-    	if (!function_exists("curl_init")) {
-    		throw new MaksuturvaGatewayException(array("cURL is needed in order to communicate with the maksuturva's server. Check your PHP installation."), self::EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED);
-    	}
+        if (!function_exists('curl_init'))
+            throw new MaksuturvaGatewayException(
+				'cURL is needed in order to communicate with the maksuturva server. Check your PHP installation.',
+				self::EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED
+			);
 
-    	$defaultFields = array(
-    		"pmtq_action" => "PAYMENT_STATUS_QUERY",
-    		"pmtq_version" => "0004",
-    		"pmtq_sellerid" => $this->_formData["pmt_sellerid"],
-    		"pmtq_id" => $this->_formData["pmt_id"],
-    		"pmtq_resptype" => "XML",
-    		"pmqt_return" => "",	// optional
-    	 	"pmtq_hashversion" => $this->_formData["pmt_hashversion"],
-    		"pmtq_keygeneration" => "001"
-    	);
+        $default_fields = array(
+            'pmtq_action' => 'PAYMENT_STATUS_QUERY',
+            'pmtq_version' => '0004',
+            'pmtq_sellerid' => $this->payment_data['pmt_sellerid'],
+            'pmtq_id' => $this->payment_data['pmt_id'],
+            'pmtq_resptype' => 'XML',
+            'pmtq_return' => '',
+            'pmtq_hashversion' => $this->payment_data['pmt_hashversion'],
+            'pmtq_keygeneration' => '001'
+        );
 
-    	// overrides with user-defined fields
-    	$this->_statusQueryData = array_merge($defaultFields, $data);
+        // Overrides with user-defined fields.
+        $this->status_query_data = array_merge($default_fields, $data);
 
-    	// hash calculation
-    	$hashFields = array(
-    		"pmtq_action",
-    		"pmtq_version",
-    		"pmtq_sellerid",
-    		"pmtq_id"
-    	);
-    	$hashString = '';
-        foreach ($hashFields as $hashField) {
-        	$hashString .= $this->_statusQueryData[$hashField] . '&';
-        }
-        $hashString .= $this->_secretKey . '&';
-        // last step: the hash is placed correctly
-        $this->_statusQueryData["pmtq_hash"] = strtoupper(hash($this->_hashAlgoDefined, $hashString));
+		// Last step: the hash is placed correctly.
+        $hash_fields = array(
+            'pmtq_action',
+            'pmtq_version',
+            'pmtq_sellerid',
+            'pmtq_id'
+        );
+		$hash_data = array();
+		foreach ($hash_fields as $field)
+			$hash_data[$field] = $this->status_query_data[$field];
+		$this->status_query_data['pmtq_hash'] = $this->createHash($hash_data);
 
-        // now the request is made to maksuturva
-        $request = curl_init($this->_statusQueryBaseUrl);
-		curl_setopt($request, CURLOPT_HEADER, 0);
-		curl_setopt($request, CURLOPT_FRESH_CONNECT, 1);
-		curl_setopt($request, CURLOPT_FORBID_REUSE, 1);
-		curl_setopt($request, CURLOPT_RETURNTRANSFER, 1);
+        // Now the request is made to maksuturva.
+        $request = curl_init($this->base_url_status_query);
+        curl_setopt($request, CURLOPT_HEADER, 0);
+        curl_setopt($request, CURLOPT_FRESH_CONNECT, 1);
+        curl_setopt($request, CURLOPT_FORBID_REUSE, 1);
+        curl_setopt($request, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($request, CURLOPT_POST, 1);
-        curl_setopt($request, CURLOPT_SSL_VERIFYPEER, 0); // Ignoring certificate verification
+        curl_setopt($request, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($request, CURLOPT_CONNECTTIMEOUT, 120);
-        curl_setopt($request, CURLOPT_POSTFIELDS, $this->_statusQueryData);
+        curl_setopt($request, CURLOPT_POSTFIELDS, $this->status_query_data);
 
         $res = curl_exec($request);
-        if ($res === false) {
-        	throw new MaksuturvaGatewayException(array("Failed to communicate with maksuturva. Please check the network connection."));
-        }
+        if ($res === false)
+            throw new MaksuturvaGatewayException(
+				'Failed to communicate with maksuturva. Please check the network connection.'
+			);
         curl_close($request);
 
-        // we will not rely on xml parsing - instead, the fields are going to be collected by means of preg_match
-        $parsedResponse = array();
-        $responseFields = array(
-        	"pmtq_action", "pmtq_version", "pmtq_sellerid", "pmtq_id",
-        	"pmtq_amount", "pmtq_returncode", "pmtq_returntext", "pmtq_trackingcodes",
-        	"pmtq_sellercosts", "pmtq_paymentmethod", "pmtq_escrow",
-        	"pmtq_buyername", "pmtq_buyeraddress1", "pmtq_buyeraddress2",
-        	"pmtq_buyerpostalcode", "pmtq_buyercity", "pmtq_hash"
+        // We will not rely on xml parsing - instead,
+        // the fields are going to be collected by means of regular expression.
+        $parsed_response = array();
+        $response_fields = array(
+            'pmtq_action', 'pmtq_version', 'pmtq_sellerid', 'pmtq_id',
+            'pmtq_amount', 'pmtq_returncode', 'pmtq_returntext', 'pmtq_trackingcodes',
+            'pmtq_sellercosts', 'pmtq_paymentmethod', 'pmtq_escrow',
+            'pmtq_buyername', 'pmtq_buyeraddress1', 'pmtq_buyeraddress2',
+            'pmtq_buyerpostalcode', 'pmtq_buyercity', 'pmtq_hash'
         );
-        foreach ($responseFields as $responseField) {
-        	preg_match("/<$responseField>(.*)?<\/$responseField>/i", $res, $match);
-        	if (count($match) == 2) {
-        		$parsedResponse[$responseField] = $match[1];
-        	}
+        foreach ($response_fields as $field) {
+            preg_match("/<$field>(.*)?<\/$field>/i", $res, $matches);
+            if (count($matches) == 2) {
+                $parsed_response[$field] = $matches[1];
+            }
         }
 
-		// do not provide a response which is not valid
-		if (!$this->_verifyStatusQueryResponse($parsedResponse)) {
-			throw new MaksuturvaGatewayException(array("The authenticity of the answer could't be verified. Hashes didn't match."), self::EXCEPTION_CODE_HASHES_DONT_MATCH);
-		}
+        // Do not provide a response which is not valid.
+        if (!$this->verifyStatusQueryResponse($parsed_response))
+            throw new MaksuturvaGatewayException(
+				'The authenticity of the answer could not be verified. Hashes did not match.',
+				self::EXCEPTION_CODE_HASHES_DONT_MATCH
+			);
 
-        // return the response - verified
-        return $parsedResponse;
+        // Return the response - verified.
+        return $parsed_response;
     }
 
     /**
-     * Internal method to validate the consistency of maksuturva
-     * responses for a given status query.
-     * @param array $data
-     * @return boolean
+	 * Turns the payment data into a single level associative array.
+     *
+     * @return array
+     * @throws MaksuturvaGatewayException
      */
-    private function _verifyStatusQueryResponse($data)
+    public function getFieldArray()
     {
-    	$hashFields = array(
-			"pmtq_action",
-			"pmtq_version",
-			"pmtq_sellerid",
-			"pmtq_id",
-			"pmtq_amount",
-			"pmtq_returncode",
-			"pmtq_returntext",
-    		"pmtq_sellercosts",
-			"pmtq_paymentmethod",
-			"pmtq_escrow"
-    	);
+		$this->validatePaymentData();
 
-    	$optionalFields = array(
-    		"pmtq_sellercosts",
-			"pmtq_paymentmethod",
-			"pmtq_escrow"
-    	);
+        $return_array = array();
+        $this->payment_data['pmt_reference']  = $this->getPmtReferenceNumber($this->payment_data['pmt_reference']);
+        foreach ($this->payment_data as $key => $data)
+        {
+            if ($key == 'pmt_rows_data')
+            {
+                $row_count = 1;
+                foreach ($data as $row)
+                {
+                    foreach ($row as $k => $v)
+                        $return_array[$this->httpEncode($k.$row_count)] = $this->httpEncode($v);
 
-    	$hashString = "";
-    	foreach ($hashFields as $hashField) {
-    		if (!isset($data[$hashField]) && !in_array($hashField, $optionalFields)) {
-    			return false;
-    		// optional fields
-    		} else if (!isset($data[$hashField])) {
-    			continue;
-    		}
-    		// test the vality of data as well, when the field exists
-    		if  (isset($this->_statusQueryData[$hashField]) &&
-    			($data[$hashField] != $this->_statusQueryData[$hashField])) {
-    			return false;
-    		}
-    		$hashString .= $data[$hashField] . "&";
-    	}
-    	$hashString .= $this->_secretKey . '&';
+                    $row_count++;
+                }
+            }
+            else
+                $return_array[$this->httpEncode($key)] = $this->httpEncode($data);
+        }
+        $return_array[$this->httpEncode('pmt_hash')] = $this->encode($this->createPaymentHash(), $this->charset);
 
-    	$calcHash = strtoupper(hash($this->_hashAlgoDefined, $hashString));
-    	if ($calcHash != $data["pmtq_hash"]) {
-    		return false;
-    	}
-
-    	return true;
+        return $return_array;
     }
 
-    /**
-     * Converts the given string to UTF-8
-     * @param string $string_input
-     * @param string $encoding
-     * @return string
-     */
-    private function convert_encoding($string_input, $encoding)
-    {
-        return mb_convert_encoding($string_input, $encoding);
-    }
-    
-    /**
-     * Calculate the payment url base on the admin module configuration
-     * of the base url
-     * @param string $baseUrl
-     * @return string
-     */
-    static function getPaymentUrl($baseUrl = 'https://www.maksuturva.fi')
-    {
-        return $baseUrl . '/NewPaymentExtended.pmt';
-    }
-    
 	/**
-     * Calculate the status query url base on the admin module configuration
-     * of the base url
-     * @param string $baseUrl
-     * @return string
-     */
-    static function getStatusQueryUrl($baseUrl = 'https://www.maksuturva.fi')
-    {
-        return $baseUrl . '/PaymentStatusQuery.pmt';
-    }
-    
-    /**
-     * Given the private var $_fieldLength, parses all the fields,
-     * 	trimming them as needed. If a required field is missing or with length below
-     * 	required, throws an exception
-     */
-    private function filterFieldsLength()
-    {
-    	// clone values
-    	$originalData = array();
-    	foreach ($this->_formData as $key => $data) {
-    		$originalData[$key] = $data;
-    	}
-    	$this->_originalFormData = $originalData;
-    	
-    	$changes = FALSE;
-    	foreach ($this->_formData as $key => $data) {
-    		// mandatory
-    		if ((array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_compulsoryData)) ||
-    			array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_rowCompulsoryData)) {
-    			if (mb_strlen($data) < $this->_fieldLength[$key][0]) {
-    				throw new MaksuturvaGatewayException(array("Field " . $key . " should be at least " . $this->_fieldLength[$key][0] . " characters long."));
-    			} else if (mb_strlen($data) > $this->_fieldLength[$key][1]) {
-    				// auto trim
-    				$this->_formData[$key] = mb_substr($data, 0, $this->_fieldLength[$key][1]);
-					$this->_formData[$key] = mb_convert_encoding($this->_formData[$key], $this->_charset, $this->_charset);
-    				$changes = true;
-    			}
-    			continue;
-    		// optional
-    		} else if ((array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_optionalData) && mb_strlen($data)) ||
-    			(array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_rowOptionalData) && mb_strlen($data))) {
-    			if (mb_strlen($data) < $this->_fieldLength[$key][0]) {
-    				throw new MaksuturvaGatewayException(array("Field " . $key . " should be at least " . $this->_fieldLength[$key][0] . " characters long."));
-    			} else if (mb_strlen($data) > $this->_fieldLength[$key][1]) {
-    				// auto trim
-    				$this->_formData[$key] = mb_substr($data, 0, $this->_fieldLength[$key][1]);
-					$this->_formData[$key] = mb_convert_encoding($this->_formData[$key], $this->_charset, $this->_charset);
-    				$changes = true;
-    			}
-    			continue;
-    		}
-    	}
-    	
-    	// now, the product rows
-    	foreach ($this->_formData["pmt_rows_data"] as $i => $product) {
-		// Putting desc or title to not be blank
-		if (array_key_exists('pmt_row_name', $product) && array_key_exists('pmt_row_desc', $product)){
-			if (!trim($product['pmt_row_name'])){
-				$this->_formData["pmt_rows_data"][$i]['pmt_row_name'] = $product['pmt_row_name'] = $product['pmt_row_desc'];
-			} else if (!trim($product['pmt_row_desc'])){
-				$this->_formData["pmt_rows_data"][$i]['pmt_row_desc'] = $product['pmt_row_desc'] = $product['pmt_row_name'];
-			}
-			
-		}
+	 * Encodes the data to the defined "http encoding".
+	 *
+	 * @param string $data
+	 * @param null|string $from_encoding
+	 * @return string
+	 */
+	public function httpEncode($data, $from_encoding = null)
+	{
+		return $this->encode($data, $this->charset_http, $from_encoding);
+	}
 
-    		foreach ($product as $key => $data) {
-	    		// mandatory
-	    		if ((array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_compulsoryData)) ||
-	    			array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_rowCompulsoryData)) {
-	    			if (mb_strlen($data) < $this->_fieldLength[$key][0]) {
-	    				throw new MaksuturvaGatewayException(array("Field " . $key . " should be at least " . $this->_fieldLength[$key][0] . " characters long."));
-	    			} else if (mb_strlen($data) > $this->_fieldLength[$key][1]) {
-	    				// auto trim
-	    				$this->_formData["pmt_rows_data"][$i][$key] = mb_substr($data, 0, $this->_fieldLength[$key][1]);
-						$this->_formData["pmt_rows_data"][$i][$key] = mb_convert_encoding($this->_formData["pmt_rows_data"][$i][$key], $this->_charset, $this->_charset);
-	    				$changes = true;
-	    			}
-	    			continue;
-	    		// optional
-	    		} else if ((array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_optionalData) && mb_strlen($data)) ||
-	    			(array_key_exists($key, $this->_fieldLength) && in_array($key, $this->_rowOptionalData) && mb_strlen($data))) {
-	    			if (mb_strlen($data) < $this->_fieldLength[$key][0]) {
-	    				throw new MaksuturvaGatewayException(array("Field " . $key . " should be at least " . $this->_fieldLength[$key][0] . " characters long."));
-	    			} else if (mb_strlen($data) > $this->_fieldLength[$key][1]) {
-	    				// auto trim
-	    				$this->_formData["pmt_rows_data"][$i][$key] = mb_substr($data, 0, $this->_fieldLength[$key][1]);
-						$this->_formData["pmt_rows_data"][$i][$key] = mb_convert_encoding($this->_formData["pmt_rows_data"][$i][$key], $this->_charset, $this->_charset);
-	    				$changes = true;
-	    			}
-	    			continue;
-	    		}
-    		}
-    	}
-    	
-    	return $changes;
-    }
-    
-    /* 
-     * small function to filter out problematic characters
-     * So far only quotation marks have been needed to filter out
-     */
-    function filterCharacters($string) {
-    	$newString = str_replace('"', "", $string);
-    	if(is_null($newString) === false && strlen($newString) > 0){
-    		return $newString;
-    	}
-    	else{
-    		return " ";
-    	}
-    }
+	/**
+	 * Encodes the data.
+	 *
+	 * By default both `to` and `from` encoding is the one defined in `$this->charset`.
+	 *
+	 * @param mixed $data
+	 * @param null|string $to_encoding
+	 * @param null|string $from_encoding
+	 * @return string
+	 */
+	public function encode($data, $to_encoding = null, $from_encoding = null)
+	{
+		if (is_null($to_encoding))
+			$to_encoding = $this->charset;
+
+		if (is_null($from_encoding))
+			$from_encoding = $this->charset;
+
+		return mb_convert_encoding($data, $to_encoding, $from_encoding);
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPaymentUrl()
+	{
+		return $this->base_url;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getStatusQueryUrl()
+	{
+		return $this->base_url_status_query;
+	}
+
+	/**
+	 * @param string $base_url
+	 */
+	public function setBaseUrl($base_url)
+	{
+		$this->base_url = rtrim($base_url, '/').self::ROUTE_PAYMENT;
+		$this->base_url_status_query = rtrim($base_url, '/').self::ROUTE_STATUS_QUERY;
+	}
+
+	/**
+	 * @param string $encoding
+	 */
+	public function setEncoding($encoding)
+	{
+		$this->charset = $encoding;
+		$this->charset_http = $encoding;
+	}
+
+	/**
+	 * @param mixed $prefix
+	 */
+	public function setPaymentIdPrefix($prefix)
+	{
+		$this->pmt_id_prefix = $prefix;
+	}
+
+	/**
+	 * @param array $payment_data
+	 *
+	 * @throws MaksuturvaGatewayException
+	 */
+	public function setPaymentData(array $payment_data)
+	{
+		foreach ($payment_data as $key => $value)
+			if ($key === 'pmt_rows_data')
+				foreach ($value as $k => $v)
+					$this->payment_data[$key][$k] = str_replace('&amp;', '', $v);
+			else
+				$this->payment_data[$key] = str_replace('&amp;', '', $value);
+
+		$hashing_algorithms = hash_algos();
+		if (in_array('sha512', $hashing_algorithms))
+		{
+			$this->payment_data['pmt_hashversion'] = 'SHA-512';
+			$this->hash_algorithm = 'sha512';
+		}
+		elseif (in_array('sha256', $hashing_algorithms))
+		{
+			$this->payment_data['pmt_hashversion'] = 'SHA-256';
+			$this->hash_algorithm = 'sha256';
+		}
+		elseif (in_array('sha1', $hashing_algorithms))
+		{
+			$this->payment_data['pmt_hashversion'] = 'SHA-1';
+			$this->hash_algorithm = 'sha1';
+		}
+		elseif (in_array('md5', $hashing_algorithms))
+		{
+			$this->payment_data['pmt_hashversion'] = 'MD5';
+			$this->hash_algorithm = 'md5';
+		}
+		else
+		{
+			throw new MaksuturvaGatewayException(
+				'the hash algorithms SHA-512, SHA-256, SHA-1 and MD5 are not supported!',
+				self::EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED
+			);
+		}
+	}
 }
 
+/**
+ * Exception class for all maksuturva gateway exceptions.
+ */
 class MaksuturvaGatewayException extends Exception
 {
-    public function __construct($errors, $code = null)
-    {
-        $message = '';
-        foreach ($errors as $error) {
-            $message .= $error . ', ';
-        }
-
-        parent::__construct($message, $code);
-    }
 }

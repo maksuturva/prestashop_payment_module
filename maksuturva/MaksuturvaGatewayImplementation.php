@@ -31,207 +31,359 @@ require_once dirname(__FILE__) . '/MaksuturvaGatewayAbstract.php';
  */
 class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 {
-    var $sandbox = false;
+	const SANDBOX_SELLER_ID = 'testikauppias';
+	const SANDBOX_SECRET_KEY = '11223344556677889900';
 
-    /**
-     * Builds up the order accordingly to the Cart within
-     * @param string $id
-     * @param Cart $order
-     * @param string $encoding
-     * @param PaymentModule $module
-     * @param string $url
-     */
-	function __construct($id, $order, $encoding, $module, $url = 'https://www.maksuturva.fi')
+	/**
+	 * @var float the calculated total amount of the order.
+	 */
+	private $order_total = 0.00;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 */
+	public function __construct(Maksuturva $module, Cart $order)
 	{
-		// we increment the id to avoid pmt_reference errors
-		$id = $id + 100;
-
-	    if (Configuration::get('MAKSUTURVA_SANDBOX') == '1') {
-	        $this->sandbox = true;
-	        $secretKey = '11223344556677889900';
-	        $sellerId = 'testikauppias';
-	    } else {
-	        $secretKey = Configuration::get('MAKSUTURVA_SECRET_KEY');
-	        $sellerId = Configuration::get('MAKSUTURVA_SELLER_ID');
-	    }
-	    $url = Configuration::get('MAKSUTURVA_URL');
-
-	    $orderAmount = 0; // sum of rows of types 1, 4, 5, 6
-
-		//Adding each product from order
-		$products_rows = array();
-		foreach ($order->getProducts() as $product) {
-			//var_dump($product);die;
-			$desc = Tools::htmlentitiesDecodeUTF8(strip_tags($product["description_short"]));
-			$orderAmount += $product["total_wt"]; // with taxes
-		    $row = array(
-		        'pmt_row_name' => $this->filterCharacters($product["name"]),                                                        //alphanumeric        max lenght 40
-            	'pmt_row_desc' => $this->filterCharacters($desc),                                           //alphanumeric        max lenght 1000      min lenght 1
-            	'pmt_row_quantity' => $product["cart_quantity"]						//numeric             max lenght 8         min lenght 1
-		    );
-		    if($product["reference"] != NULL && isset($product["reference"])){
-		    	$row['pmt_row_articlenr'] = $product["reference"];
-		    }
-		    else if($product["ean13"] != NULL && isset($product["ean13"])){
-		    	$row['pmt_row_articlenr'] = $product["ean13"];
-		    }
-		    $row['pmt_row_deliverydate'] = date("d.m.Y");							//alphanumeric        max lenght 10        min lenght 10        dd.MM.yyyy
-		    // vat excluded:
-            $row['pmt_row_price_gross'] = str_replace('.', ',', sprintf("%.2f", $product["price_wt"]));          //alphanumeric        max lenght 17        min lenght 4         n,nn                           
-		    $row['pmt_row_vat'] = str_replace('.', ',', sprintf("%.2f", $product["rate"]));               //alphanumeric        max lenght 5         min lenght 4         n,nn
-            $row['pmt_row_discountpercentage'] = "0,00";                                                    //alphanumeric        max lenght 5         min lenght 4         n,nn
-            $row['pmt_row_type'] = 1;
-		   
-		    array_push($products_rows, $row);
-		}
-
-		// retrieve order carrier and some more details
-		$customer = new Customer((int)$order->id_customer);
-		$carrier = new Carrier($order->id_carrier);
-		$order_summary = $order->getSummaryDetails();
-
-		$moduleUrl = Tools::getShopDomainSsl(true, true).__PS_BASE_URI__ . 'modules/'.$module->name.'/validation.php';
-
-		if ($order_summary['total_shipping'] > 0){
-			$shippingVat =  (($order_summary['total_shipping'] / $order_summary['total_shipping_tax_exc']) - 1) * 100;
-		} else{
-			$shippingVat = 0;
-		}
-		$sellerCosts = $order_summary['total_shipping'];
-
-		// Adding the shipping cost as a row
-		$row = array(
-		    'pmt_row_name' => (($carrier != NULL && isset($carrier->name)) ? $carrier->name : $module->l('Shipping Costs')),
-        	'pmt_row_desc' => (($carrier != NULL && isset($carrier->name)) ? $carrier->name : $module->l('Shipping Costs')),
-        	'pmt_row_quantity' => 1,
-        	'pmt_row_deliverydate' => date("d.m.Y"),
-        	'pmt_row_price_gross' => str_replace('.', ',', sprintf("%.2f", $order_summary['total_shipping'])),
-        	'pmt_row_vat' => str_replace('.', ',', sprintf("%.2f", $shippingVat)),
-        	'pmt_row_discountpercentage' => "0,00",
-        	'pmt_row_type' => 2,
-		);
-		array_push($products_rows, $row);
-		
-		// if wrapping, add
-		if ($order_summary["total_wrapping"] > 0) {
-			// services do not sum with the sellercosts: just types 2 and 3 (postal and handling costs)
-			$wrappingVat = (($order_summary['total_wrapping'] / $order_summary['total_wrapping_tax_exc']) - 1) * 100;
-			$orderAmount += $order_summary["total_wrapping"];
-			$row = array(
-			    'pmt_row_name' => $module->l('Wrapping Costs'),
-	        	'pmt_row_desc' => $module->l('Wrapping Costs'),
-	        	'pmt_row_quantity' => 1,
-	        	'pmt_row_deliverydate' => date("d.m.Y"),
-	        	'pmt_row_price_gross' => str_replace('.', ',', sprintf("%.2f", $order_summary['total_wrapping'])),
-	        	'pmt_row_vat' => str_replace('.', ',', sprintf("%.2f", $wrappingVat)),
-	        	'pmt_row_discountpercentage' => "0,00",
-	        	'pmt_row_type' => 5, // service performed
-			);
-			array_push($products_rows, $row);
-		}
-
-		// if discounts, add
-		if (abs($order_summary["total_discounts"]) > 0) {
-			// services do not sum with the sellercosts: just types 2 and 3 (postal and handling costs)
-			$discounts_total = 0;
-			$discvalue = 0;
-			$row = 0;
-			foreach ($order_summary['discounts'] as $discount){
-				$discvalue = (-1) * abs($discount['value_real']);
-				$discounts_total += $discvalue;
-				$orderAmount += $discvalue;
-				$row = array(
-				    'pmt_row_name' => (trim($discount['name']) ? $discount['name'] : $module->l('Discounts')) ,
-		        	'pmt_row_desc' => (trim($discount['description']) ? $discount['description'] : $module->l('Discounts')) ,
-		        	'pmt_row_quantity' => 1,
-		        	'pmt_row_deliverydate' => date("d.m.Y"),
-		        	'pmt_row_price_gross' => str_replace('.', ',', sprintf("%.2f", $discvalue) ),
-		        	'pmt_row_vat' => str_replace('.', ',', sprintf("%.2f", 0)), // Order has type DISCOUNT_MONEYAMOUNT_6 and so the VAT percentage should be ZERO
-		        	'pmt_row_discountpercentage' => "0,00",
-		        	'pmt_row_type' => 6, // discounts
-				);
-				array_push($products_rows, $row);		
-			}
-			// check if rounding was right, if not just fix last discount to complete what's missing to discounts_total
-			if (abs(round($discounts_total, 2)) != abs($order_summary["total_discounts"])){
-				$row = array_pop($products_rows);
-				$fixvalue = (-1) * abs($order_summary["total_discounts"]) - $discounts_total;
-				$orderAmount += $fixvalue; 
-				$row['pmt_row_price_gross'] = str_replace('.', ',', sprintf("%.2f", $discvalue + $fixvalue));
-				array_push($products_rows, $row);
-			}
-		}
-
-		$userlocale = "";
-		$fields = $order->getFields();
-		if(Language::getIsoById($fields["id_lang"]) != null && Country::getIsoById($order_summary["invoice"]->id_country) != null ){
-			$userlocale = Language::getIsoById($fields["id_lang"]).'_'.Country::getIsoById($order_summary["invoice"]->id_country);
-		}
-		$options = array(
-			// key version
-			"pmt_keygeneration" => Configuration::get('MAKSUTURVA_SECRET_KEY_VERSION'),
-		
-			"pmt_id" 		=> $id,
-			"pmt_orderid"	=> $id,
-			"pmt_reference" => $id,
-			"pmt_sellerid" 	=> $sellerId,
-			"pmt_duedate" 	=> date("d.m.Y"),
-			"pmt_userlocale" => $userlocale,
-
-			"pmt_okreturn"	=> $moduleUrl,
-			"pmt_errorreturn"	=> $moduleUrl . "?error=1",
-			"pmt_cancelreturn"	=> $moduleUrl . "?cancel=1",
-			"pmt_delayedpayreturn"	=> $moduleUrl . "?delayed=1",
-			"pmt_amount" 		=> str_replace('.', ',', sprintf("%.2f", $orderAmount)),
-			//"pmt_paymentmethod" => "FI03", /* possibility to add pre-selected payment method as a hard-coded parameter. Currently pre-selecting payment method dynamically during checkout is not supported by this module */
-
-			// Customer Information
-			"pmt_buyername" 	=> trim($order_summary["invoice"]->firstname . " " . $order_summary["invoice"]->lastname),
-		    "pmt_buyeraddress" => trim($order_summary["invoice"]->address1 . ", " . $order_summary["invoice"]->address2, ", "),
-			"pmt_buyerpostalcode" => $order_summary["invoice"]->postcode,
-			"pmt_buyercity" => $order_summary["invoice"]->city,
-			"pmt_buyercountry" => Country::getIsoById($order_summary["invoice"]->id_country),
-		    "pmt_buyeremail" => $customer->email,
-
-			// emaksut
-			"pmt_escrow" => "Y",
-
-		    // Delivery information
-			"pmt_deliveryname" => trim($order_summary["delivery"]->firstname . " " . $order_summary["delivery"]->lastname),
-			"pmt_deliveryaddress" => trim($order_summary["delivery"]->address1 . ", " . $order_summary["delivery"]->address2, ", "),
-			"pmt_deliverypostalcode" => $order_summary["delivery"]->postcode,
-		    "pmt_deliverycity" => $order_summary["delivery"]->city,
-			"pmt_deliverycountry" => Country::getIsoById($order_summary["delivery"]->id_country),
-
-			"pmt_sellercosts" => str_replace('.', ',', sprintf("%.2f", $sellerCosts)),
-
-		    "pmt_rows" => count($products_rows),
-		    "pmt_rows_data" => $products_rows
-
-		);
-		//var_dump($order_summary); exit;
-		//var_dump( $options); exit;
-		parent::__construct($secretKey, $options, $encoding, $url);
+		$this->setBaseUrl($module->getGatewayUrl());
+		$this->seller_id = ($module->isSandbox() ? self::SANDBOX_SELLER_ID : $module->getSellerId());
+		$this->secret_key = ($module->isSandbox() ? self::SANDBOX_SECRET_KEY : $module->getSecretKey());
+		$this->setEncoding($module->getEncoding());
+		$this->setPaymentIdPrefix($module->getPaymentIdPrefix());
+		$this->setPaymentData($this->createPaymentData($module, $order));
 	}
 
+	/**
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 * @return array
+	 */
+	private function createPaymentData(Maksuturva $module, Cart $order)
+	{
+		$payment_row_data = $this->createPaymentRowData($module, $order);
+		$buyer_data = $this->createBuyerData($order);
+		$delivery_data = $this->createDeliveryData($order);
+		$order_details = $order->getSummaryDetails();
+		$payment_url = $module->getPaymentUrl();
+		/** @var CustomerCore|Customer $customer */
+		$customer = new Customer($order->id_customer);
 
-    public function calcPmtReferenceCheckNumber()
-    {
-        return $this->getPmtReferenceNumber($this->_formData['pmt_reference']);
-    }
+		return array(
+			'pmt_keygeneration' => $module->getSecretKeyVersion(),
+			'pmt_id' 		=> $this->getPaymentId($order),
+			'pmt_orderid'	=> $order->id,
+			'pmt_reference' => $this->getInternalPaymentId($order),
+			'pmt_sellerid' 	=> $this->seller_id,
+			'pmt_duedate' 	=> date('d.m.Y'),
+			'pmt_userlocale' => $this->getUserLocale($order),
+			'pmt_okreturn'	=> $payment_url,
+			'pmt_errorreturn'	=> $payment_url.'?error=1',
+			'pmt_cancelreturn'	=> $payment_url.'?cancel=1',
+			'pmt_delayedpayreturn'	=> $payment_url.'?delayed=1',
+			'pmt_amount' 		=> $this->filterPrice($this->order_total),
+			'pmt_buyername' 	=> $buyer_data['name'],
+			'pmt_buyeraddress' => $buyer_data['address'],
+			'pmt_buyerpostalcode' => $buyer_data['postal_code'],
+			'pmt_buyercity' => $buyer_data['city'],
+			'pmt_buyercountry' => $buyer_data['country'],
+			'pmt_buyeremail' => $customer->email,
+			'pmt_escrow' => 'Y',
+			'pmt_deliveryname' => $delivery_data['name'],
+			'pmt_deliveryaddress' => $delivery_data['address'],
+			'pmt_deliverypostalcode' => $delivery_data['postal_code'],
+			'pmt_deliverycity' => $delivery_data['city'],
+			'pmt_deliverycountry' => $delivery_data['country'],
+			'pmt_sellercosts' => $this->filterPrice($order_details['total_shipping']),
+			'pmt_rows' => count($payment_row_data),
+			'pmt_rows_data' => $payment_row_data,
+			// Possibility to add pre-selected payment method as a hard-coded parameter.
+			// Currently pre-selecting payment method dynamically during checkout is not supported by this module.
+			// 'pmt_paymentmethod' => 'FI03',
+		);
+	}
 
-	public function getReferenceNumber($order_id){
-		return $this->getPmtReferenceNumber($order_id+100);
-	} 
+	/**
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 * @return array
+	 */
+	private function createPaymentRowData(Maksuturva $module, Cart $order)
+	{
+		$payment_rows = array();
 
-    public function calcHash()
-    {
-        return $this->generateHash();
-    }
+		foreach ($order->getProducts() as $product)
+		{
+			$payment_row_product = array();
+			$this->order_total += $product['total_wt'];
 
-    public function getHashAlgo()
-    {
-        return $this->_hashAlgoDefined;
-    }
+			$payment_row_product['pmt_row_name'] = $this->filterCharacters($product['name']);
+			$payment_row_product['pmt_row_desc'] = $this->filterDescription($product['description_short']);
+			$payment_row_product['pmt_row_quantity'] = $product['cart_quantity'];
 
+			if(isset($product['reference']) && !is_null($product['reference']))
+				$payment_row_product['pmt_row_articlenr'] = $product['reference'];
+			elseif(isset($product['ean13']) && !is_null($product['ean13']))
+				$payment_row_product['pmt_row_articlenr'] = $product['ean13'];
+
+			$payment_row_product['pmt_row_deliverydate'] = date('d.m.Y');
+			$payment_row_product['pmt_row_price_gross'] = $this->filterPrice($product['price_wt']);
+			$payment_row_product['pmt_row_vat'] = $this->filterPrice($product['rate']);
+			$payment_row_product['pmt_row_discountpercentage'] = '0,00';
+			$payment_row_product['pmt_row_type'] = 1;
+
+			$payment_rows[] = $payment_row_product;
+		}
+
+		$payment_row_shipping = $this->createPaymentRowShippingData($module, $order);
+		if (is_array($payment_row_shipping))
+			$payment_rows[] = $payment_row_shipping;
+
+		$payment_row_wrapping = $this->createPaymentRowWrappingData($module, $order);
+		if (is_array($payment_row_wrapping))
+			$payment_rows[] = $payment_row_wrapping;
+
+		$payment_row_discount = $this->createPaymentRowDiscountData($module, $order);
+		if (is_array($payment_row_discount))
+			$payment_rows = array_merge($payment_rows, $payment_row_discount);
+
+		return $payment_rows;
+	}
+
+	/**
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 * @return array|null
+	 */
+	private function createPaymentRowShippingData(Maksuturva $module, Cart $order)
+	{
+		$order_details = $order->getSummaryDetails();
+
+		if (isset($order_details['total_shipping']) && $order_details['total_shipping'] > 0)
+		{
+			/** @var CarrierCore|Carrier $carrier */
+			$carrier = new Carrier($order->id_carrier);
+			if (Validate::isLoadedObject($carrier) && !empty($carrier->name))
+				$row_name = $carrier->name;
+			else
+				$row_name = $module->l('Shipping Costs');
+
+			$shipping_vat = (($order_details['total_shipping'] / $order_details['total_shipping_tax_exc']) - 1) * 100;
+
+			return array(
+				'pmt_row_name' => trim($row_name),
+				'pmt_row_desc' => trim($row_name),
+				'pmt_row_quantity' => 1,
+				'pmt_row_deliverydate' => date('d.m.Y'),
+				'pmt_row_price_gross' => $this->filterPrice($order_details['total_shipping']),
+				'pmt_row_vat' => $this->filterPrice($shipping_vat),
+				'pmt_row_discountpercentage' => '0,00',
+				'pmt_row_type' => 2,
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 * @return array|null
+	 */
+	private function createPaymentRowWrappingData(Maksuturva $module, Cart $order)
+	{
+		$order_details = $order->getSummaryDetails();
+
+		if (isset($order_details['total_wrapping']) && $order_details['total_wrapping'] > 0)
+		{
+			$this->order_total += $order_details['total_wrapping'];
+			$row_name = $module->l('Wrapping Costs');
+			$wrapping_vat = (($order_details['total_wrapping'] / $order_details['total_wrapping_tax_exc']) - 1) * 100;
+
+			return array(
+				'pmt_row_name' => $row_name,
+				'pmt_row_desc' => $row_name,
+				'pmt_row_quantity' => 1,
+				'pmt_row_deliverydate' => date('d.m.Y'),
+				'pmt_row_price_gross' => $this->filterPrice($order_details['total_wrapping']),
+				'pmt_row_vat' => $this->filterPrice($wrapping_vat),
+				'pmt_row_discountpercentage' => '0,00',
+				'pmt_row_type' => 5,
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param Maksuturva $module
+	 * @param CartCore|Cart $order
+	 * @return array|null
+	 */
+	private function createPaymentRowDiscountData(Maksuturva $module, Cart $order)
+	{
+		$order_details = $order->getSummaryDetails();
+
+		if (isset($order_details['total_discounts']) && $order_details['total_discounts'] > 0)
+		{
+			$payment_rows_discount = array();
+
+			$discount_total = 0;
+			$discount_value = 0;
+			foreach ($order_details['discounts'] as $discount){
+				$discount_value = (-1) * abs($discount['value_real']);
+				$discount_total += $discount_value;
+				$this->order_total += $discount_value;
+
+				$payment_rows_discount[] = array(
+					'pmt_row_name' => (!empty($discount['name']) ? $discount['name'] : $module->l('Discounts')) ,
+					'pmt_row_desc' => (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts')) ,
+					'pmt_row_quantity' => 1,
+					'pmt_row_deliverydate' => date('d.m.Y'),
+					'pmt_row_price_gross' => $this->filterPrice($discount_value),
+					'pmt_row_vat' => '0,00',
+					'pmt_row_discountpercentage' => '0,00',
+					'pmt_row_type' => 6,
+				);
+			}
+
+			// Check if rounding was right, if not just fix last discount to complete what's missing to discounts_total.
+			if (abs(round($discount_total, 2)) != abs($order_details['total_discounts'])){
+				$fixed_row = array_pop($payment_rows_discount);
+				$new_value = (-1) * abs($order_details['total_discounts']) - $discount_total;
+				$this->order_total += $new_value;
+				$fixed_row['pmt_row_price_gross'] = $this->filterPrice($discount_value + $new_value);
+				$payment_rows_discount[] = $fixed_row;
+			}
+
+			return $payment_rows_discount;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param CartCore|Cart $order
+	 * @return array
+	 */
+	private function createBuyerData(Cart $order)
+	{
+		$order_details = $order->getSummaryDetails();
+		$invoice = $order_details['invoice'];
+
+		return array(
+			'name' 	=> trim($invoice->firstname.' '.$invoice->lastname),
+			'address' => trim($invoice->address1.', '.$invoice->address2, ', '),
+			'postal_code' => $invoice->postcode,
+			'city' => $invoice->city,
+			'country' => Country::getIsoById($invoice->id_country),
+		);
+	}
+
+	/**
+	 * @param CartCore|Cart $order
+	 * @return array
+	 */
+	private function createDeliveryData(Cart $order)
+	{
+		$order_details = $order->getSummaryDetails();
+		$delivery = $order_details['delivery'];
+
+		return array(
+			'name' => trim($delivery->firstname.' '.$delivery->lastname),
+			'address' => trim($delivery->address1.', '.$delivery->address2, ', '),
+			'postal_code' => $delivery->postcode,
+			'city' => $delivery->city,
+			'country' => Country::getIsoById($delivery->id_country),
+		);
+	}
+
+	/**
+	 * @param CartCore|Cart $order
+	 * @return string
+	 */
+	private function getUserLocale(Cart $order)
+	{
+		$fields = $order->getFields();
+		$order_details = $order->getSummaryDetails();
+		$language = Language::getIsoById($fields['id_lang']);
+		$country = Country::getIsoById($order_details['invoice']->id_country);
+
+		if (!is_null($language) && !is_null($country))
+			return $language.'_'.$country;
+
+		return '';
+	}
+
+	/**
+	 * @param CartCore|Cart $order
+	 * @return int
+	 */
+	private function getPaymentId(Cart $order)
+	{
+		$pmt_id = '';
+		if (strlen($this->pmt_id_prefix)) {
+			$pmt_id .= $this->pmt_id_prefix;
+		}
+		return $pmt_id.$this->getInternalPaymentId($order);
+	}
+
+	/**
+	 * @param CartCore|Cart $order
+	 * @return int
+	 */
+	private function getInternalPaymentId(Cart $order)
+	{
+		return $order->id + 100;
+	}
+
+	/**
+	 * @param string $description
+	 * @return string
+	 */
+	protected function filterDescription($description)
+	{
+		return $this->filterCharacters(Tools::htmlentitiesDecodeUTF8(strip_tags($description)));
+	}
+
+	/**
+	 * @param string|int|float $price
+	 * @return string
+	 */
+	protected function filterPrice($price)
+	{
+		return str_replace('.', ',', sprintf('%.2f', $price));
+	}
+
+	/**
+	 * @param string $pmt_reference
+	 * @return bool
+	 * @throws MaksuturvaGatewayException
+	 */
+	public function checkPaymentReferenceNumber($pmt_reference)
+	{
+		return ($pmt_reference == $this->getPaymentReferenceNumber());
+	}
+
+	/**
+	 * @return string
+	 * @throws MaksuturvaGatewayException
+	 */
+	public function getPaymentReferenceNumber()
+	{
+		return $this->getPmtReferenceNumber($this->payment_data['pmt_reference']);
+	}
+
+	/**
+	 * @param string $pmt_id
+	 * @return bool
+	 */
+	public function checkPaymentId($pmt_id)
+	{
+		if (strlen($this->pmt_id_prefix) && substr($pmt_id, 0, strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix) {
+			$pmt_id = substr($pmt_id, strlen($this->pmt_id_prefix));
+		}
+		return (((int)$pmt_id - 100) == $this->pmt_orderid);
+	}
 }
