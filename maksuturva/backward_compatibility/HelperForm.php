@@ -106,13 +106,15 @@ class HelperForm
      */
     public function createTemplate($tpl_name)
     {
-        if ($this->module)
-            $tpl_path = _PS_MODULE_DIR_.$this->module->name.$this->base_path.$this->base_folder.$tpl_name;
+        if ($this->module) {
+            $tpl_path = _PS_MODULE_DIR_ . $this->module->name . $this->base_path . $this->base_folder . $tpl_name;
+        }
 
-        if (isset($tpl_path) && file_exists($tpl_path))
+        if (isset($tpl_path) && file_exists($tpl_path)) {
             return $this->context->smarty->createTemplate($tpl_path, $this->context->smarty);
-        else
-            return $this->context->smarty->createTemplate($this->base_folder.$tpl_name, $this->context->smarty);
+        } else {
+            return $this->context->smarty->createTemplate($this->base_folder . $tpl_name, $this->context->smarty);
+        }
     }
 
     /**
@@ -123,11 +125,15 @@ class HelperForm
      */
     public function hasRequiredFields(array $fields_form)
     {
-        foreach ($fields_form as $data)
-            if (isset($data['form']['input']))
-                foreach ($data['form']['input'] as $input)
-                    if (array_key_exists('required', $input) && $input['required'] && $input['type'] != 'radio')
+        foreach ($fields_form as $data) {
+            if (isset($data['form']['input'])) {
+                foreach ($data['form']['input'] as $input) {
+                    if (array_key_exists('required', $input) && $input['required'] && $input['type'] != 'radio') {
                         return true;
+                    }
+                }
+            }
+        }
 
         return false;
     }

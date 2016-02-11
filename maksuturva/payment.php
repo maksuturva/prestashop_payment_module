@@ -23,22 +23,22 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-/* SSL Management */
+$ps_dir = dirname(__FILE__).'/../..';
 $useSSL = true;
 
-include(dirname(__FILE__).'/../../config/config.inc.php');
-include(dirname(__FILE__).'/../../header.php');
-include_once(dirname(__FILE__).'/maksuturva.php');
+include($ps_dir . '/config/config.inc.php');
+include($ps_dir . '/header.php');
+include_once($ps_dir . '/modules/maksuturva.php');
 
 if (!$cookie->isLogged(true)) {
-	Tools::redirect('authentication.php?back=order.php');
+    Tools::redirect('authentication.php?back=order.php');
 }
 // check cart
 if (!isset($cart)) {
-	Tools::redirectLink(__PS_BASE_URI__.'order.php');
+    Tools::redirectLink(__PS_BASE_URI__ . 'order.php');
 }
 
 $module = new Maksuturva();
 echo $module->execPayment($cart);
 
-include_once(dirname(__FILE__).'/../../footer.php');
+include_once($ps_dir . '/footer.php');

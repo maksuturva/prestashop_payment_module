@@ -23,9 +23,11 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-include(dirname(__FILE__).'/../../config/config.inc.php');
-include(dirname(__FILE__).'/../../header.php');
-include_once(dirname(__FILE__).'/maksuturva.php');
+$ps_dir = dirname(__FILE__).'/../..';
+
+include($ps_dir . '/config/config.inc.php');
+include($ps_dir . '/header.php');
+include_once($ps_dir . '/modules/maksuturva.php');
 
 $maksuturva = new Maksuturva();
 
@@ -33,27 +35,28 @@ $maksuturva = new Maksuturva();
  * Validate the customer, the cart and the module itself
  */
 if (!$cart ||
-	$cart->id_customer == 0 ||
-	$cart->id_address_delivery == 0 ||
-	$cart->id_address_invoice == 0 ||
-	!$maksuturva->active) {
-	die(Tools::displayError('This payment method is not available.'));
+    $cart->id_customer == 0 ||
+    $cart->id_address_delivery == 0 ||
+    $cart->id_address_invoice == 0 ||
+    !$maksuturva->active
+) {
+    die(Tools::displayError('This payment method is not available.'));
 }
 
 /*
  * Still available? (if customer's address changed)
  */
 $authorized = false;
-if (method_exists('Module', 'getPaymentModules')){
-	foreach (Module::getPaymentModules() as $module) {
-		if ($module['name'] == $maksuturva->name) {
-			$authorized = true;
-			break;
-		}
-	}
-	if (!$authorized) {
-		die(Tools::displayError('This payment method is not available.'));
-	}
+if (method_exists('Module', 'getPaymentModules')) {
+    foreach (Module::getPaymentModules() as $module) {
+        if ($module['name'] == $maksuturva->name) {
+            $authorized = true;
+            break;
+        }
+    }
+    if (!$authorized) {
+        die(Tools::displayError('This payment method is not available.'));
+    }
 }
 
 /*
@@ -61,7 +64,7 @@ if (method_exists('Module', 'getPaymentModules')){
  */
 $customer = new Customer((int)$cart->id_customer);
 if (!Validate::isLoadedObject($customer)) {
-	Tools::redirect('index.php?controller=order&step=1');
+    Tools::redirect('index.php?controller=order&step=1');
 }
 
 /*
