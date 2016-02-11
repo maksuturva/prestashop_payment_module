@@ -325,7 +325,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     private function getPaymentId(Cart $order)
     {
         $pmt_id = '';
-        if (strlen($this->pmt_id_prefix)) {
+        if (Tools::strlen($this->pmt_id_prefix)) {
             $pmt_id .= $this->pmt_id_prefix;
         }
         return $pmt_id . $this->getInternalPaymentId($order);
@@ -383,8 +383,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     public function checkPaymentId($pmt_id)
     {
-        if (strlen($this->pmt_id_prefix) && substr($pmt_id, 0, strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix) {
-            $pmt_id = substr($pmt_id, strlen($this->pmt_id_prefix));
+        if (Tools::strlen($this->pmt_id_prefix) && Tools::substr($pmt_id, 0, Tools::strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix) {
+            $pmt_id = Tools::substr($pmt_id, Tools::strlen($this->pmt_id_prefix));
         }
         return (((int)$pmt_id - 100) == $this->pmt_orderid);
     }

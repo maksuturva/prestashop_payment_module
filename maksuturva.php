@@ -229,7 +229,7 @@ class Maksuturva extends PaymentModule
             $orderState = new OrderState();
             $orderState->name = array();
             foreach (Language::getLanguages() AS $language) {
-                if (strtolower($language['iso_code']) == 'fr') {
+                if (Tools::strtolower($language['iso_code']) == 'fr') {
                     $orderState->name[$language['id_lang']] = 'En attendant la confirmation de Maksuturva';
                 } else {
                     $orderState->name[$language['id_lang']] = 'Pending confirmation from Maksuturva';
@@ -480,10 +480,10 @@ class Maksuturva extends PaymentModule
 
         if (Tools::isSubmit('submitmaksuturva')) {
             if (Tools::getValue('MAKSUTURVA_SANDBOX') == "0") {
-                if (strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) > 15 || strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) == 0) {
+                if (Tools::strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) > 15 || Tools::strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) == 0) {
                     $this->_errors[] = $this->l('ADMIN: Invalid Seller ID');
                 }
-                if (strlen(Tools::getValue('MAKSUTURVA_SECRET_KEY')) == 0) {
+                if (Tools::strlen(Tools::getValue('MAKSUTURVA_SECRET_KEY')) == 0) {
                     $this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
                 }
             }
@@ -971,7 +971,7 @@ class Maksuturva extends PaymentModule
         // only euro is available
         if (is_array($currencies_module)) {
             foreach ($currencies_module as $currency_module) {
-                if ($currency_order->id == $currency_module['id_currency'] && strtoupper($currency_order->iso_code) == "EUR") {
+                if ($currency_order->id == $currency_module['id_currency'] && Tools::strtoupper($currency_order->iso_code) == "EUR") {
                     return true;
                 }
             }

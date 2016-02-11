@@ -428,8 +428,8 @@ abstract class MaksuturvaGatewayAbstract
         $str = (string)$number;
         $sum = 0;
         $j = 0;
-        for ($i = strlen($str) - 1; $i >= 0; $i--) {
-            $sum += intval(substr($str, $i, 1)) * intval($multiples[$j % 3]);
+        for ($i = mb_strlen($str) - 1; $i >= 0; $i--) {
+            $sum += (int)mb_substr($str, $i, 1) * (int)($multiples[$j % 3]);
             $j++;
         }
 
@@ -602,7 +602,7 @@ abstract class MaksuturvaGatewayAbstract
     public function filterCharacters($string)
     {
         $new_string = str_replace('"', "", $string);
-        if (!is_null($new_string) && strlen($new_string) > 0) {
+        if (!is_null($new_string) && mb_strlen($new_string) > 0) {
             return $new_string;
         }
 
