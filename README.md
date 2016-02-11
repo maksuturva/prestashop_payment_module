@@ -49,7 +49,7 @@ CHANGELOG
 ###rev. 121 6.8.2014
 * Bugfixes:
 	- the module now supports Prestashop up to version 1.6.
-	- the module now removes quotation marks from product names and description – previously it caused errors in hash calculation
+	- the module now removes quotation marks from product names and description previously it caused errors in hash calculation
 	- product SKU is added when available, shipping method name used as shipping name when available
 	- Optional parameters (e.g. pre-selected payment method, buyer's identification code) are now included in the hash calculation when available (currently not available, though, but enabling is possible in further development - see _construct -method in MaksuturvaGatewayImplementation.php and Maksuturva Payment interface description).
 	- Module directory structure updated to enable installation through Prestashop user interface. 

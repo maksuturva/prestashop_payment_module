@@ -90,8 +90,8 @@ class Maksuturva extends PaymentModule
         $this->currencies_mode = 'checkbox';
 
         $this->_checkConfig(false);
-        $this->displayName = $this->l('ADMIN: Maksuturva');
-        $this->description = $this->l('ADMIN: Accepts payments using Maksuturva');
+        $this->displayName = $this->l('Maksuturva');
+        $this->description = $this->l('Accepts payments using Maksuturva');
         $this->_errors = array();
 
         $this->bootstrap = true;
