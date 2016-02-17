@@ -393,6 +393,46 @@ class Maksuturva extends PaymentModule
     }
 
     /**
+     * Callback for the `orderDetailDisplayed` hook.
+     *
+     * Adds information about payment surcharges that may have been applied to the order.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookOrderDetailDisplayed($params)
+    {
+        if (!isset($params['order'])) {
+            return '';
+        }
+
+        try {
+            $payment = new MaksuturvaPayment((int)$params['order']->id);
+        } catch (Exception $e) {
+            // The order was not payed using Maksuturva.
+            return '';
+        }
+
+        if (!$payment->includesSurcharge()) {
+            return '';
+        }
+
+        $this->context->smarty->assign(array(
+            'this_path' => $this->getPath(),
+            'mt_pmt_surcharge_message' => sprintf(
+                'This order has been subject to a payment surcharge of %s EUR',
+                $payment->getSurcharge()
+            ),
+        ));
+
+        if (_PS_VERSION_ >= '1.6') {
+            return $this->display(__FILE__, 'views/templates/hook/order_details_twbs.tpl');
+        } else {
+            return $this->display(__FILE__, 'views/templates/hook/order_details.tpl');
+        }
+    }
+
+    /**
      * Validates a payment and registers the order in PrestaShop.
      *
      * @param CartCore|Cart $cart
@@ -608,8 +648,9 @@ class Maksuturva extends PaymentModule
         return ($this->registerHook('header')
             && $this->registerHook('payment')
             && $this->registerHook('paymentReturn')
-            && $this->registerHook('rightColumn')
-            && $this->registerHook('adminOrder'));
+            && $this->registerHook('adminOrder')
+            && $this->registerHook('orderDetailDisplayed')
+        );
     }
 
     /**
@@ -673,26 +714,27 @@ class Maksuturva extends PaymentModule
      */
     private function createOrderStates()
     {
-        if ($this->getConfig('MAKSUTURVA_OS_AUTHORIZATION')) {
-            return true;
+        $translations = array(
+            'en' => 'Pending confirmation from Maksuturva',
+            'fr' => 'En attendant la confirmation de Maksuturva',
+            'fi' => 'Odottaa vahvistusta Maksuturvalta',
+        );
+
+        $states = OrderState::getOrderStates($this->getConfig('PS_LANG_DEFAULT'));
+        foreach ($states as $state) {
+            if (isset($state['name']) && in_array($state['name'], $translations)) {
+                return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int)$state['id_order_state']);
+            }
         }
 
         /** @var OrderStateCore|OrderState $state */
         $state = new OrderState();
         $state->name = array();
         foreach (Language::getLanguages() as $language) {
-            switch ($language['iso_code']) {
-                case 'fr':
-                    $state->name['fr'] = 'En attendant la confirmation de Maksuturva';
-                    break;
-
-                case 'fi':
-                    $state->name['fi'] = 'Odottaa vahvistusta Maksuturvalta';
-                    break;
-
-                default:
-                    $state->name[$language['id_lang']] = 'Pending confirmation from Maksuturva';
-                    break;
+            if (isset($translations[$language['iso_code']])) {
+                $state->name[$language['id_lang']] = $translations[$language['iso_code']];
+            } else {
+                $state->name[$language['id_lang']] = $translations['en'];
             }
         }
         $state->send_email = false;
@@ -701,11 +743,11 @@ class Maksuturva extends PaymentModule
         $state->delivery = false;
         $state->logable = true;
         $state->invoice = true;
+        if (_PS_VERSION_ >= '1.5') {
+            $state->module_name = $this->name;
+        }
         if ($state->add()) {
-            copy(
-                dirname(__FILE__) . '/logo.gif',
-                dirname(__FILE__) . '/../../img/os/' . (int)$state->id . '.gif'
-            );
+            copy(_PS_MODULE_DIR_ . $this->name . '/logo.gif', _PS_IMG_DIR_ . 'os/' . $state->id . '.gif');
         }
 
         return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int)$state->id);
