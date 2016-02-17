@@ -23,7 +23,7 @@
 *}
 
 {capture name=path}
-    <a href="{$link->getPageLink('order', true, NULL, 'step=3')|escape:'html':'UTF-8'}"
+    <a href="{$link->getPageLink('order', true, null, 'step=3')|escape:'html':'UTF-8'}"
        title="{l s='Go back to the Checkout' mod='maksuturva'}">
         {l s='Checkout' mod='maksuturva'}</a>
     <span class="navigation-pipe">{$navigationPipe|escape:'html':'UTF-8'}</span>
@@ -68,7 +68,7 @@
         </div>
         <p class="cart_navigation clearfix" id="cart_navigation">
             <a class="button-exclusive btn btn-default"
-               href="{$link->getPageLink('order', true, NULL, 'step=3')|escape:'html':'UTF-8'}">
+               href="{$link->getPageLink('order', true, null, 'step=3')|escape:'html':'UTF-8'}">
                 <i class="icon-chevron-left"></i>{l s='Other payment methods' mod='maksuturva'}
             </a>
             <button class="button btn btn-default button-medium" type="submit">

@@ -35,7 +35,7 @@
 		<strong>{l s='Your order will be shipped as soon as possible.' mod='maksuturva'}</strong>
 		<br /><br />
 		{l s='For any questions or for further information, please contact our' mod='maksuturva'}
-		<a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
+		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
 	</p>
 {elseif $status == 'pending'}
 	<p>
@@ -45,7 +45,7 @@
 		<strong>{l s='Your order will be shipped as soon as we receive the payment confirmation.' mod='maksuturva'}</strong>
 		<br /><br />
 		{l s='For any questions or for further information, please contact our' mod='maksuturva'}
-		<a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
+		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
 	</p>
 {elseif $status == 'cancel'}
     <p>
@@ -53,7 +53,7 @@
 		<strong>{$shop_name|escape:'html':'UTF-8'}</strong> {l s='has been canceled.' mod='maksuturva'}
         <br /><br />
 		{l s='For any questions or for further information, please contact our' mod='maksuturva'}
-		<a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
+		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
     </p>
 {else}
 	<p class="warning">{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
@@ -62,6 +62,6 @@
 	{/if}
 	<p class="warning">
 		{l s='For further questions you can contact our' mod='maksuturva'}
-		<a href="{$link->getPageLink('contact-form.php', true)}">{l s='customer support' mod='maksuturva'}</a>.
+		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
 	</p>
 {/if}

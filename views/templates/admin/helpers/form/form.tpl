@@ -36,7 +36,7 @@
           action="{$current|escape:'html':'UTF-8'}&{if !empty($submit_action)}{$submit_action|escape:'html':'UTF-8'}=1{/if}&token={$token|escape:'html':'UTF-8'}"
           method="post"
           enctype="multipart/form-data"
-          {if isset($style)}style="{$style}"{/if}>
+          {if isset($style)}style="{$style|escape:'html':'UTF-8'}"{/if}>
         {if $form_id}
             <input type="hidden"
                    name="{$identifier|escape:'html':'UTF-8'}"
@@ -55,7 +55,7 @@
                             {$field.title|escape:'html':'UTF-8'}
                         </legend>
                     {elseif $key == 'description' && $field}
-                        <p class="description">{$field}</p>
+                        <p class="description">{$field|escape:'html':'UTF-8'}</p>
                     {elseif $key == 'input'}
                         {foreach $field as $input}
                             {if $input.type == 'hidden'}
@@ -233,7 +233,7 @@
                                                         <textarea cols="{$input.cols|escape:'html':'UTF-8'}"
                                                                   rows="{$input.rows|escape:'html':'UTF-8'}"
                                                                   name="{$input.name|escape:'html':'UTF-8'}_{$language.id_lang|escape:'html':'UTF-8'}"
-                                                                  {if isset($input.autoload_rte) && $input.autoload_rte}class="rte autoload_rte {if isset($input.class)}{$input.class}{/if}"{/if} >
+                                                                  {if isset($input.autoload_rte) && $input.autoload_rte}class="rte autoload_rte {if isset($input.class)}{$input.class|escape:'html':'UTF-8'}{/if}"{/if} >
                                                             {$fields_value[$input.name][$language.id_lang]|escape:'html':'UTF-8'}
                                                         </textarea>
                                                     </div>

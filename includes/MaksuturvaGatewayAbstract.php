@@ -548,16 +548,23 @@ abstract class MaksuturvaGatewayAbstract
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
                         throw new MaksuturvaGatewayException(
-                            sprintf('Field "%s" should be at least %d characters long.', $k,
-                                self::$field_filters[$k][0])
+                            sprintf('Field "%s" should be at least %d characters long.',
+                                $k,
+                                self::$field_filters[$k][0]
+                            )
                         );
                     }
 
                     if (mb_strlen($value) > self::$field_filters[$k][1]) {
                         // Auto trim.
-                        $this->payment_data['pmt_rows_data'][$i][$k] = mb_substr($value, 0,
-                            self::$field_filters[$k][1]);
-                        $this->payment_data['pmt_rows_data'][$i][$k] = $this->encode($this->payment_data['pmt_rows_data'][$i][$k]);
+                        $this->payment_data['pmt_rows_data'][$i][$k] = mb_substr(
+                            $value,
+                            0,
+                            self::$field_filters[$k][1]
+                        );
+                        $this->payment_data['pmt_rows_data'][$i][$k] = $this->encode(
+                            $this->payment_data['pmt_rows_data'][$i][$k]
+                        );
                     }
                     continue;
                 } elseif ((array_key_exists($k, self::$field_filters) && in_array($k, self::$optional_data) && mb_strlen($value))
@@ -565,8 +572,10 @@ abstract class MaksuturvaGatewayAbstract
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
                         throw new MaksuturvaGatewayException(
-                            sprintf('Field "%s" should be at least %d characters long.', $k,
-                                self::$field_filters[$k][0])
+                            sprintf('Field "%s" should be at least %d characters long.',
+                                $k,
+                                self::$field_filters[$k][0]
+                            )
                         );
                     }
 
@@ -574,7 +583,9 @@ abstract class MaksuturvaGatewayAbstract
                         // Auto trim.
                         $this->payment_data['pmt_rows_data'][$i][$k] = mb_substr($value, 0,
                             self::$field_filters[$k][1]);
-                        $this->payment_data['pmt_rows_data'][$i][$k] = $this->encode($this->payment_data['pmt_rows_data'][$i][$k]);
+                        $this->payment_data['pmt_rows_data'][$i][$k] = $this->encode(
+                            $this->payment_data['pmt_rows_data'][$i][$k]
+                        );
                     }
                     continue;
                 }
@@ -608,8 +619,8 @@ abstract class MaksuturvaGatewayAbstract
      */
     public function __get($name)
     {
-        if (in_array($name, self::$mandatory_data) || in_array($name,
-                self::$optional_data) || $name == 'pmt_rows_data'
+        if (in_array($name, self::$mandatory_data)
+            || in_array($name, self::$optional_data) || $name == 'pmt_rows_data'
         ) {
             return $this->payment_data[$name];
         }
@@ -633,7 +644,7 @@ abstract class MaksuturvaGatewayAbstract
         }
 
         $hash_string .= $this->secret_key . '&';
-        return strtoupper(hash($this->hash_algorithm, $hash_string));
+        return Tools::strtoupper(hash($this->hash_algorithm, $hash_string));
     }
 
     /**

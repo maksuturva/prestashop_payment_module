@@ -25,7 +25,8 @@
 
 if (!class_exists('ModuleFrontController')) {
     /**
-     * Front controller base class for modules. This is a drop in replacement in PrestaShop 1.4 where this does not exist.
+     * Front controller base class for modules.
+     * This is a drop in replacement in PrestaShop 1.4 where this does not exist.
      */
     abstract class ModuleFrontController extends FrontController
     {

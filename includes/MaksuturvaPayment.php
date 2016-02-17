@@ -85,8 +85,8 @@ class MaksuturvaPayment
             _DB_PREFIX_,
             (int)$data['id_order'],
             (int)$data['status'],
-            json_encode($data['data_sent']),
-            json_encode($data['data_received'])
+            Tools::jsonEncode($data['data_sent']),
+            Tools::jsonEncode($data['data_received'])
         ));
         if (!$created) {
             throw new MaksuturvaException('Failed to create Maksuturva payment');
@@ -176,8 +176,8 @@ class MaksuturvaPayment
 
         $this->id_order = (int)$data[0]['id_order'];
         $this->status = (int)$data[0]['status'];
-        $this->data_sent = json_decode($data[0]['data_sent'], true);
-        $this->data_received = json_decode($data[0]['data_received'], true);
+        $this->data_sent = Tools::jsonDecode($data[0]['data_sent'], true);
+        $this->data_received = Tools::jsonDecode($data[0]['data_received'], true);
         $this->date_add = $data[0]['date_add'];
         $this->date_upd = $data[0]['date_upd'];
     }

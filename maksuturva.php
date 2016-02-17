@@ -59,7 +59,7 @@ if ((basename(__FILE__) === 'maksuturva.php')) {
  * @method string displayError($error)
  * @method string display($file, $template, $cacheId = null, $compileId = null)
  * @method bool registerHook($hook_name)
- * @method bool validateOrder($id_cart, $id_order_state, $amount_paid, $payment_method = 'Unknown', $message = null, $extra_vars = array(), $currency_special = null, $dont_touch_amount = false, $secure_key = false, Shop $shop = null)
+ * @method bool validateOrder()
  */
 class Maksuturva extends PaymentModule
 {
@@ -836,7 +836,7 @@ class Maksuturva extends PaymentModule
             . '&tab_module=' . $this->tab
             . '&module_name=' . $this->name;
         $helper->tpl_vars = array(
-            'fields_value' => $this->_getFormConfig(),
+            'fields_value' => $this->getFormConfig(),
         );
 
         return $helper->generateForm($form_data);
@@ -845,7 +845,7 @@ class Maksuturva extends PaymentModule
     /**
      * @return array
      */
-    private function _getFormConfig()
+    private function getFormConfig()
     {
         return array(
             'MAKSUTURVA_SELLER_ID' => Tools::getValue(

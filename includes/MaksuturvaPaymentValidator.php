@@ -254,7 +254,9 @@ class MaksuturvaPaymentValidator
      */
     protected function validateReferenceNumber(array $values)
     {
-        if (!isset($values['pmt_reference']) || !$this->gateway->checkPaymentReferenceNumber($values['pmt_reference'])) {
+        if (!isset($values['pmt_reference'])
+            || !$this->gateway->checkPaymentReferenceNumber($values['pmt_reference'])
+        ) {
             $this->error($this->gateway->module->l('Payment reference number could not be verified'));
         }
     }
