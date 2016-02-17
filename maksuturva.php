@@ -309,19 +309,19 @@ class Maksuturva extends PaymentModule
 
         switch ($payment->getStatus()) {
             case (int)$this->getConfig('PS_OS_PAYMENT'):
-                $message = $this->l('The payment was confirmed by Maksuturva');
+                $msg = $this->l('The payment was confirmed by Maksuturva');
                 break;
 
             case (int)$this->getConfig('PS_OS_CANCELED'):
                 if ($order->getCurrentState() != $this->getConfig('PS_OS_CANCELED')) {
-                    $message = $this->l('The payment could not be tracked by Maksuturva, check if the customer selected Maksuturva as payment method');
+                    $msg = $this->l('The payment could not be tracked by Maksuturva, please check manually');
                 } else {
-                    $message = $this->l('The payment was canceled by the customer');
+                    $msg = $this->l('The payment was canceled by the customer');
                 }
                 break;
 
             case (int)$this->getConfig('PS_OS_ERROR'):
-                $message = $this->l('An error occurred and the payment was not confirmed, please check manually');
+                $msg = $this->l('An error occurred and the payment was not confirmed, please check manually');
                 break;
 
             case (int)$this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
@@ -337,7 +337,7 @@ class Maksuturva extends PaymentModule
                                 $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
                             }
                             (new MaksuturvaPayment((int)$order->id))->complete();
-                            $message = $this->l('The payment confirmation was received - payment accepted');
+                            $msg = $this->l('The payment confirmation was received - payment accepted');
                             break;
 
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED:
@@ -349,12 +349,12 @@ class Maksuturva extends PaymentModule
                                 $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
                             }
                             (new MaksuturvaPayment((int)$order->id))->cancel();
-                            $message = $this->l('The payment was canceled in Maksuturva');
+                            $msg = $this->l('The payment was canceled in Maksuturva');
                             break;
 
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_NOT_FOUND:
                             (new MaksuturvaPayment((int)$order->id))->cancel();
-                            $message = $this->l('The payment could not be tracked by Maksuturva, check if the customer selected Maksuturva as payment method');
+                            $msg = $this->l('The payment could not be tracked by Maksuturva, please check manually');
                             break;
 
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_FAILED:
@@ -362,11 +362,11 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID_DELIVERY:
                         default:
-                            $message = $this->l('The payment is still waiting for confirmation');
+                            $msg = $this->l('The payment is still waiting for confirmation');
                             break;
                     }
                 } catch (MaksuturvaGatewayException $e) {
-                    $message = $this->l('Error while communicating with maksuturva: Invalid hash or network error');
+                    $msg = $this->l('Error while communicating with maksuturva: Invalid hash or network error');
                 }
                 break;
         }
@@ -374,7 +374,7 @@ class Maksuturva extends PaymentModule
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
             'mt_pmt_id' => $payment->getPmtReference(),
-            'mt_pmt_status_message' => $message,
+            'mt_pmt_status_message' => $msg,
         ));
         if ($payment->includesSurcharge()) {
             $this->context->smarty->assign(array(
