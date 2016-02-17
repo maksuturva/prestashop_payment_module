@@ -70,8 +70,8 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             'back_button' => (_PS_VERSION_ >= '1.5')
                 ? $link->getPageLink('order', true, NULL, 'step=3')
                 : $link->getPageLink('order.php', true) . '?step=3',
-            'form_action' => $gateway->getPaymentUrl(),
-            'extra_fields' => $gateway->getFieldArray(),
+            'mt_form_action' => $gateway->getPaymentUrl(),
+            'mt_extra_fields' => $gateway->getFieldArray(),
         ));
 
         if (_PS_VERSION_ >= '1.6') {

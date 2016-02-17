@@ -281,16 +281,6 @@ abstract class MaksuturvaGatewayAbstract
     );
 
     /**
-     * Returns the payment data that is sent to maksuturva.
-     *
-     * @return array
-     */
-    public function getPaymentData()
-    {
-        return $this->payment_data;
-    }
-
-    /**
      * Checks if the payment data is valid.
      *
      * @throws MaksuturvaGatewayException
@@ -415,7 +405,7 @@ abstract class MaksuturvaGatewayAbstract
             }
         }
 
-        return strtolower($this->createHash($hash_data));
+        return $this->createHash($hash_data);
     }
 
     /**
@@ -914,11 +904,4 @@ abstract class MaksuturvaGatewayAbstract
             );
         }
     }
-}
-
-/**
- * Exception class for all maksuturva gateway exceptions.
- */
-class MaksuturvaGatewayException extends Exception
-{
 }

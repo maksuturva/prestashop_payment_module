@@ -76,12 +76,12 @@ class MaksuturvaPayment
      * @param array $data
      * @return MaksuturvaPayment
      *
-     * @throws Exception
+     * @throws MaksuturvaException
      */
     public static function create(array $data)
     {
         $created = Db::getInstance()->execute(sprintf(
-            'INSERT INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`) VALUES (%d, %d, %s, %s, NOW());',
+            "INSERT INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`) VALUES (%d, %d, '%s', '%s', NOW());",
             _DB_PREFIX_,
             (int)$data['id_order'],
             (int)$data['status'],
@@ -89,7 +89,7 @@ class MaksuturvaPayment
             json_encode($data['data_received'])
         ));
         if (!$created) {
-            throw new Exception('Failed to create Maksuturva payment');
+            throw new MaksuturvaException('Failed to create Maksuturva payment');
         }
 
         return new self((int)$data['id_order']);
@@ -164,22 +164,22 @@ class MaksuturvaPayment
     /**
      * @param int $id_order
      *
-     * @throws Exception
+     * @throws MaksuturvaException
      */
     protected function load($id_order)
     {
         $query = sprintf('SELECT * FROM `%smt_payment` WHERE id_order = %d LIMIT 1;', _DB_PREFIX_, (int)$id_order);
         $data = Db::getInstance()->s($query);
         if (!(is_array($data) && count($data) === 1)) {
-            throw new Exception('Failed to load Maksuturva payment');
+            throw new MaksuturvaException('Failed to load Maksuturva payment');
         }
 
-        $this->id_order = (int)$data['id_order'];
-        $this->status = (int)$data['status'];
-        $this->data_sent = json_decode($data['data_sent'], true);
-        $this->data_received = json_decode($data['data_received'], true);
-        $this->date_add = $data['date_add'];
-        $this->date_upd = $data['date_upd'];
+        $this->id_order = (int)$data[0]['id_order'];
+        $this->status = (int)$data[0]['status'];
+        $this->data_sent = json_decode($data[0]['data_sent'], true);
+        $this->data_received = json_decode($data[0]['data_received'], true);
+        $this->date_add = $data[0]['date_add'];
+        $this->date_upd = $data[0]['date_upd'];
     }
 
     /**

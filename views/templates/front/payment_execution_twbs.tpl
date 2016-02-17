@@ -38,7 +38,7 @@
 {if $count_products <= 0}
     <p class="alert alert-warning">{l s='Your shopping cart is empty.' mod='maksuturva'}</p>
 {else}
-    <form action="{$link->getModuleLink('maksuturva', 'validation', [], true)|escape:'html':'UTF-8'}" method="post">
+    <form action="{$mt_form_action|escape:'html':'UTF-8'}" method="post">
         <div class="box cheque-box">
             <h3 class="page-subheading">
                 {l s='Maksuturva payment' mod='maksuturva'}
@@ -75,7 +75,7 @@
                 <span>{l s='I confirm my order' mod='maksuturva'}<i class="icon-chevron-right right"></i></span>
             </button>
         </p>
-        {foreach $extra_fields as $name => $value}
+        {foreach $mt_extra_fields as $name => $value}
             <input type="hidden" name="{$name|escape:'html':'UTF-8'}" value="{$value|escape:'html':'UTF-8'}"/>
         {/foreach}
     </form>

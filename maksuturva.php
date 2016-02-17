@@ -33,6 +33,8 @@ if (!defined('_PS_VERSION_')) {
  */
 if ((basename(__FILE__) === 'maksuturva.php')) {
     $module_dir = dirname(__FILE__);
+    require_once($module_dir . '/includes/MaksuturvaException.php');
+    require_once($module_dir . '/includes/MaksuturvaGatewayException.php');
     require_once($module_dir . '/includes/MaksuturvaGatewayAbstract.php');
     require_once($module_dir . '/includes/MaksuturvaGatewayImplementation.php');
     require_once($module_dir . '/includes/MaksuturvaPayment.php');
@@ -45,6 +47,8 @@ if ((basename(__FILE__) === 'maksuturva.php')) {
  * @property bool $active
  * @property int $id
  * @property string $_path
+ * @property string $table
+ * @property string $identifier
  * @property ContextCore|Context $context
  *
  * @property int currentOrder
@@ -71,7 +75,6 @@ class Maksuturva extends PaymentModule
         'MAKSUTURVA_ENCODING',
         'MAKSUTURVA_SANDBOX',
         'MAKSUTURVA_OS_AUTHORIZATION',
-        //'MAKSUTURVA_PAYMENT_FEE_ID',
     );
 
     /**
@@ -288,7 +291,7 @@ class Maksuturva extends PaymentModule
      */
     public function hookAdminOrder($params)
     {
-        if (isset($params['id_order'])) {
+        if (!isset($params['id_order'])) {
             return '';
         }
 
@@ -305,11 +308,11 @@ class Maksuturva extends PaymentModule
         $cart = new Cart((int)$order->id_cart);
 
         switch ($payment->getStatus()) {
-            case $this->getConfig('PS_OS_PAYMENT'):
+            case (int)$this->getConfig('PS_OS_PAYMENT'):
                 $message = $this->l('The payment was confirmed by Maksuturva');
                 break;
 
-            case $this->getConfig('PS_OS_CANCELED'):
+            case (int)$this->getConfig('PS_OS_CANCELED'):
                 if ($order->getCurrentState() != $this->getConfig('PS_OS_CANCELED')) {
                     $message = $this->l('The payment could not be tracked by Maksuturva, check if the customer selected Maksuturva as payment method');
                 } else {
@@ -317,11 +320,11 @@ class Maksuturva extends PaymentModule
                 }
                 break;
 
-            case $this->getConfig('PS_OS_ERROR'):
+            case (int)$this->getConfig('PS_OS_ERROR'):
                 $message = $this->l('An error occurred and the payment was not confirmed, please check manually');
                 break;
 
-            case $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
+            case (int)$this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
             default:
                 try {
                     $gateway = new MaksuturvaGatewayImplementation($this, $cart);
@@ -330,8 +333,10 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID_DELIVERY:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_COMPENSATED:
+                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_PAYMENT')) {
+                                $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
+                            }
                             (new MaksuturvaPayment((int)$order->id))->complete();
-                            $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
                             $message = $this->l('The payment confirmation was received - payment accepted');
                             break;
 
@@ -340,8 +345,10 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_RECLAMATION:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_CANCELLED:
+                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_CANCELED')) {
+                                $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
+                            }
                             (new MaksuturvaPayment((int)$order->id))->cancel();
-                            $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
                             $message = $this->l('The payment was canceled in Maksuturva');
                             break;
 
@@ -366,12 +373,12 @@ class Maksuturva extends PaymentModule
 
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
-            'maksuturva_pmt_id' => $payment->getPmtReference(),
-            'maksuturva_pmt_status_message' => $message,
+            'mt_pmt_id' => $payment->getPmtReference(),
+            'mt_pmt_status_message' => $message,
         ));
         if ($payment->includesSurcharge()) {
             $this->context->smarty->assign(array(
-                'maksuturva_pmt_surcharge_message' => sprintf(
+                'mt_pmt_surcharge_message' => sprintf(
                     'This order has been subject to a payment surcharge of %s EUR',
                     $payment->getSurcharge()
                 ),
@@ -437,7 +444,7 @@ class Maksuturva extends PaymentModule
         $payment = MaksuturvaPayment::create(array(
             'id_order' => (int)$order->id,
             'status' => (int)$id_order_state,
-            'data_sent' => $gateway->getPaymentData(),
+            'data_sent' => $gateway->getFieldArray(),
             'data_received' => $params,
         ));
 
@@ -526,7 +533,7 @@ class Maksuturva extends PaymentModule
      */
     public function isSandbox()
     {
-        return ($this->getConfig('MAKSUTURVA_SANDBOX') == '1');
+        return ((int)$this->getConfig('MAKSUTURVA_SANDBOX') === 1);
     }
 
     /**
@@ -618,9 +625,7 @@ class Maksuturva extends PaymentModule
             && $this->setConfig('MAKSUTURVA_URL', 'https://www.maksuturva.fi')
             && $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', '')
             && $this->setConfig('MAKSUTURVA_ENCODING', 'UTF-8')
-            && $this->setConfig('MAKSUTURVA_SANDBOX', '1')
-            //&& $this->setConfig('MAKSUTURVA_PAYMENT_FEE_ID', '')
-        );
+            && $this->setConfig('MAKSUTURVA_SANDBOX', '1'));
     }
 
     /**
@@ -654,7 +659,7 @@ class Maksuturva extends PaymentModule
 			  `data_received` LONGBLOB NULL DEFAULT NULL,
 			  `date_add` DATETIME NOT NULL,
 			  `date_upd` DATETIME NULL DEFAULT NULL,
-			  PRIMARY KEY (`id_order`),
+			  PRIMARY KEY (`id_order`)
 			) ENGINE=%s DEFAULT CHARSET=utf8;',
             _DB_PREFIX_,
             _MYSQL_ENGINE_
@@ -715,37 +720,31 @@ class Maksuturva extends PaymentModule
             array(
                 'form' => array(
                     'legend' => array(
-                        'title' => $this->l('ADMIN: Account Settings'),
+                        'title' => $this->l('Account Settings'),
                         'icon' => 'icon-user'
                     ),
                     'input' => array(
                         array(
                             'type' => 'text',
-                            'label' => $this->l('ADMIN: Seller ID'),
+                            'label' => $this->l('Seller ID'),
                             'name' => 'MAKSUTURVA_SELLER_ID',
                             'required' => true
                         ),
                         array(
                             'type' => 'text',
-                            'label' => $this->l('ADMIN: Secret Key'),
+                            'label' => $this->l('Secret Key'),
                             'name' => 'MAKSUTURVA_SECRET_KEY',
                             'required' => true
                         ),
                         array(
                             'type' => 'text',
-                            'label' => $this->l('ADMIN: Secret Key Version'),
+                            'label' => $this->l('Secret Key Version'),
                             'name' => 'MAKSUTURVA_SECRET_KEY_VERSION',
                             'required' => true
                         ),
-                        array(
-                            'type' => 'text',
-                            'label' => $this->l('ADMIN: Additional payment fee product ID'),
-                            'name' => 'MAKSUTURVA_PAYMENT_FEE_ID',
-                            'required' => false
-                        ),
                     ),
                     'submit' => array(
-                        'title' => $this->l('ADMIN: Save'),
+                        'title' => $this->l('Save'),
                         'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
                     )
                 ),
@@ -753,25 +752,25 @@ class Maksuturva extends PaymentModule
             array(
                 'form' => array(
                     'legend' => array(
-                        'title' => $this->l('ADMIN: Advanced Settings'),
+                        'title' => $this->l('Advanced Settings'),
                         'icon' => 'icon-cog'
                     ),
                     'input' => array(
                         array(
                             'type' => 'text',
-                            'label' => $this->l('ADMIN: Communication URL'),
+                            'label' => $this->l('Communication URL'),
                             'name' => 'MAKSUTURVA_URL',
                             'required' => true
                         ),
                         array(
                             'type' => 'text',
-                            'label' => $this->l('ADMIN: Payment Prefix'),
+                            'label' => $this->l('Payment Prefix'),
                             'name' => 'MAKSUTURVA_PMT_ID_PREFIX',
                             'required' => false
                         ),
                         array(
                             'type' => 'radio',
-                            'label' => $this->l('ADMIN: Sandbox mode (tests)'),
+                            'label' => $this->l('Sandbox mode (tests)'),
                             'name' => 'MAKSUTURVA_SANDBOX',
                             'class' => 't',
                             'required' => true,
@@ -780,18 +779,18 @@ class Maksuturva extends PaymentModule
                                 array(
                                     'id' => 'sandbox_mode_0',
                                     'value' => 0,
-                                    'label' => $this->l('ADMIN: Off')
+                                    'label' => $this->l('Off')
                                 ),
                                 array(
                                     'id' => 'sandbox_mode_1',
                                     'value' => 1,
-                                    'label' => $this->l('ADMIN: On')
+                                    'label' => $this->l('On')
                                 ),
                             ),
                         ),
                         array(
                             'type' => 'radio',
-                            'label' => $this->l('ADMIN: Communication Encoding'),
+                            'label' => $this->l('Communication Encoding'),
                             'name' => 'MAKSUTURVA_ENCODING',
                             'class' => 't',
                             'required' => true,
@@ -811,7 +810,7 @@ class Maksuturva extends PaymentModule
                         ),
                     ),
                     'submit' => array(
-                        'title' => $this->l('ADMIN: Save'),
+                        'title' => $this->l('Save'),
                         'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
                     )
                 ),
@@ -861,10 +860,6 @@ class Maksuturva extends PaymentModule
                 'MAKSUTURVA_SECRET_KEY_VERSION',
                 $this->getConfig('MAKSUTURVA_SECRET_KEY_VERSION')
             ),
-//            'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue(
-//                'MAKSUTURVA_PAYMENT_FEE_ID',
-//                $this->getConfig('MAKSUTURVA_PAYMENT_FEE_ID')
-//            ),
             'MAKSUTURVA_URL' => Tools::getValue(
                 'MAKSUTURVA_URL',
                 $this->getConfig('MAKSUTURVA_URL')
@@ -901,41 +896,31 @@ class Maksuturva extends PaymentModule
             $encoding = Tools::getValue('MAKSUTURVA_ENCODING');
             $url = Tools::getValue('MAKSUTURVA_URL');
             $pmt_prefix = Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX');
-            //$pmt_fee_id = Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID');
 
             if ($sandbox == '0') {
                 if (empty($seller_id) || Tools::strlen($seller_id) > 15) {
-                    $errors[] = $this->l('ADMIN: Invalid Seller ID');
+                    $errors[] = $this->l('Invalid Seller ID');
                 }
                 if (empty($secret_key)) {
-                    $errors[] = $this->l('ADMIN: Invalid Secret Key');
+                    $errors[] = $this->l('Invalid Secret Key');
                 }
             }
             if (!preg_match('/^[0-9]{3}$/', (string)$secret_key_version)) {
-                $errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
+                $errors[] = $this->l('Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
             }
             if ($encoding != 'UTF-8' && $encoding != 'ISO-8859-1') {
-                $errors[] = $this->l('ADMIN: Invalid Encoding');
+                $errors[] = $this->l('Invalid Encoding');
             }
             if ($sandbox != '0' && $sandbox != '1') {
-                $errors[] = $this->l('ADMIN: Invalid Sandbox flag');
+                $errors[] = $this->l('Invalid Sandbox flag');
             }
             if ($url != null && !Validate::isUrl($url)) {
-                $errors[] = $this->l('ADMIN: Communication url is invalid');
+                $errors[] = $this->l('Communication url is invalid');
             }
             if ($pmt_prefix != null && !preg_match('/[^a-z_\-0-9]/i', $pmt_prefix)
             ) {
-                $errors[] = $this->l('ADMIN: Payment prefix is invalid');
+                $errors[] = $this->l('Payment prefix is invalid');
             }
-
-            /*
-            if ($pmt_fee_id != null) {
-                $product = new Product((int)preg_replace('/[^0-9]/', '', $pmt_fee_id));
-                if (!Validate::isLoadedObject($product)) {
-                    $errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
-                }
-            }
-            */
 
             if (!sizeof($errors)) {
                 $this->setConfig('MAKSUTURVA_SELLER_ID', trim($seller_id));
@@ -945,7 +930,6 @@ class Maksuturva extends PaymentModule
                 $this->setConfig('MAKSUTURVA_SANDBOX', $sandbox);
                 $this->setConfig('MAKSUTURVA_URL', $url);
                 $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', $pmt_prefix);
-                //$this->setConfig('MAKSUTURVA_PAYMENT_FEE_ID', $pmt_fee_id);
                 $html .= $this->displayConfirmation($this->l('Settings updated'));
             } else {
                 $html .= $this->displayError(implode('<br />', $errors));

@@ -26,10 +26,26 @@
 <fieldset>
     <legend>
         <img src="{$this_path|escape:'html':'UTF-8'}/logo.png" width="20" height="20"/>
-        {l s='Maksuturva payment status' mod='maksuturva'}
+        {l s='Maksuturva' mod='maksuturva'}
     </legend>
-    <p>{$maksuturva_status|escape:'html':'UTF-8'}</p>
-    {if $maksuturva_check_again}
-        <p style="text-decoration: underline;">{l s='Refresh this page to check again' mod='maksuturva'}</p>
+    <table class="table" width="100%;" cellspacing="0" cellpadding="0">
+        <thead>
+            <tr>
+                <th>{l s='Payment ID' mod='maksuturva'}</th>
+                <th>{l s='Status' mod='maksuturva'}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{$mt_pmt_id|escape:'html':'UTF-8'}</td>
+                <td>{$mt_pmt_status_message|escape:'html':'UTF-8'}</td>
+            </tr>
+        </tbody>
+    </table>
+    {if !empty($mt_pmt_surcharge_message)}
+        <br /><br />
+        <div class="alert warning">
+            {$mt_pmt_surcharge_message|escape:'html':'UTF-8'}
+        </div>
     {/if}
 </fieldset>

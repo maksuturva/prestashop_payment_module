@@ -297,113 +297,22 @@ class MaksuturvaPaymentValidator
      * Validates if the payed amounts differ from the amounts of the created order.
      *
      * This can happen if the payment option (credit card, bank transfer etc.) charged a surcharge.
-     * If this is the case, the surcharge is added to the order so it will show up in PS later.
      *
      * @param array $values
      */
     protected function validateSellerCosts(array $values)
     {
-        $sent_seller_cost = str_replace(',', '.', $this->gateway->{'pmt_sellercosts'});
-        $received_seller_cost = str_replace(',', '.', $values['pmt_sellercosts']);
+        if (isset($this->gateway->{'pmt_sellercosts'}, $values['pmt_sellercosts'])) {
+            $sent_seller_cost = str_replace(',', '.', $this->gateway->{'pmt_sellercosts'});
+            $received_seller_cost = str_replace(',', '.', $values['pmt_sellercosts']);
 
-        if ($sent_seller_cost > $received_seller_cost) {
-            $this->error(sprintf(
-                $this->gateway->module->l('Invalid payment amount (obtained %s, expected %s)'),
-                $values['pmt_sellercosts'],
-                $this->gateway->{'pmt_sellercosts'}
-            ));
-        } elseif ($sent_seller_cost < $received_seller_cost) {
-            // todo: surcharge
-            $surcharge = ($received_seller_cost - $sent_seller_cost);
-            // todo: how to add to cart/order
-        }
-
-        /*
-
-        $original_payment_feeFloat = floatval(str_replace(",", ".", $this->gateway->{'pmt_sellercosts'}));
-        $new_payment_feeFloat = floatval(str_replace(",", ".", $values['pmt_sellercosts']));
-        $customerTotalPaid = $new_payment_feeFloat + floatval(str_replace(",", ".", $values['pmt_amount']));
-        if($original_payment_feeFloat != $new_payment_feeFloat){
-            // validate that payment_fee have not dropped
-            if($new_payment_feeFloat < $original_payment_feeFloat) {
+            if ($sent_seller_cost > $received_seller_cost) {
                 $this->error(sprintf(
-                    $this->module->l('Order not saved. Invalid change in shipping and payment costs (obtained %s, expecting %s)'),
+                    $this->gateway->module->l('Invalid payment amount (obtained %s, expected %s)'),
                     $values['pmt_sellercosts'],
                     $this->gateway->{'pmt_sellercosts'}
                 ));
             }
-            else {
-                // validate additional costs product (given by admin in module configurations)
-                // Product validation DOES NOT prevent saving the order
-                $seller_costs_product = new Product((int)Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID'));
-                if (!Validate::isLoadedObject($seller_costs_product)) {
-                    $this->log(
-                        sprintf(
-                            $this->module->l('Failed to add payment fee of %s EUR'),
-                            number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " ")
-                        )
-                    );
-                    $this->log($this->module->l('Payment fee product does not exist'));
-                    $this->log(
-                        sprintf(
-                            $this->module->l('Customer paid total of %s EUR'),
-                            number_format($customerTotalPaid, 2, ",", " ")
-                        )
-                    );
-                }
-                else {
-                    // PrestaShop 1.5+
-                    if(method_exists('Product', 'getProductName')){
-                        $seller_costs_product_name = Product::getProductName($seller_costs_product->id);
-                    }
-                    //PrestaShop 1.4
-                    else{
-                        $seller_costs_product_name = $seller_costs_product->name[$id_lang_default = (int)Configuration::get('PS_LANG_DEFAULT')];
-                    }
-                    if(Product::getQuantity($seller_costs_product->id) < 1) {
-                        $this->log(
-                            sprintf(
-                                $this->module->l('Failed to add payment fee of %s EUR'),
-                                number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " ")
-                            )
-                        );
-                        $this->log(
-                            sprintf(
-                                $this->module->l('Product "%s" has run out'),
-                                $seller_costs_product_name
-                            )
-                        );
-                        $this->log(
-                            sprintf(
-                                $this->module->l('Customer paid total of %s EUR'),
-                                number_format($customerTotalPaid, 2, ",", " ")
-                            )
-                        );
-                    }
-                    else{
-                        //everything ok, inserting new product row
-                        $cart->updateQty(1, (int)Configuration::get('MAKSUTURVA_PAYMENT_FEE_ID'));
-                    }
-                    if(number_format(floatval($seller_costs_product->getPrice()),2,',','') != number_format($new_payment_feeFloat-$original_payment_feeFloat, 2, ',','')){
-                        $this->log(
-                            sprintf(
-                                $this->module->l('Customer paid additional payment fee of %s EUR differs from the product "%s" price %s EUR'),
-                                number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ",", " "),
-                                $seller_costs_product_name,
-                                number_format($seller_costs_product->getPrice(), 2, ",", " ")
-                            )
-                        );
-                        $this->log(
-                            sprintf(
-                                $this->module->l('Customer paid total of %s EUR'),
-                                number_format($customerTotalPaid, 2, ",", " ")
-                            )
-                        );
-                    }
-                }
-            }
         }
-
-        */
     }
 }

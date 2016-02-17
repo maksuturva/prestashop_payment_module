@@ -38,16 +38,16 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>{$maksuturva_pmt_id|escape:'html':'UTF-8'}</td>
-                        <td>{$maksuturva_pmt_status_message|escape:'html':'UTF-8'}</td>
+                        <td>{$mt_pmt_id|escape:'html':'UTF-8'}</td>
+                        <td>{$mt_pmt_status_message|escape:'html':'UTF-8'}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        {if $maksuturva_pmt_surcharge_message}
+        {if !empty($mt_pmt_surcharge_message)}
             <br /><br />
             <div class="alert alert-warning">
-                {$maksuturva_pmt_surcharge_message|escape:'html':'UTF-8'}
+                {$mt_pmt_surcharge_message|escape:'html':'UTF-8'}
             </div>
         {/if}
     </div>

@@ -6,7 +6,7 @@
 	<description><![CDATA[Accepts payments using Maksuturva]]></description>
 	<author><![CDATA[Maksuturva]]></author>
 	<tab><![CDATA[payments_gateways]]></tab>
-	<confirmUninstall><![CDATA[Are you sure you want to delete Maksuturva module?]]></confirmUninstall>
+	<confirmUninstall><![CDATA[Are you sure you want to delete the Maksuturva module?]]></confirmUninstall>
 	<is_configurable>1</is_configurable>
 	<need_instance>1</need_instance>
 	<limited_countries></limited_countries>

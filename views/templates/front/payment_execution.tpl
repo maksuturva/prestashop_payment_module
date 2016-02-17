@@ -34,7 +34,7 @@
 	<p class="warning">{l s='Your shopping cart is empty.' mod='maksuturva'}</p>
 {else}
 	<h3>{l s='Maksuturva payment' mod='maksuturva'}</h3>
-	<form action="{$form_action|escape:'html':'UTF-8'}" method="post">
+	<form action="{$mt_form_action|escape:'html':'UTF-8'}" method="post">
 		<img src="{$this_path|escape:'html':'UTF-8'}views/img/maksuturva.gif"
 			 alt="{l s='Pay with Maksuturva' mod='maksuturva'}"
 			 width="115"
@@ -65,7 +65,7 @@
 				   value="{l s='I confirm my order' mod='maksuturva'}"
 				   class="exclusive_large hideOnSubmit" />
 		</p>
-		{foreach $extra_fields as $name => $value}
+		{foreach $mt_extra_fields as $name => $value}
 			<input type="hidden" name="{$name|escape:'html':'UTF-8'}" value="{$value|escape:'html':'UTF-8'}"/>
 		{/foreach}
 	</form>
