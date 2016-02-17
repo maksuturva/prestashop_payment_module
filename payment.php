@@ -4,10 +4,10 @@
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to info@maksuturva.fi so we can send you a copy immediately.
@@ -20,25 +20,13 @@
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
  * @copyright 2016 Maksuturva Group Oy
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
-$ps_dir = dirname(__FILE__).'/../..';
-$useSSL = true;
-
-include($ps_dir . '/config/config.inc.php');
-include($ps_dir . '/header.php');
-include_once($ps_dir . '/modules/maksuturva.php');
-
-if (!$cookie->isLogged(true)) {
-    Tools::redirect('authentication.php?back=order.php');
-}
-// check cart
-if (!isset($cart)) {
-    Tools::redirectLink(__PS_BASE_URI__ . 'order.php');
+require('controllers/front/compat.php');
+if (_PS_VERSION_ >= '1.5') {
+    Tools::displayFileAsDeprecated();
 }
 
-$module = new Maksuturva();
-echo $module->execPayment($cart);
-
-include_once($ps_dir . '/footer.php');
+require('controllers/front/payment.php');
+ControllerFactory::getController('MaksuturvaPaymentModuleFrontController')->run();

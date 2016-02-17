@@ -4,10 +4,10 @@
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to info@maksuturva.fi so we can send you a copy immediately.
@@ -20,7 +20,7 @@
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
  * @copyright 2016 Maksuturva Group Oy
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
 /**
@@ -279,6 +279,16 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_hashversion' => array(1, 10),
         'pmt_keygeneration' => array(1, 3),
     );
+
+    /**
+     * Returns the payment data that is sent to maksuturva.
+     *
+     * @return array
+     */
+    public function getPaymentData()
+    {
+        return $this->payment_data;
+    }
 
     /**
      * Checks if the payment data is valid.

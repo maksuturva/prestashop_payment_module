@@ -4,10 +4,10 @@
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to info@maksuturva.fi so we can send you a copy immediately.
@@ -20,54 +20,13 @@
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
  * @copyright 2016 Maksuturva Group Oy
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
-$ps_dir = dirname(__FILE__).'/../..';
-
-include($ps_dir . '/config/config.inc.php');
-include($ps_dir . '/header.php');
-include_once($ps_dir . '/modules/maksuturva.php');
-
-$maksuturva = new Maksuturva();
-
-/*
- * Validate the customer, the cart and the module itself
- */
-if (!$cart ||
-    $cart->id_customer == 0 ||
-    $cart->id_address_delivery == 0 ||
-    $cart->id_address_invoice == 0 ||
-    !$maksuturva->active
-) {
-    die(Tools::displayError('This payment method is not available.'));
+require('controllers/front/compat.php');
+if (_PS_VERSION_ >= '1.5') {
+    Tools::displayFileAsDeprecated();
 }
 
-/*
- * Still available? (if customer's address changed)
- */
-$authorized = false;
-if (method_exists('Module', 'getPaymentModules')) {
-    foreach (Module::getPaymentModules() as $module) {
-        if ($module['name'] == $maksuturva->name) {
-            $authorized = true;
-            break;
-        }
-    }
-    if (!$authorized) {
-        die(Tools::displayError('This payment method is not available.'));
-    }
-}
-
-/*
- * Valid customer?
- */
-$customer = new Customer((int)$cart->id_customer);
-if (!Validate::isLoadedObject($customer)) {
-    Tools::redirect('index.php?controller=order&step=1');
-}
-
-/*
- * Finally, validate the payment and update orderStatus
- */
-$maksuturva->validatePayment($cart, $customer, $_GET);
+require('controllers/front/validation.php');
+ControllerFactory::getController('MaksuturvaValidationModuleFrontController')->run();

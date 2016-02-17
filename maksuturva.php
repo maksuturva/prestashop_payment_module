@@ -4,10 +4,10 @@
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to info@maksuturva.fi so we can send you a copy immediately.
@@ -20,7 +20,7 @@
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
  * @copyright 2016 Maksuturva Group Oy
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -33,13 +33,16 @@ if (!defined('_PS_VERSION_')) {
  */
 if ((basename(__FILE__) === 'maksuturva.php')) {
     $module_dir = dirname(__FILE__);
-    require_once($module_dir . '/MaksuturvaGatewayAbstract.php');
-    require_once($module_dir . '/MaksuturvaGatewayImplementation.php');
+    require_once($module_dir . '/includes/MaksuturvaGatewayAbstract.php');
+    require_once($module_dir . '/includes/MaksuturvaGatewayImplementation.php');
+    require_once($module_dir . '/includes/MaksuturvaPayment.php');
+    require_once($module_dir . '/includes/MaksuturvaPaymentValidator.php');
 }
 
 /**
  * Payment module for accepts payments using Maksuturva.
  *
+ * @property bool $active
  * @property int $id
  * @property string $_path
  * @property ContextCore|Context $context
@@ -51,7 +54,7 @@ if ((basename(__FILE__) === 'maksuturva.php')) {
  * @method string displayWarning($warning)
  * @method string displayError($error)
  * @method string display($file, $template, $cacheId = null, $compileId = null)
- *
+ * @method bool registerHook($hook_name)
  * @method bool validateOrder($id_cart, $id_order_state, $amount_paid, $payment_method = 'Unknown', $message = null, $extra_vars = array(), $currency_special = null, $dont_touch_amount = false, $secure_key = false, Shop $shop = null)
  */
 class Maksuturva extends PaymentModule
@@ -59,17 +62,16 @@ class Maksuturva extends PaymentModule
     /**
      * @var array
      */
-    private $_mandatoryFields = array(
-        'pmt_action',
-        'pmt_version',
-        'pmt_id',
-        'pmt_reference',
-        'pmt_amount',
-        'pmt_currency',
-        'pmt_sellercosts',
-        'pmt_paymentmethod',
-        'pmt_escrow',
-        'pmt_hash'
+    private static $config_keys = array(
+        'MAKSUTURVA_SELLER_ID',
+        'MAKSUTURVA_SECRET_KEY',
+        'MAKSUTURVA_SECRET_KEY_VERSION',
+        'MAKSUTURVA_URL',
+        'MAKSUTURVA_PMT_ID_PREFIX',
+        'MAKSUTURVA_ENCODING',
+        'MAKSUTURVA_SANDBOX',
+        'MAKSUTURVA_OS_AUTHORIZATION',
+        //'MAKSUTURVA_PAYMENT_FEE_ID',
     );
 
     /**
@@ -89,7 +91,7 @@ class Maksuturva extends PaymentModule
 
         $this->displayName = $this->l('Maksuturva');
         $this->description = $this->l('Accepts payments using Maksuturva');
-        $this->confirmUninstall = $this->l('Are you sure you want to delete Maksuturva module?');
+        $this->confirmUninstall = $this->l('Are you sure you want to delete the Maksuturva module?');
 
         /* Backward compatibility */
         if (_PS_VERSION_ < '1.5') {
@@ -98,88 +100,17 @@ class Maksuturva extends PaymentModule
     }
 
     /**
-     * Module keys are fetched using this method
-     * @return array
-     */
-    private function _getConfigKeys()
-    {
-        return array(
-            'MAKSUTURVA_SELLER_ID',
-            'MAKSUTURVA_SECRET_KEY',
-            'MAKSUTURVA_SECRET_KEY_VERSION',
-            'MAKSUTURVA_URL',
-            'MAKSUTURVA_PMT_ID_PREFIX',
-            'MAKSUTURVA_ENCODING',
-            'MAKSUTURVA_SANDBOX',
-            'MAKSUTURVA_OS_AUTHORIZATION',
-            'MAKSUTURVA_PAYMENT_FEE_ID'
-        );
-    }
-
-    /**
-     * Installs the module (non-PHPdoc)
-     * @see PaymentModuleCore::install()
+     * @inheritdoc
      */
     public function install()
     {
         if (!parent::install()
-            || !$this->registerHook('payment')
-            || !$this->registerHook('paymentReturn')
-            || !$this->registerHook('rightColumn')
-            || !$this->registerHook('adminOrder')
+            || !$this->registerHooks()
+            || !$this->createConfig()
+            || !$this->createTables()
+            || !$this->createOrderStates()
         ) {
             return false;
-        }
-
-        if (!Configuration::updateValue('MAKSUTURVA_SELLER_ID', '') ||
-            !Configuration::updateValue('MAKSUTURVA_SECRET_KEY', '') ||
-            !Configuration::updateValue('MAKSUTURVA_SECRET_KEY_VERSION', '001') ||
-            !Configuration::updateValue('MAKSUTURVA_URL', 'https://www.maksuturva.fi') ||
-            !Configuration::updateValue('MAKSUTURVA_PMT_ID_PREFIX', '') ||
-            !Configuration::updateValue('MAKSUTURVA_ENCODING', 'UTF-8') ||
-            !Configuration::updateValue('MAKSUTURVA_SANDBOX', '1') ||
-            !Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID', '')
-        ) {
-            return false;
-        }
-
-        /* Set database - this table is not removed later (if audit is needed) */
-        $dbCreate = Db::getInstance()->execute(
-            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'mk_status` (
-			  `id_cart` int(10) unsigned NOT NULL,
-			  `id_order` int(10) unsigned DEFAULT NULL,
-			  `payment_status` int(10) unsigned NOT NULL DEFAULT 0,
-			  PRIMARY KEY (`id_cart`)
-			) ENGINE=' . _MYSQL_ENGINE_ . '  DEFAULT CHARSET=utf8;'
-        );
-        if (!$dbCreate) {
-            return false;
-        }
-
-        // insert maksuturva's logo to order status for better management
-        if (!$this->getConfigOption('MAKSUTURVA_OS_AUTHORIZATION')) {
-            $orderState = new OrderState();
-            $orderState->name = array();
-            foreach (Language::getLanguages() as $language) {
-                if (Tools::strtolower($language['iso_code']) == 'fr') {
-                    $orderState->name[$language['id_lang']] = 'En attendant la confirmation de Maksuturva';
-                } else {
-                    $orderState->name[$language['id_lang']] = 'Pending confirmation from Maksuturva';
-                }
-            }
-            $orderState->send_email = false;
-            $orderState->color = '#DDEEFF';
-            $orderState->hidden = false;
-            $orderState->delivery = false;
-            $orderState->logable = true;
-            $orderState->invoice = true;
-            if ($orderState->add()) {
-                copy(
-                    dirname(__FILE__) . '/logo.gif',
-                    dirname(__FILE__) . '/../../img/os/' . (int)$orderState->id . '.gif'
-                );
-            }
-            Configuration::updateValue('MAKSUTURVA_OS_AUTHORIZATION', (int)$orderState->id);
         }
 
         /* For 1.4.3 and less compatibility */
@@ -212,70 +143,573 @@ class Maksuturva extends PaymentModule
         return true;
     }
 
-    public function execPayment($cart)
-    {
-        if (!$this->checkCurrency($cart)) {
-            Tools::redirectLink(__PS_BASE_URI__ . 'order.php');
-        }
-
-        // build up the "post to pay" form
-        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
-
-        // insert the order in mk_status to be verified later
-        $this->updateCartInMkStatusByIdCart($cart->id);
-
-        $this->context->smarty->assign(
-            array(
-                'nbProducts' => $cart->nbProducts(),
-                'cust_currency' => $cart->id_currency,
-                'currencies' => $this->getCurrency((int)$cart->id_currency),
-                'total' => $cart->getOrderTotal(true, Cart::BOTH),
-                'this_path' => $this->_path,
-                'this_path_ssl' => $this->getPathSSL(),
-                'form_action' => $gateway->getPaymentUrl(),
-                'maksuturva_fields' => $gateway->getFieldArray(),
-            )
-        );
-
-        return $this->display(__FILE__, 'views/templates/front/payment_execution.tpl');
-    }
-
     /**
-     * Uninstalls the module (non-PHPdoc)
-     * @see PaymentModuleCore::uninstall()
+     * @inheritdoc
      */
     public function uninstall()
     {
-        foreach ($this->_getConfigKeys() as $key) {
-            if (Configuration::get($key)) {
-                if (!Configuration::deleteByName($key)) {
-                    return false;
-                }
-            }
-        }
-        if (!parent::uninstall()) {
+        if (!$this->deleteConfig()
+            || !parent::uninstall()
+        ) {
             return false;
         }
+
         return true;
     }
 
     /**
-     * Administration:
-     * This method is responsible for providing
-     * content to administration area
+     * Displays and handles the module administration page.
+     *
+     * @return string
      */
     public function getContent()
     {
         $html = '';
-        $html .= $this->_postProcess();
-        $html .= $this->_displayForm();
+        $html .= $this->postProcess();
+        $html .= $this->displayForm();
         return $html;
+    }
+
+    /**
+     * Create a admin link URL.
+     *
+     * This is a copy of the same method in the "LinkCore" class with added support for PS 1.4.
+     *
+     * @param string $controller the name of the controller to link to.
+     * @param boolean $with_token include or not the token in the url.
+     * @return string the URL.
+     */
+    public function getAdminLink($controller, $with_token = true)
+    {
+        if (_PS_VERSION_ >= '1.5') {
+            return $this->context->link->getAdminLink('AdminModules', false);
+        }
+
+        $params = array('tab' => $controller);
+        if ($with_token) {
+            $params['token'] = Tools::getAdminTokenLite($controller);
+        }
+
+        return 'index.php?' . http_build_query($params);
+    }
+
+    /**
+     * Callback for the `header` hook.
+     *
+     * Used to add CSS to the shop frontend.
+     */
+    public function hookHeader()
+    {
+        if (_PS_VERSION_ >= '1.6') {
+            $this->context->controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
+        }
+    }
+
+    /**
+     * Callback for the `payment` hook.
+     *
+     * Used to display the payment gateway in the checkout.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookPayment($params)
+    {
+        // only EUR is supported - we validate it against
+        // 1) shop (if it has EUR)
+        // 2) cart (if it has only EUR products within)
+        if (!$this->checkCurrency($params['cart'])) {
+            return '';
+        }
+
+        $this->context->smarty->assign(
+            array(
+                'this_path' => $this->getPath(),
+                'this_path_ssl' => $this->getPathSSL(),
+            )
+        );
+
+        if (_PS_VERSION_ >= '1.6') {
+            return $this->display(__FILE__, 'views/templates/hook/payment_twbs.tpl');
+        } else {
+            return $this->display(__FILE__, 'views/templates/hook/payment.tpl');
+        }
+    }
+
+    /**
+     * Callback for the `paymentReturn` hook.
+     *
+     * Used to display the order confirmation page.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookPaymentReturn($params)
+    {
+        if (!isset($params['objOrder'])) {
+            return '';
+        }
+
+        /** @var OrderCore|Order $order */
+        $order = $params['objOrder'];
+
+        $status_map = array(
+            $this->getConfig('PS_OS_PAYMENT') => 'ok',
+            $this->getConfig('PS_OS_OUTOFSTOCK') => 'ok',
+            $this->getConfig('PS_OS_OUTOFSTOCK_PAID') => 'ok',
+            $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION') => 'pending',
+            $this->getConfig('PS_OS_CANCELED') => 'cancel',
+        );
+        $status = isset($status_map[$order->getCurrentState()])
+            ? $status_map[$order->getCurrentState()]
+            : 'error';
+
+        $this->context->smarty->assign(array(
+            'this_path' => $this->getPath(),
+            'this_path_ssl' => $this->getPathSSL(),
+            'status' => $status,
+            'message' => Tools::getValue('mks_msg')
+        ));
+
+        if (_PS_VERSION_ >= '1.6') {
+            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
+        } else {
+            return $this->display(__FILE__, 'views/templates/hook/payment_return.tpl');
+        }
+    }
+
+    /**
+     * Callback for the `adminOrder` hook.
+     *
+     * Automatically verifies the order status in Maksuturva and displays the result on the order administration page.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookAdminOrder($params)
+    {
+        if (isset($params['id_order'])) {
+            return '';
+        }
+
+        try {
+            $payment = new MaksuturvaPayment((int)$params['id_order']);
+        } catch (Exception $e) {
+            // The order was not payed using Maksuturva.
+            return '';
+        }
+
+        /** @var OrderCore|Order $order */
+        $order = new Order((int)$params['id_order']);
+        /** @var CartCore|Cart $cart */
+        $cart = new Cart((int)$order->id_cart);
+
+        switch ($payment->getStatus()) {
+            case $this->getConfig('PS_OS_PAYMENT'):
+                $message = $this->l('The payment was confirmed by Maksuturva');
+                break;
+
+            case $this->getConfig('PS_OS_CANCELED'):
+                if ($order->getCurrentState() != $this->getConfig('PS_OS_CANCELED')) {
+                    $message = $this->l('The payment could not be tracked by Maksuturva, check if the customer selected Maksuturva as payment method');
+                } else {
+                    $message = $this->l('The payment was canceled by the customer');
+                }
+                break;
+
+            case $this->getConfig('PS_OS_ERROR'):
+                $message = $this->l('An error occurred and the payment was not confirmed, please check manually');
+                break;
+
+            case $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
+            default:
+                try {
+                    $gateway = new MaksuturvaGatewayImplementation($this, $cart);
+                    $response = $gateway->statusQuery();
+                    switch ($response['pmtq_returncode']) {
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID_DELIVERY:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_COMPENSATED:
+                            (new MaksuturvaPayment((int)$order->id))->complete();
+                            $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
+                            $message = $this->l('The payment confirmation was received - payment accepted');
+                            break;
+
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_RECLAMATION:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_CANCELLED:
+                            (new MaksuturvaPayment((int)$order->id))->cancel();
+                            $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
+                            $message = $this->l('The payment was canceled in Maksuturva');
+                            break;
+
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_NOT_FOUND:
+                            (new MaksuturvaPayment((int)$order->id))->cancel();
+                            $message = $this->l('The payment could not be tracked by Maksuturva, check if the customer selected Maksuturva as payment method');
+                            break;
+
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_FAILED:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_WAITING:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID:
+                        case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID_DELIVERY:
+                        default:
+                            $message = $this->l('The payment is still waiting for confirmation');
+                            break;
+                    }
+                } catch (MaksuturvaGatewayException $e) {
+                    $message = $this->l('Error while communicating with maksuturva: Invalid hash or network error');
+                }
+                break;
+        }
+
+        $this->context->smarty->assign(array(
+            'this_path' => $this->getPath(),
+            'maksuturva_pmt_id' => $payment->getPmtReference(),
+            'maksuturva_pmt_status_message' => $message,
+        ));
+        if ($payment->includesSurcharge()) {
+            $this->context->smarty->assign(array(
+                'maksuturva_pmt_surcharge_message' => sprintf(
+                    'This order has been subject to a payment surcharge of %s EUR',
+                    $payment->getSurcharge()
+                ),
+            ));
+        }
+
+        if (_PS_VERSION_ >= '1.6') {
+            return $this->display(__FILE__, 'views/templates/admin/payment_status_twbs.tpl');
+        } else {
+            return $this->display(__FILE__, 'views/templates/admin/payment_status.tpl');
+        }
+    }
+
+    /**
+     * Validates a payment and registers the order in PrestaShop.
+     *
+     * @param CartCore|Cart $cart
+     * @param CustomerCore|Customer $customer
+     * @param array $params
+     * @return string
+     */
+    public function validatePayment(Cart $cart, Customer $customer, array $params)
+    {
+        if (!$this->checkCurrency($cart)) {
+            return $this->l('The cart currency is not supported');
+        }
+
+        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
+        $validator = $gateway->validatePayment($params);
+
+        if ($validator->getStatus() === 'error') {
+            $id_order_state = $this->getConfig('PS_OS_ERROR');
+            $message = implode(', ', $validator->getErrors());
+        } elseif ($validator->getStatus() === 'delayed') {
+            $id_order_state = $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION');
+            $message = $this->l('Payment is awaiting confirmation');
+        } elseif ($validator->getStatus() === 'cancel') {
+            $id_order_state = $this->getConfig('PS_OS_CANCELED');
+            $message = $this->l('Payment was canceled');
+        } else {
+            $id_order_state = $this->getConfig('PS_OS_PAYMENT');
+            $message = $this->l('Payment was successfully registered');
+        }
+
+        $this->validateOrder(
+            (int)$cart->id,
+            (int)$id_order_state,
+            $cart->getOrderTotal(),
+            $this->displayName,
+            $message,
+            array(),
+            (int)$cart->id_currency,
+            false,
+            $customer->secure_key
+        );
+
+        /** @var OrderCore|Order $order */
+        $order = new Order((int)$this->currentOrder);
+        if (!Validate::isLoadedObject($order)) {
+            return $this->l('Failed to find order');
+        }
+
+        $payment = MaksuturvaPayment::create(array(
+            'id_order' => (int)$order->id,
+            'status' => (int)$id_order_state,
+            'data_sent' => $gateway->getPaymentData(),
+            'data_received' => $params,
+        ));
+
+        // todo
+        if (false && $payment->includesSurcharge()) {
+            $surcharge = $payment->getSurcharge();
+            // todo: update the order paid/total
+            $order->total_paid;
+            $order->total_paid_real += $surcharge;
+            $order->total_paid_tax_excl;
+            $order->total_paid_tax_incl;
+        }
+
+        return $message;
+    }
+
+    /**
+     * Checks if the cart currency is one of the modules supported currencies.
+     *
+     * Currently, only EUR is supported.
+     *
+     * @param CartCore|Cart $cart
+     * @return boolean
+     */
+    public function checkCurrency(Cart $cart)
+    {
+        /** @var CurrencyCore|Currency $check_currency */
+        $check_currency = new Currency($cart->id_currency);
+        $supported_currencies = array('EUR');
+        $currencies = $this->getCurrency($cart->id_currency);
+
+        if (is_array($currencies) && count($currencies) > 0) {
+            foreach ($currencies as $currency) {
+                if ($check_currency->id == $currency['id_currency']
+                    && in_array($check_currency->iso_code, $supported_currencies)
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
      * @return string
      */
-    private function _displayForm()
+    public function getPath()
+    {
+        return $this->_path;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPathSSL()
+    {
+        return Tools::getShopDomainSsl(true, true) . __PS_BASE_URI__ . 'modules/' . $this->name . '/';
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    public function getPaymentUrl(array $params = array())
+    {
+        if (_PS_VERSION_ >= '1.5') {
+            /** @var LinkCore|Link $link */
+            $link = $this->context->link;
+            return $link->getModuleLink($this->name, 'validation', $params, true/* SSL */);
+        } else {
+            return $this->getPathSSL() . 'validation.php' . (!empty($params) ? ('?' . http_build_query($params)) : '');
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSellerId()
+    {
+        return $this->getConfig('MAKSUTURVA_SELLER_ID');
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSandbox()
+    {
+        return ($this->getConfig('MAKSUTURVA_SANDBOX') == '1');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSecretKey()
+    {
+        return $this->getConfig('MAKSUTURVA_SECRET_KEY');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSecretKeyVersion()
+    {
+        return $this->getConfig('MAKSUTURVA_SECRET_KEY_VERSION');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGatewayUrl()
+    {
+        return $this->getConfig('MAKSUTURVA_URL');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getEncoding()
+    {
+        return $this->getConfig('MAKSUTURVA_ENCODING');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPaymentIdPrefix()
+    {
+        return $this->getConfig('MAKSUTURVA_PMT_ID_PREFIX');
+    }
+
+    /**
+     * @param string $key
+     * @return mixed
+     */
+    public function getConfig($key)
+    {
+        return Configuration::get($key);
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $value
+     */
+    private function setConfig($key, $value)
+    {
+        return Configuration::updateValue($key, $value);
+    }
+
+    /**
+     * Registers all the hooks used by the module.
+     *
+     * @return bool
+     */
+    private function registerHooks()
+    {
+        // todo: what do we need to show the surcharge warning in the invoice and the order detail page
+        // $this->registerHook('orderDetailDisplayed')
+        // $this->registerHook('displayPDFInvoice'))
+
+        return ($this->registerHook('header')
+            && $this->registerHook('payment')
+            && $this->registerHook('paymentReturn')
+            && $this->registerHook('rightColumn')
+            && $this->registerHook('adminOrder'));
+    }
+
+    /**
+     * Creates the initial config for the module.
+     *
+     * @return bool
+     */
+    private function createConfig()
+    {
+        return ($this->setConfig('MAKSUTURVA_SELLER_ID', '')
+            && $this->setConfig('MAKSUTURVA_SECRET_KEY', '')
+            && $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', '001')
+            && $this->setConfig('MAKSUTURVA_URL', 'https://www.maksuturva.fi')
+            && $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', '')
+            && $this->setConfig('MAKSUTURVA_ENCODING', 'UTF-8')
+            && $this->setConfig('MAKSUTURVA_SANDBOX', '1')
+            //&& $this->setConfig('MAKSUTURVA_PAYMENT_FEE_ID', '')
+        );
+    }
+
+    /**
+     * Deletes the config variables for the module.
+     *
+     * @return bool
+     */
+    private function deleteConfig()
+    {
+        foreach (self::$config_keys as $key) {
+            if (Configuration::get($key) && !Configuration::deleteByName($key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Creates any additional db tables used by the module.
+     *
+     * @return bool
+     */
+    private function createTables()
+    {
+        return Db::getInstance()->execute(sprintf(
+            'CREATE TABLE IF NOT EXISTS `%smt_payment` (
+			  `id_order` int(10) unsigned NOT NULL,
+			  `status` int(10) unsigned NOT NULL DEFAULT 0,
+			  `data_sent` LONGBLOB NULL DEFAULT NULL,
+			  `data_received` LONGBLOB NULL DEFAULT NULL,
+			  `date_add` DATETIME NOT NULL,
+			  `date_upd` DATETIME NULL DEFAULT NULL,
+			  PRIMARY KEY (`id_order`),
+			) ENGINE=%s DEFAULT CHARSET=utf8;',
+            _DB_PREFIX_,
+            _MYSQL_ENGINE_
+        ));
+    }
+
+    /**
+     * Creates additional order states used by the module.
+     *
+     * @return bool
+     */
+    private function createOrderStates()
+    {
+        if ($this->getConfig('MAKSUTURVA_OS_AUTHORIZATION')) {
+            return true;
+        }
+
+        /** @var OrderStateCore|OrderState $state */
+        $state = new OrderState();
+        $state->name = array();
+        foreach (Language::getLanguages() as $language) {
+            switch ($language['iso_code']) {
+                case 'fr':
+                    $state->name['fr'] = 'En attendant la confirmation de Maksuturva';
+                    break;
+
+                case 'fi':
+                    $state->name['fi'] = 'Odottaa vahvistusta Maksuturvalta';
+                    break;
+
+                default:
+                    $state->name[$language['id_lang']] = 'Pending confirmation from Maksuturva';
+                    break;
+            }
+        }
+        $state->send_email = false;
+        $state->color = '#DDEEFF';
+        $state->hidden = false;
+        $state->delivery = false;
+        $state->logable = true;
+        $state->invoice = true;
+        if ($state->add()) {
+            copy(
+                dirname(__FILE__) . '/logo.gif',
+                dirname(__FILE__) . '/../../img/os/' . (int)$state->id . '.gif'
+            );
+        }
+
+        return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int)$state->id);
+    }
+
+    /**
+     * @return string
+     */
+    private function displayForm()
     {
         $form_data = array(
             array(
@@ -393,9 +827,9 @@ class Maksuturva extends PaymentModule
         $helper->table = $this->table;
         $helper->submit_action = 'submit' . $this->name;
         $helper->show_toolbar = false;
-        $helper->default_form_language = (int)Configuration::get('PS_LANG_DEFAULT');
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
-            ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
+        $helper->default_form_language = (int)$this->getConfig('PS_LANG_DEFAULT');
+        $helper->allow_employee_form_lang = $this->getConfig('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
+            ? $this->getConfig('PS_BO_ALLOW_EMPLOYEE_FORM_LANG')
             : 0;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->currentIndex = $this->getAdminLink('AdminModules', false)
@@ -417,35 +851,35 @@ class Maksuturva extends PaymentModule
         return array(
             'MAKSUTURVA_SELLER_ID' => Tools::getValue(
                 'MAKSUTURVA_SELLER_ID',
-                $this->getConfigOption('MAKSUTURVA_SELLER_ID')
+                $this->getConfig('MAKSUTURVA_SELLER_ID')
             ),
             'MAKSUTURVA_SECRET_KEY' => Tools::getValue(
                 'MAKSUTURVA_SECRET_KEY',
-                $this->getConfigOption('MAKSUTURVA_SECRET_KEY')
+                $this->getConfig('MAKSUTURVA_SECRET_KEY')
             ),
             'MAKSUTURVA_SECRET_KEY_VERSION' => Tools::getValue(
                 'MAKSUTURVA_SECRET_KEY_VERSION',
-                $this->getConfigOption('MAKSUTURVA_SECRET_KEY_VERSION')
+                $this->getConfig('MAKSUTURVA_SECRET_KEY_VERSION')
             ),
-            'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue(
-                'MAKSUTURVA_PAYMENT_FEE_ID',
-                $this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID')
-            ),
+//            'MAKSUTURVA_PAYMENT_FEE_ID' => Tools::getValue(
+//                'MAKSUTURVA_PAYMENT_FEE_ID',
+//                $this->getConfig('MAKSUTURVA_PAYMENT_FEE_ID')
+//            ),
             'MAKSUTURVA_URL' => Tools::getValue(
                 'MAKSUTURVA_URL',
-                $this->getConfigOption('MAKSUTURVA_URL')
+                $this->getConfig('MAKSUTURVA_URL')
             ),
             'MAKSUTURVA_PMT_ID_PREFIX' => Tools::getValue(
                 'MAKSUTURVA_PMT_ID_PREFIX',
-                $this->getConfigOption('MAKSUTURVA_PMT_ID_PREFIX')
+                $this->getConfig('MAKSUTURVA_PMT_ID_PREFIX')
             ),
             'MAKSUTURVA_SANDBOX' => Tools::getValue(
                 'MAKSUTURVA_SANDBOX',
-                $this->getConfigOption('MAKSUTURVA_SANDBOX')
+                $this->getConfig('MAKSUTURVA_SANDBOX')
             ),
             'MAKSUTURVA_ENCODING' => Tools::getValue(
                 'MAKSUTURVA_ENCODING',
-                $this->getConfigOption('MAKSUTURVA_ENCODING')
+                $this->getConfig('MAKSUTURVA_ENCODING')
             ),
         );
     }
@@ -454,678 +888,70 @@ class Maksuturva extends PaymentModule
      * Handles the form POSTing
      * 1) administration area, configurations
      */
-    private function _postProcess()
+    private function postProcess()
     {
         $html = '';
+        $errors = array();
 
         if (Tools::isSubmit('submitmaksuturva')) {
-            if (Tools::getValue('MAKSUTURVA_SANDBOX') == "0") {
-                if (Tools::strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) > 15 || Tools::strlen(Tools::getValue('MAKSUTURVA_SELLER_ID')) == 0) {
-                    $this->_errors[] = $this->l('ADMIN: Invalid Seller ID');
+            $sandbox = Tools::getValue('MAKSUTURVA_SANDBOX');
+            $seller_id = Tools::getValue('MAKSUTURVA_SELLER_ID');
+            $secret_key = Tools::getValue('MAKSUTURVA_SECRET_KEY');
+            $secret_key_version = Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION');
+            $encoding = Tools::getValue('MAKSUTURVA_ENCODING');
+            $url = Tools::getValue('MAKSUTURVA_URL');
+            $pmt_prefix = Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX');
+            //$pmt_fee_id = Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID');
+
+            if ($sandbox == '0') {
+                if (empty($seller_id) || Tools::strlen($seller_id) > 15) {
+                    $errors[] = $this->l('ADMIN: Invalid Seller ID');
                 }
-                if (Tools::strlen(Tools::getValue('MAKSUTURVA_SECRET_KEY')) == 0) {
-                    $this->_errors[] = $this->l('ADMIN: Invalid Secret Key');
+                if (empty($secret_key)) {
+                    $errors[] = $this->l('ADMIN: Invalid Secret Key');
                 }
             }
-            if (!Maksuturva::validateHashGenerationNumber(Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION'))) {
-                $this->_errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
+            if (!preg_match('/^[0-9]{3}$/', (string)$secret_key_version)) {
+                $errors[] = $this->l('ADMIN: Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
             }
-            if (Tools::getValue('MAKSUTURVA_ENCODING') != "UTF-8" && Tools::getValue('MAKSUTURVA_ENCODING') != "ISO-8859-1") {
-                $this->_errors[] = $this->l('ADMIN: Invalid Encoding');
+            if ($encoding != 'UTF-8' && $encoding != 'ISO-8859-1') {
+                $errors[] = $this->l('ADMIN: Invalid Encoding');
             }
-            if (Tools::getValue('MAKSUTURVA_SANDBOX') != "0" && Tools::getValue('MAKSUTURVA_SANDBOX') != "1") {
-                $this->_errors[] = $this->l('ADMIN: Invalid Sandbox flag');
+            if ($sandbox != '0' && $sandbox != '1') {
+                $errors[] = $this->l('ADMIN: Invalid Sandbox flag');
             }
-            if (Tools::getValue('MAKSUTURVA_URL') != null && !Validate::isUrl(Tools::getValue('MAKSUTURVA_URL'))) {
-                $this->_errors[] = $this->l('ADMIN: Communication url is invalid');
+            if ($url != null && !Validate::isUrl($url)) {
+                $errors[] = $this->l('ADMIN: Communication url is invalid');
             }
-            if (Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX') != null && !preg_match('/[^a-z_\-0-9]/i',
-                    Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX'))
+            if ($pmt_prefix != null && !preg_match('/[^a-z_\-0-9]/i', $pmt_prefix)
             ) {
-                $this->_errors[] = $this->l('ADMIN: Payment prefix is invalid');
+                $errors[] = $this->l('ADMIN: Payment prefix is invalid');
             }
 
-            $product = new Product((int)preg_replace("/[^0-9]/", "", Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID')));
-            if (Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID') != null) {
+            /*
+            if ($pmt_fee_id != null) {
+                $product = new Product((int)preg_replace('/[^0-9]/', '', $pmt_fee_id));
                 if (!Validate::isLoadedObject($product)) {
-                    $this->_errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
+                    $errors[] = $this->l('ADMIN: Additional payment fee product id is invalid');
                 }
             }
+            */
 
-            if (!sizeof($this->_errors)) {
-                Configuration::updateValue('MAKSUTURVA_SELLER_ID', Tools::getValue('MAKSUTURVA_SELLER_ID'));
-                Configuration::updateValue('MAKSUTURVA_SECRET_KEY', trim(Tools::getValue('MAKSUTURVA_SECRET_KEY')));
-                Configuration::updateValue('MAKSUTURVA_SECRET_KEY_VERSION',
-                    Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION'));
-                Configuration::updateValue('MAKSUTURVA_ENCODING', trim(Tools::getValue('MAKSUTURVA_ENCODING')));
-                Configuration::updateValue('MAKSUTURVA_SANDBOX', trim(Tools::getValue('MAKSUTURVA_SANDBOX')));
-                Configuration::updateValue('MAKSUTURVA_URL', trim(Tools::getValue('MAKSUTURVA_URL')));
-                Configuration::updateValue('MAKSUTURVA_PMT_ID_PREFIX',
-                    trim(Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX')));
-                Configuration::updateValue('MAKSUTURVA_PAYMENT_FEE_ID',
-                    trim(Tools::getValue('MAKSUTURVA_PAYMENT_FEE_ID')));
-                $html .= $this->displayConfirmation($this->l('ADMIN: Settings updated'));
+            if (!sizeof($errors)) {
+                $this->setConfig('MAKSUTURVA_SELLER_ID', trim($seller_id));
+                $this->setConfig('MAKSUTURVA_SECRET_KEY', trim($secret_key));
+                $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', $secret_key_version);
+                $this->setConfig('MAKSUTURVA_ENCODING', $encoding);
+                $this->setConfig('MAKSUTURVA_SANDBOX', $sandbox);
+                $this->setConfig('MAKSUTURVA_URL', $url);
+                $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', $pmt_prefix);
+                //$this->setConfig('MAKSUTURVA_PAYMENT_FEE_ID', $pmt_fee_id);
+                $html .= $this->displayConfirmation($this->l('Settings updated'));
             } else {
-                $html .= $this->displayError(implode('<br />', $this->_errors));
+                $html .= $this->displayError(implode('<br />', $errors));
             }
         }
 
         return $html;
-    }
-
-    /**
-     * Create a admin link URL.
-     *
-     * This is a copy of the same method in the "LinkCore" class with added support for PS 1.4.
-     *
-     * @param string $controller the name of the controller to link to.
-     * @param boolean $with_token include or not the token in the url.
-     * @return string the URL.
-     */
-    public function getAdminLink($controller, $with_token = true)
-    {
-        if (_PS_VERSION_ >= '1.5') {
-            return $this->context->link->getAdminLink('AdminModules', false);
-        }
-
-        $params = array('tab' => $controller);
-        if ($with_token) {
-            $params['token'] = Tools::getAdminTokenLite($controller);
-        }
-
-        return 'index.php?' . http_build_query($params);
-    }
-
-    /**
-     * Processes the payment
-     * @param array $params
-     *
-     * @return string
-     */
-    public function hookPayment($params)
-    {
-        // only EUR is supported - we validate it against
-        // 1) shop (if it has EUR)
-        // 2) cart (if it has only EUR products within)
-        if (!$this->checkCurrency($params['cart'])) {
-            return '';
-        }
-
-        $this->context->smarty->assign(
-            array(
-                'this_path' => $this->_path,
-                'this_path_ssl' => $this->getPathSSL(),
-            )
-        );
-
-        return $this->display(__FILE__, 'views/templates/front/payment.tpl');
-    }
-
-    /**
-     * Validates a paid or not-paid order, and redirect the
-     * user to the order confirmation with the updated status (paid, processing, error)
-     * @param Cart $cart
-     * @param Customer $customer
-     * @param array $parameters
-     */
-    public function validatePayment($cart, $customer, $parameters)
-    {
-        // accumulate the errors
-        $errors = array();
-        $admin_messages = array();
-        $action = "ok";
-        if (isset($parameters["delayed"]) && $parameters["delayed"] == "1") {
-            $action = "delayed";
-        } else {
-            if (isset($parameters["cancel"]) && $parameters["cancel"] == "1") {
-                $action = "cancel";
-            } else {
-                if (isset($parameters["error"]) && $parameters["error"] == "1") {
-                    $action = "error";
-                }
-            }
-        }
-
-        // test the currency: EUR only
-        if (!$this->checkCurrency($cart)) {
-            $errors[] = $this->l('The cart currency is not supported');
-        }
-
-        // instantiate the gateway with the original order
-        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
-
-        // regular payment
-        switch ($action) {
-            case "cancel":
-                break;
-
-            case "error":
-                $errors[] = $this->l('There was an error processing your payment. Please, try again or contact Suomen Maksuturva (www.maksuturva.fi)');
-                break;
-
-            case "delayed":
-                break;
-
-            // the default case tries to validate everything
-            case "ok":
-            default:
-                $values = array();
-                // fields are mandatory, so we discard the request if it is empty
-                // Also when return through the error url given to maksuturva
-                foreach ($this->_mandatoryFields as $field) {
-                    if (isset($parameters[$field])) {
-                        $values[$field] = $parameters[$field];
-                    } else {
-                        $errors[] = $this->l('Missing payment field in response:') . " " . $field;
-                    }
-                }
-
-                // first, check if the cart id exists with the payment id provided
-                if (!isset($values['pmt_id']) || !$gateway->checkPaymentId($values['pmt_id'])) {
-                    $errors[] = $this->l('The payment did not match any order');
-                }
-
-                // then, check if the mk_status knows of such cart_id
-                if (count($this->getCartInMkStatusByIdCart($cart->id)) != 1) {
-                    $errors[] = $this->l('Could not find an order related to payment');
-                }
-
-                // now, validate the hash
-                if (!isset($values['pmt_hash']) || $gateway->createHash($values) != $values['pmt_hash']) {
-                    $errors[] = $this->l('The payment verification code does not match');
-                }
-
-                // validate amounts, values, etc
-                // hash, reference number and sellercosts are validated separately, paymentmethod and escrow are not
-                $ignore = array("pmt_hash", "pmt_paymentmethod", "pmt_reference", "pmt_sellercosts", "pmt_escrow");
-                foreach ($values as $key => $value) {
-                    // just pass if ignore is on
-                    if (in_array($key, $ignore)) {
-                        continue;
-                    }
-                    if ($gateway->{$key} != $value) {
-                        $errors[] = $this->l('The following field differs from your order: ') .
-                            $key .
-                            " (" . $this->l('obtained') . " " . $value . ", " . $this->l('expecting') . " " . $gateway->{$key} . ")";
-                    }
-                }
-
-                //SELLERCOSTS VALIDATION
-                $original_payment_feeFloat = (float)str_replace(",", ".", $gateway->{'pmt_sellercosts'});
-                $new_payment_feeFloat = (float)str_replace(",", ".", $values['pmt_sellercosts']);
-                $customerTotalPaid = $new_payment_feeFloat + (float)str_replace(",", ".", $values['pmt_amount']);
-                if ($original_payment_feeFloat != $new_payment_feeFloat) {
-                    // validate that payment_fee have not dropped
-                    if ($new_payment_feeFloat < $original_payment_feeFloat) {
-                        $errors[] = $this->l('Order is not saved. 	Invalid change in shipping and payment costs') .
-                            " (" . $this->l('obtained') . " " . $values['pmt_sellercosts'] . ", " . $this->l('expecting') . " " . $gateway->{'pmt_sellercosts'} . "  )";
-                    } else {
-                        // validate additional costs product (given by admin in module configurations)
-                        // Product validation DOES NOT prevent saving the order
-                        $seller_costs_product = new Product((int)$this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID'));
-                        if (!Validate::isLoadedObject($seller_costs_product)) {
-                            $admin_messages[] = "***ADMIN: " . $this->l('ADMIN: Failed to add payment fee of') . " " . number_format($new_payment_feeFloat - $original_payment_feeFloat,
-                                    2, ",", " ") . " EUR) ";
-                            $admin_messages[] = $this->l('ADMIN: Payment fee product does not exist');
-                            $admin_messages[] = $this->l('ADMIN: Customer paid total of') . " " . number_format($customerTotalPaid,
-                                    2, ",", " ") . " EUR) ";
-                        } else {
-                            // PrestaShop 1.5+
-                            if (method_exists('Product', 'getProductName')) {
-                                $seller_costs_product_name = Product::getProductName($seller_costs_product->id);
-                            } //PrestaShop 1.4
-                            else {
-                                $seller_costs_product_name = $seller_costs_product->name[(int)Configuration::get('PS_LANG_DEFAULT')];
-                            }
-                            if (Product::getQuantity($seller_costs_product->id) < 1) {
-                                $admin_messages[] = "***ADMIN: " . $this->l('ADMIN: Failed to add payment fee of') . " " . number_format($new_payment_feeFloat - $original_payment_feeFloat,
-                                        2, ",", " ") . " EUR) ";
-                                $admin_messages[] = $this->l('ADMIN: Product') . " '" . $seller_costs_product_name . "' " . $this->l('ADMIN: has run out');
-                                $admin_messages[] = $this->l('ADMIN: Customer paid total of') . " " . number_format($customerTotalPaid,
-                                        2, ",", " ") . " EUR) ";
-                            } else {
-                                //everything ok, inserting new product row
-                                $cart->updateQty(1, (int)$this->getConfigOption('MAKSUTURVA_PAYMENT_FEE_ID'));
-                            }
-                            if (number_format($seller_costs_product->getPrice(), 2, ',',
-                                    '') != number_format($new_payment_feeFloat - $original_payment_feeFloat, 2, ',', '')
-                            ) {
-                                $admin_messages[] = "***ADMIN: " . $this->l('ADMIN: Customer paid additional payment fee') . " (" . number_format($new_payment_feeFloat - $original_payment_feeFloat,
-                                        2, ",", " ") . " EUR) " .
-                                    $this->l('ADMIN: differs from the product') . " '" . $seller_costs_product_name . "' " .
-                                    $this->l('ADMIN: price') . " (" . number_format($seller_costs_product->getPrice(),
-                                        2, ",", " ") . " EUR)";
-                                $admin_messages[] = $this->l('ADMIN: Customer paid total of') . " " . number_format($customerTotalPaid,
-                                        2, ",", " ") . " EUR) ";
-                            }
-                        }
-                    }
-                }
-
-                // pmt_reference is calculated
-                if (!$gateway->checkPaymentReferenceNumber($values["pmt_reference"])) {
-                    $errors[] = $this->l('One or more verification parameters could not be validated');
-                }
-                break;
-        }
-
-        // for actions "ok" and "error"
-        if (count($errors) > 0) {
-            $id_order_state = Configuration::get('PS_OS_ERROR');
-            $message = implode('. ', $errors) . '.';
-        } else {
-            if ($action == "delayed") {
-                $id_order_state = $this->getConfigOption('MAKSUTURVA_OS_AUTHORIZATION');
-                $message = $this->l('Payment is awaiting confirmation');
-            } else {
-                if ($action == "cancel") {
-                    $id_order_state = Configuration::get('PS_OS_CANCELED');
-                    $message = $this->l('Payment was canceled');
-                } else {
-                    $id_order_state = Configuration::get('PS_OS_PAYMENT');
-                    $message = $this->l('Payment was successfully registered');
-                }
-            }
-        }
-
-        // Get current reference number
-        $this->displayName .= ' PMT: ' . $gateway->getPaymentReferenceNumber();
-
-        // convert the message
-        // change in rev 122, umlauts converted to url encoding in redirectLink-request
-        $message = str_replace('\'', '', $message);
-        $admin_message = (count($admin_messages) > 0) ? implode('. ', $admin_messages) . '.' : '';
-
-        // finally, validate the order with error or not
-        $this->validateOrder($cart->id, $id_order_state, $cart->getOrderTotal(), $this->displayName,
-            $message . ' ' . $admin_message, array(), $cart->id_currency, false, $customer->secure_key);
-        // fetch the recent-created order
-        new Order((int)$this->currentOrder);
-        // attach to mk_status
-        $this->updateCartInMkStatusByIdCart((int)$cart->id, (int)$this->currentOrder, (int)$id_order_state);
-
-        // redirect to display messages for this given order
-        $query_string = http_build_query(array(
-            'id_cart' => $cart->id,
-            'id_module' => $this->id,
-            'id_order' => $this->currentOrder,
-            'key' => $customer->secure_key,
-            'mks_msg' => $message,
-        ));
-        if (_PS_VERSION_ >= '1.5') {
-            Tools::redirect('index.php?controller=order-confirmation&' . $query_string);
-        } else {
-            Tools::redirectLink(__PS_BASE_URI__ . 'order-confirmation.php?' . $query_string);
-        }
-    }
-
-    /**
-     * Used in order-confirmation.tpl to display a payment successful (or pending) message
-     * @param array $params
-     *
-     * @return string
-     */
-    public function hookPaymentReturn($params)
-    {
-        if (!isset($params['objOrder'])) {
-            return '';
-        }
-
-        /** @var OrderCore|Order $order */
-        $order = $params['objOrder'];
-
-        $status_map = array(
-            Configuration::get('PS_OS_PAYMENT') => 'ok',
-            Configuration::get('PS_OS_OUTOFSTOCK') => 'ok',
-            Configuration::get('PS_OS_OUTOFSTOCK_PAID') => 'ok',
-            Configuration::get('MAKSUTURVA_OS_AUTHORIZATION') => 'pending',
-            Configuration::get('PS_OS_CANCELED') => 'cancel',
-        );
-        $status = isset($status_map[$order->getCurrentState()])
-            ? $status_map[$order->getCurrentState()]
-            : 'error';
-
-        $this->context->smarty->assign(array(
-            'this_path' => $this->_path,
-            'this_path_ssl' => $this->getPathSSL(),
-            'status' => $status,
-            'message' => str_replace('. ', '.<br/>', Tools::getValue('mks_msg'))
-        ));
-
-        return $this->display(__FILE__, 'views/templates/front/payment_return.tpl');
-    }
-
-    /**
-     * Automatically verifies the order status in maksuturva
-     * @param array $params
-     */
-    public function hookAdminOrder($params)
-    {
-        $mkStatus = $this->getCartInMkStatusByIdOrder($params["id_order"]);
-        if (!$mkStatus || count($mkStatus) != 1) {
-            return;
-        }
-
-        /** @var OrderCore|Order $order */
-        $order = new Order((int)$params["id_order"]);
-        /** @var CartCore|Cart $cart */
-        $cart = new Cart((int)$order->id_cart);
-        /** @var CustomerCore|Customer $customer */
-        $customer = new Customer($order->id_customer);
-
-        $status = $mkStatus[0];
-        $checkAgain = false;
-        switch ($status["payment_status"]) {
-            // only when not set (NULL or 0) or auth
-            case Configuration::get('MAKSUTURVA_OS_AUTHORIZATION'):
-            case "":
-            case "0":
-                $gateway = new MaksuturvaGatewayImplementation($this, $cart);
-
-                $messages = array();
-
-                try {
-                    $response = $gateway->statusQuery();
-                } catch (Exception $e) {
-                    $response = false;
-                }
-
-                // errors
-                if ($response === false) {
-                    $messages[] = $this->l('ADMIN: Error while communicating with maksuturva: Invalid hash or network error');
-                    $checkAgain = true;
-                } else {
-                    switch ($response["pmtq_returncode"]) {
-                        // set as paid if not already set
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID_DELIVERY:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_COMPENSATED:
-                            $this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"],
-                                Configuration::get('PS_OS_PAYMENT'));
-                            // try to change order's status
-                            if ((int)$status["id_order"] != 0) {
-                                $order = new Order((int)$status["id_order"]);
-                                $order->setCurrentState(Configuration::get('PS_OS_PAYMENT'));
-                            } else {
-                                $confirmMessage = $this->l('ADMIN: Payment confirmed by Maksuturva');
-                                $this->validateOrder($cart->id, Configuration::get('PS_OS_PAYMENT'),
-                                    $cart->getOrderTotal(), $this->displayName, $confirmMessage, array(),
-                                    $cart->id_currency, false, $customer->secure_key);
-                            }
-                            $messages[] = $this->l('ADMIN: The payment confirmation was received - payment accepted');
-                            break;
-
-                        // set payment cancellation with the notice
-                        // stored in response_text
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_RECLAMATION:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_CANCELLED:
-                            $this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"],
-                                Configuration::get('PS_OS_CANCELED'));
-                            // try to change order's status
-                            if ((int)$status["id_order"] != 0) {
-                                $order = new Order((int)$status["id_order"]);
-                                $order->setCurrentState(Configuration::get('PS_OS_CANCELED'));
-                            } else {
-                                $confirmMessage = $this->l('Payment canceled in Maksuturva');
-                                $this->validateOrder($cart->id, Configuration::get('PS_OS_CANCELED'),
-                                    $cart->getOrderTotal(), $this->displayName, $confirmMessage, array(),
-                                    $cart->id_currency, false, $customer->secure_key);
-                            }
-
-                            $messages[] = $this->l('The payment was canceled in Maksuturva');
-                            break;
-
-                        // this is the case where the buyer changed the payment method while the
-                        // mk_status was created: we stop checking the order
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_NOT_FOUND:
-                            $messages[] = $this->l('ADMIN: The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method');
-                            $this->updateCartInMkStatusByIdCart($cart->id, $params["id_order"],
-                                Configuration::get('PS_OS_CANCELED'));
-                            break;
-
-                        // no news for buyer and seller
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_FAILED:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_WAITING:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID:
-                        case MaksuturvaGatewayImplementation::STATUS_QUERY_UNPAID_DELIVERY:
-                        default:
-                            $messages[] = $this->l('ADMIN: The payment is still awaiting for confirmation');
-                            $checkAgain = true;
-                            break;
-                    }
-                }
-                break;
-
-            case Configuration::get('PS_OS_PAYMENT'):
-                $messages[] = $this->l('ADMIN: The payment was confirmed by Maksuturva');
-                break;
-
-            case Configuration::get('PS_OS_CANCELED'):
-                if ((int)$status["id_order"] != 0) {
-                    $order = new Order((int)$status["id_order"]);
-                    if ($order->getCurrentState() != Configuration::get('PS_OS_CANCELED')) {
-                        $messages[] = $this->l('ADMIN: The payment could not be tracked by Maksuturva. Check if the customer selected Maksuturva as payment method');
-                    } else {
-                        $messages[] = $this->l('ADMIN: The payment was canceled by the customer');
-                    }
-                } else {
-                    $messages[] = $this->l('ADMIN: The payment was canceled by the customer');
-                }
-                break;
-
-            case Configuration::get('PS_OS_ERROR'):
-            default:
-                $messages[] = $this->l('ADMIN: An error occurred and the payment was not confirmed. Please check manually');
-                $checkAgain = true;
-                break;
-        }
-
-        $messageHtml = "";
-        foreach ($messages as $message) {
-            $messageHtml .= "<p style='font-weight: bold;'>" . $message . "</p>";
-        }
-        if ($checkAgain) {
-            $messageHtml .= "<p style='text-decoration: underline;'>" . $this->l('ADMIN: Refresh this page to check again') . "</p>";
-        }
-
-        $html = "<br/>
-		<fieldset>
-		    <legend>
-		    	<img src='" . $this->_path . "/logo.png' width='20'/>" . $this->l('ADMIN: Payment status update') . "</legend>
-		    " . $messageHtml . "
-		</fieldset>
-		";
-        return $html;
-    }
-
-    /**
-     * Validates if cart's currency is given in Euros
-     * @param Cart $cart
-     * @return boolean
-     */
-    public function checkCurrency($cart)
-    {
-        $currency_order = new Currency($cart->id_currency);
-        $currencies_module = $this->getCurrency($cart->id_currency);
-
-        // only euro is available
-        if (is_array($currencies_module)) {
-            foreach ($currencies_module as $currency_module) {
-                if ($currency_order->id == $currency_module['id_currency'] && Tools::strtoupper($currency_order->iso_code) == "EUR") {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-
-    /**
-     * Tries to insert or update an order for follow up within mk_status
-     * @param int $id_cart
-     * @param int $id_order
-     * @param int $status
-     */
-    public function updateCartInMkStatusByIdCart($id_cart, $id_order = null, $status = 0)
-    {
-        // if already in DB
-        if (count($this->getCartInMkStatusByIdCart($id_cart)) == 1) {
-            $this->_updateCartInMkStatusByColumn("id_cart", $id_cart, $id_order, $status);
-            // create, otherwise
-        } else {
-            Db::getInstance()->execute(
-                'INSERT INTO `' . _DB_PREFIX_ . 'mk_status` (`id_cart`, `id_order`, `payment_status`) ' .
-                'VALUES ( ' .
-                (int)$id_cart . ', ' .
-                ($id_order == null ? "NULL" : (int)$id_order) . ', ' .
-                (int)$status .
-                ' );'
-            );
-        }
-    }
-
-    /**
-     * Updates an entry in mk_status given a cart
-     * @param string $col Column name
-     * @param int $id_cart
-     * @param int $id_order
-     * @param int $status
-     */
-    private function _updateCartInMkStatusByColumn($col, $id_cart, $id_order = null, $status = 0)
-    {
-        if ($col == "id_order") {
-            $where = 'id_order = ' . (int)$id_cart;
-        } else {
-            $where = 'id_cart = ' . (int)$id_cart;
-        }
-
-        Db::getInstance()->execute(
-            'UPDATE `' . _DB_PREFIX_ . 'mk_status` SET ' .
-            'id_cart = ' . (int)$id_cart . ', ' .
-            'id_order = ' . ($id_order == null ? "NULL" : (int)$id_order) . ', ' .
-            'payment_status = ' . (int)$status . ' ' .
-            'WHERE ' . $where
-        );
-    }
-
-    /**
-     * Fetches a follow up item from mk_status given a cart
-     * @param int $id_cart
-     */
-    public function getCartInMkStatusByIdCart($id_cart)
-    {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_cart = ' . (int)$id_cart . ';');
-    }
-
-    /**
-     * Fetches a follow up item from mk_status given an order
-     * @param int $id_cart
-     */
-    public function getCartInMkStatusByIdOrder($id_order)
-    {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE id_order = ' . (int)$id_order . ';');
-    }
-
-    /**
-     * Fetches the rows with a given status
-     * @param int $status
-     */
-    public function getCartsInMkStatusByStatus($status)
-    {
-        return Db::getInstance()->s('SELECT * FROM `' . _DB_PREFIX_ . 'mk_status` WHERE status = ' . (int)$status . ';');
-    }
-
-    /**
-     *
-     * @param int $value
-     * @return boolean - matches Maksuturva hash generation format or not
-     */
-    public function validateHashGenerationNumber($value)
-    {
-        return (preg_match('#^[0-9]{3}$#', (string)$value) && $value < 4294967296 && $value >= 0);
-    }
-
-    /**
-     * @return string
-     */
-    public function getPathSSL()
-    {
-        return Tools::getShopDomainSsl(true, true) . __PS_BASE_URI__ . 'modules/' . $this->name . '/';
-    }
-
-    /**
-     * @return string
-     */
-    public function getPaymentUrl()
-    {
-        return Tools::getShopDomainSsl(true, true) . __PS_BASE_URI__ . 'modules/' . $this->name . '/validation.php';
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getSellerId()
-    {
-        return $this->getConfigOption('MAKSUTURVA_SELLER_ID');
-    }
-
-    /**
-     * @return bool
-     */
-    public function isSandbox()
-    {
-        return ($this->getConfigOption('MAKSUTURVA_SANDBOX') == '1');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getSecretKey()
-    {
-        return $this->getConfigOption('MAKSUTURVA_SECRET_KEY');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getSecretKeyVersion()
-    {
-        return $this->getConfigOption('MAKSUTURVA_SECRET_KEY_VERSION');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getGatewayUrl()
-    {
-        return $this->getConfigOption('MAKSUTURVA_URL');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getEncoding()
-    {
-        return $this->getConfigOption('MAKSUTURVA_ENCODING');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getPaymentIdPrefix()
-    {
-        return $this->getConfigOption('MAKSUTURVA_PMT_ID_PREFIX');
-    }
-
-    /**
-     * @param string $option
-     * @return mixed
-     */
-    public function getConfigOption($option)
-    {
-        return Configuration::get($option);
     }
 }

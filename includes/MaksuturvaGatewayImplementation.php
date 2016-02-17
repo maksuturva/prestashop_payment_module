@@ -4,10 +4,10 @@
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to info@maksuturva.fi so we can send you a copy immediately.
@@ -20,7 +20,7 @@
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
  * @copyright 2016 Maksuturva Group Oy
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
 /**
@@ -31,6 +31,11 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 {
     const SANDBOX_SELLER_ID = 'testikauppias';
     const SANDBOX_SECRET_KEY = '11223344556677889900';
+
+    /**
+     * @var Maksuturva|null the payment module.
+     */
+    public $module;
 
     /**
      * @var float the calculated total amount of the order.
@@ -45,6 +50,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     public function __construct(Maksuturva $module, Cart $order)
     {
+        $this->module = $module;
         $this->setBaseUrl($module->getGatewayUrl());
         $this->seller_id = ($module->isSandbox() ? self::SANDBOX_SELLER_ID : $module->getSellerId());
         $this->secret_key = ($module->isSandbox() ? self::SANDBOX_SECRET_KEY : $module->getSecretKey());
@@ -64,7 +70,6 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
         $buyer_data = $this->createBuyerData($order);
         $delivery_data = $this->createDeliveryData($order);
         $order_details = $order->getSummaryDetails();
-        $payment_url = $module->getPaymentUrl();
         /** @var CustomerCore|Customer $customer */
         $customer = new Customer($order->id_customer);
 
@@ -76,10 +81,10 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             'pmt_sellerid' => $this->seller_id,
             'pmt_duedate' => date('d.m.Y'),
             'pmt_userlocale' => $this->getUserLocale($order),
-            'pmt_okreturn' => $payment_url,
-            'pmt_errorreturn' => $payment_url . '?error=1',
-            'pmt_cancelreturn' => $payment_url . '?cancel=1',
-            'pmt_delayedpayreturn' => $payment_url . '?delayed=1',
+            'pmt_okreturn' => $module->getPaymentUrl(array('ok' => 1)),
+            'pmt_errorreturn' => $module->getPaymentUrl(array('error' => 1)),
+            'pmt_cancelreturn' => $module->getPaymentUrl(array('cancel' => 1)),
+            'pmt_delayedpayreturn' => $module->getPaymentUrl(array('delayed' => 1)),
             'pmt_amount' => $this->filterPrice($this->order_total),
             'pmt_buyername' => $buyer_data['name'],
             'pmt_buyeraddress' => $buyer_data['address'],
@@ -342,6 +347,23 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
+     * @param array $params
+     * @return string
+     */
+    private function getAction(array $params)
+    {
+        $action = 'ok';
+        if (isset($params['delayed']) && $params['delayed'] == '1') {
+            $action = 'delayed';
+        } elseif (isset($params['cancel']) && $params['cancel'] == '1') {
+            $action = 'cancel';
+        } elseif (isset($params['error']) && $params['error'] == '1') {
+            $action = 'error';
+        }
+        return $action;
+    }
+
+    /**
      * @param string $description
      * @return string
      */
@@ -384,9 +406,21 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     public function checkPaymentId($pmt_id)
     {
-        if (Tools::strlen($this->pmt_id_prefix) && Tools::substr($pmt_id, 0, Tools::strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix) {
+        if (Tools::strlen($this->pmt_id_prefix)
+            && Tools::substr($pmt_id, 0, Tools::strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix
+        ) {
             $pmt_id = Tools::substr($pmt_id, Tools::strlen($this->pmt_id_prefix));
         }
         return (((int)$pmt_id - 100) == $this->pmt_orderid);
+    }
+
+    /**
+     * @param array $params
+     * @return MaksuturvaPaymentValidator
+     */
+    public function validatePayment(array $params)
+    {
+        $validator = new MaksuturvaPaymentValidator($this);
+        return $validator->validate($params);
     }
 }
