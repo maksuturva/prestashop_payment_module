@@ -81,7 +81,8 @@ class MaksuturvaPayment
     public static function create(array $data)
     {
         $created = Db::getInstance()->execute(sprintf(
-            "INSERT INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`) VALUES (%d, %d, '%s', '%s', NOW());",
+            "INSERT INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`)
+              VALUES (%d, %d, '%s', '%s', NOW());",
             _DB_PREFIX_,
             (int)$data['id_order'],
             (int)$data['status'],

@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
-require('controllers/front/compat.php');
+require('backward_compatibility/controller.php');
 if (_PS_VERSION_ >= '1.5') {
     Tools::displayFileAsDeprecated();
 }
