@@ -2,7 +2,7 @@
 <module>
 	<name>maksuturva</name>
 	<displayName><![CDATA[Maksuturva]]></displayName>
-	<version><![CDATA[122]]></version>
+	<version><![CDATA[2.0.0]]></version>
 	<description><![CDATA[Accepts payments using Maksuturva]]></description>
 	<author><![CDATA[Maksuturva]]></author>
 	<tab><![CDATA[payments_gateways]]></tab>
