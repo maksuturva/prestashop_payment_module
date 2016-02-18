@@ -434,6 +434,69 @@ class Maksuturva extends PaymentModule
     }
 
     /**
+     * Callback for the `displayPDFInvoice` hook.
+     *
+     * Adds information about payment surcharges that may have been applied to the order.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookDisplayPDFInvoice($params)
+    {
+        if (!isset($params['object']) || !($params['object'] instanceof OrderInvoice)) {
+            return '';
+        }
+
+        try {
+            $payment = new MaksuturvaPayment((int)$params['object']->id_order);
+        } catch (Exception $e) {
+            // The order was not payed using Maksuturva.
+            return '';
+        }
+
+        if (!$payment->includesSurcharge()) {
+            return '';
+        }
+
+        $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
+        return 'Maksuturva - ' . $notice;
+    }
+
+    /**
+     * Callback for the `PDFInvoice` hook.
+     *
+     * Adds information about payment surcharges that may have been applied to the order.
+     *
+     * @param array $params
+     * @return string
+     */
+    public function hookPDFInvoice($params)
+    {
+        if (!isset($params['pdf'], $params['id_order'])) {
+            return '';
+        }
+
+        try {
+            $payment = new MaksuturvaPayment((int)$params['id_order']);
+        } catch (Exception $e) {
+            // The order was not payed using Maksuturva.
+            return '';
+        }
+
+        if (!$payment->includesSurcharge()) {
+            return '';
+        }
+
+        $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
+
+        $params['pdf']->Ln(6);
+        $params['pdf']->Cell(0, 0, 'Maksuturva - ' . $notice, 0, 0, 'R');
+        $params['pdf']->Ln(4);
+
+        return $notice;
+    }
+
+    /**
      * Validates a payment and registers the order in PrestaShop.
      *
      * @param CartCore|Cart $cart
@@ -489,14 +552,17 @@ class Maksuturva extends PaymentModule
             'data_received' => $params,
         ));
 
-        // todo
-        if (false && $payment->includesSurcharge()) {
+        if ($payment->includesSurcharge()) {
             $surcharge = $payment->getSurcharge();
-            // todo: update the order paid/total
-            $order->total_paid;
-            $order->total_paid_real += $surcharge;
-            $order->total_paid_tax_excl;
-            $order->total_paid_tax_incl;
+            $order->total_paid += $surcharge;
+            $order->total_paid_tax_excl += $surcharge;
+            $order->total_paid_tax_incl += $surcharge;
+            if (method_exists($order, 'addOrderPayment')) {
+                $order->addOrderPayment($surcharge);
+            } else {
+                $order->total_paid_real += $surcharge;
+                $order->update();
+            }
         }
 
         return $message;
@@ -642,14 +708,12 @@ class Maksuturva extends PaymentModule
      */
     private function registerHooks()
     {
-        // todo: what do we need to show the surcharge warning in the invoice and the order detail page
-        // $this->registerHook('displayPDFInvoice'))
-
         return ($this->registerHook('header')
             && $this->registerHook('payment')
             && $this->registerHook('paymentReturn')
             && $this->registerHook('adminOrder')
             && $this->registerHook('orderDetailDisplayed')
+            && $this->registerHook('PDFInvoice')
         );
     }
 

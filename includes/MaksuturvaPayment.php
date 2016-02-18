@@ -86,8 +86,8 @@ class MaksuturvaPayment
             _DB_PREFIX_,
             (int)$data['id_order'],
             (int)$data['status'],
-            Tools::jsonEncode($data['data_sent']),
-            Tools::jsonEncode($data['data_received'])
+            pSQL(Tools::jsonEncode($data['data_sent'])),
+            pSQL(Tools::jsonEncode($data['data_received']))
         ));
         if (!$created) {
             throw new MaksuturvaException('Failed to create Maksuturva payment');
