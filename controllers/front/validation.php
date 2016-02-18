@@ -34,6 +34,22 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
      */
     public function postProcess()
     {
+        $this->validatePayment();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function preProcess()
+    {
+        $this->validatePayment();
+    }
+
+    /**
+     * Validates the payment request and redirects to the order confirmation page.
+     */
+    protected function validatePayment()
+    {
         if (!$this->isPaymentMethodValid()) {
             die($this->module->l('This payment method is not available.', 'maksuturva'));
         }

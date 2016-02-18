@@ -124,9 +124,9 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             $payment_row_product['pmt_row_desc'] = $this->filterDescription($product['description_short']);
             $payment_row_product['pmt_row_quantity'] = $product['cart_quantity'];
 
-            if (isset($product['reference']) && !is_null($product['reference'])) {
+            if (isset($product['reference']) && !empty($product['reference'])) {
                 $payment_row_product['pmt_row_articlenr'] = $product['reference'];
-            } elseif (isset($product['ean13']) && !is_null($product['ean13'])) {
+            } elseif (isset($product['ean13']) && !empty($product['ean13'])) {
                 $payment_row_product['pmt_row_articlenr'] = $product['ean13'];
             }
 

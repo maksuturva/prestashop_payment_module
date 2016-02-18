@@ -56,11 +56,11 @@
 		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
     </p>
 {else}
-	<p class="warning">{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
+	<p>{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
 	{if !empty($message)}
-		<p class="warning"><strong>{$message|escape:'html':'UTF-8'}</strong></p>
+		<p><strong>{$message|escape:'html':'UTF-8'}</strong></p>
 	{/if}
-	<p class="warning">
+	<p>
 		{l s='For further questions you can contact our' mod='maksuturva'}
 		<a href="{$link->getPageLink('contact-form.php', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
 	</p>

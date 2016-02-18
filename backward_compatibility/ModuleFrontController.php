@@ -79,11 +79,11 @@ if (!class_exists('ModuleFrontController')) {
         public function setTemplate($tmpl)
         {
             $m = $this->module->name;
-            if (Tools::file_exists_cache(_PS_THEME_DIR_ . 'modules/' . $m . '/' . $tmpl)) {
+            if (file_exists(_PS_THEME_DIR_ . 'modules/' . $m . '/' . $tmpl)) {
                 $this->template = _PS_THEME_DIR_ . 'modules/' . $m . '/' . $tmpl;
-            } elseif (Tools::file_exists_cache(_PS_THEME_DIR_ . 'modules/' . $m . '/views/templates/front/' . $tmpl)) {
+            } elseif (file_exists(_PS_THEME_DIR_ . 'modules/' . $m . '/views/templates/front/' . $tmpl)) {
                 $this->template = _PS_THEME_DIR_ . 'modules/' . $m . '/views/templates/front/' . $tmpl;
-            } elseif (Tools::file_exists_cache(_PS_MODULE_DIR_ . $m . '/views/templates/front/' . $tmpl)) {
+            } elseif (file_exists(_PS_MODULE_DIR_ . $m . '/views/templates/front/' . $tmpl)) {
                 $this->template = _PS_MODULE_DIR_ . $m . '/views/templates/front/' . $tmpl;
             } else {
                 throw new Exception(sprintf('Template "%s" not found', $tmpl));
