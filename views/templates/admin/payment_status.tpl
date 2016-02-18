@@ -23,7 +23,7 @@
 *}
 
 <br />
-<fieldset>
+<fieldset {if $ps_version == '1.4'}style="width: 400px;"{/if}>
     <legend>
         <img src="{$this_path|escape:'html':'UTF-8'}/logo.png" width="20" height="20"/>
         {l s='Maksuturva' mod='maksuturva'}

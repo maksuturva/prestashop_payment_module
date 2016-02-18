@@ -373,6 +373,7 @@ class Maksuturva extends PaymentModule
 
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
+            'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
             'mt_pmt_id' => $payment->getPmtReference(),
             'mt_pmt_status_message' => $msg,
         ));
@@ -642,7 +643,6 @@ class Maksuturva extends PaymentModule
     private function registerHooks()
     {
         // todo: what do we need to show the surcharge warning in the invoice and the order detail page
-        // $this->registerHook('orderDetailDisplayed')
         // $this->registerHook('displayPDFInvoice'))
 
         return ($this->registerHook('header')
