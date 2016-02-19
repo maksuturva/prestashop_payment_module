@@ -116,33 +116,6 @@ class Maksuturva extends PaymentModule
             return false;
         }
 
-        /* For 1.4.3 and less compatibility */
-        /* todo: is this actually needed??
-        $updateConfig = array(
-            'PS_OS_CHEQUE' => 1,
-            'PS_OS_PAYMENT' => 2,
-            'PS_OS_PREPARATION' => 3,
-            'PS_OS_SHIPPING' => 4,
-            'PS_OS_DELIVERED' => 5,
-            'PS_OS_CANCELED' => 6,
-            'PS_OS_REFUND' => 7,
-            'PS_OS_ERROR' => 8,
-            'PS_OS_OUTOFSTOCK' => 9,
-            'PS_OS_BANKWIRE' => 10,
-            'PS_OS_PAYPAL' => 11,
-            'PS_OS_WS_PAYMENT' => 12
-        );
-        foreach ($updateConfig as $u => $v) {
-            if (!Configuration::get($u) || (int)Configuration::get($u) < 1) {
-                if (defined('_' . $u . '_') && (int)constant('_' . $u . '_') > 0) {
-                    Configuration::updateValue($u, constant('_' . $u . '_'));
-                } else {
-                    Configuration::updateValue($u, $v);
-                }
-            }
-        }
-        */
-
         return true;
     }
 
@@ -814,7 +787,25 @@ class Maksuturva extends PaymentModule
             copy(_PS_MODULE_DIR_ . $this->name . '/logo.gif', _PS_IMG_DIR_ . 'os/' . $state->id . '.gif');
         }
 
-        return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int)$state->id);
+        if (!$this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int)$state->id)) {
+            return false;
+        }
+
+        // Older PS versions will not have these order states in the configuration table, but only as constants.
+        // Enter the states into the configuration table with the value of the constant for easier use later on.
+        $order_states = array('PS_OS_PAYMENT', 'PS_OS_CANCELED', 'PS_OS_ERROR', 'PS_OS_OUTOFSTOCK');
+        foreach ($order_states as $os) {
+            if (!$this->getConfig($os)) {
+                $const_os = '_' . $os . '_';
+                if (defined($const_os)) {
+                    if (!$this->setConfig($os, (int)constant($const_os))) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
