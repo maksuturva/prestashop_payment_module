@@ -177,8 +177,10 @@ class MaksuturvaPayment
 
         $this->id_order = (int)$data[0]['id_order'];
         $this->status = (int)$data[0]['status'];
-        $this->data_sent = Tools::jsonDecode($data[0]['data_sent'], true);
-        $this->data_received = Tools::jsonDecode($data[0]['data_received'], true);
+        // Note: use `json_decode` instead of `Tools::jsonDecode`
+        // as the latter is missing the "assoc" option in some versions of PS.
+        $this->data_sent = json_decode($data[0]['data_sent'], true);
+        $this->data_received = json_decode($data[0]['data_received'], true);
         $this->date_add = $data[0]['date_add'];
         $this->date_upd = $data[0]['date_upd'];
     }

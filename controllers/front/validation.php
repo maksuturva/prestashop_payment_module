@@ -89,10 +89,14 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             return false;
         }
 
-        foreach (Module::getPaymentModules() as $module) {
-            if (isset($module['name']) && $module['name'] === $this->module->name) {
-                return true;
+        if (method_exists('Module', 'getPaymentModules')) {
+            foreach (Module::getPaymentModules() as $module) {
+                if (isset($module['name']) && $module['name'] === $this->module->name) {
+                    return true;
+                }
             }
+        } else {
+            return true;
         }
 
         return false;
