@@ -1011,10 +1011,10 @@ class Maksuturva extends PaymentModule
             if ($sandbox != '0' && $sandbox != '1') {
                 $errors[] = $this->l('Invalid Sandbox flag');
             }
-            if (!is_null($url) && !Validate::isUrl($url)) {
+            if (!Validate::isUrl($url)) {
                 $errors[] = $this->l('Communication url is invalid');
             }
-            if (!is_null($pmt_prefix) && !preg_match('/^[a-z_\-0-9]+/i', $pmt_prefix)) {
+            if (!empty($pmt_prefix) && !preg_match('/^[a-z_\-0-9]+/i', $pmt_prefix)) {
                 $errors[] = $this->l('Payment prefix is invalid');
             }
 
