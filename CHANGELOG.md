@@ -27,7 +27,7 @@ number if available.
 section 5.1 Upgrading an existing module for instructions.
 - Payment module sends user locale to Maksuturva (the customer sees Maksuturva payment page in that language by default)
 
-## [121] - 6.8.2014
+## 121 - 6.8.2014
 ### Fixed
 - The module now supports PrestaShop up to version 1.6.
 - The module now removes quotation marks from product names and description – previously it caused errors in hash calc
@@ -36,3 +36,7 @@ section 5.1 Upgrading an existing module for instructions.
 when available (currently not available, though, but enabling is possible in further development - see "_construct"
 method in MaksuturvaGatewayImplementation.php and Maksuturva Payment interface description).
 - Module directory structure updated to enable installation through PrestaShop user interface.
+
+[Unreleased]: https://github.com/maksuturva/prestashop_payment_module/compare/2.0.0...HEAD
+[2.0.0]: https://github.com/maksuturva/prestashop_payment_module/compare/122...2.0.0
+[122]: https://github.com/maksuturva/prestashop_payment_module/compare/121...122
