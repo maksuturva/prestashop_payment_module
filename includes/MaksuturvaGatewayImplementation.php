@@ -1,6 +1,6 @@
 <?php
 /**
- * 2016 Maksuturva Group Oy
+ * 2017 Maksuturva Group Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +19,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2016 Maksuturva Group Oy
+ * @copyright 2017 Maksuturva Group Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -313,15 +313,13 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     private function getUserLocale(Cart $order)
     {
         $fields = $order->getFields();
-        $order_details = $order->getSummaryDetails();
         $language = Language::getIsoById($fields['id_lang']);
-        $country = Country::getIsoById($order_details['invoice']->id_country);
 
-        if (!is_null($language) && !is_null($country)) {
-            return $language . '_' . $country;
+        if (!in_array($language, array('fi', 'sv', 'en'))) {
+            $language = 'en';
         }
 
-        return '';
+        return $language . '_FI';
     }
 
     /**

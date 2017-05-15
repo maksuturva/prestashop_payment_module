@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] - 15.5.2017
+### Added
+- Support for PrestaShop version 1.7.x
+
 ## [2.0.0] - 19.2.2016
 ### Changed
 - Refactor source code to comply with PrestaShop standards and best practices
@@ -37,6 +41,7 @@ when available (currently not available, though, but enabling is possible in fur
 method in MaksuturvaGatewayImplementation.php and Maksuturva Payment interface description).
 - Module directory structure updated to enable installation through PrestaShop user interface.
 
-[Unreleased]: https://github.com/maksuturva/prestashop_payment_module/compare/2.0.0...HEAD
+[Unreleased]: https://github.com/maksuturva/prestashop_payment_module/compare/2.1.0...HEAD
+[2.1.0]: https://github.com/maksuturva/prestashop_payment_module/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/maksuturva/prestashop_payment_module/compare/122...2.0.0
 [122]: https://github.com/maksuturva/prestashop_payment_module/compare/121...122
