@@ -1,6 +1,6 @@
 <?php
 /**
- * 2016 Maksuturva Group Oy
+ * 2017 Maksuturva Group Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +19,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2016 Maksuturva Group Oy
+ * @copyright 2017 Maksuturva Group Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -84,7 +84,7 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.0.0';
+        $this->version = '2.1.0';
         $this->author = 'Maksuturva';
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';

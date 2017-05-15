@@ -1,6 +1,6 @@
 <?php
 /**
- * 2016 Maksuturva Group Oy
+ * 2017 Maksuturva Group Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +19,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2016 Maksuturva Group Oy
+ * @copyright 2017 Maksuturva Group Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
