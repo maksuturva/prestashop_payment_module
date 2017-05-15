@@ -313,15 +313,13 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     private function getUserLocale(Cart $order)
     {
         $fields = $order->getFields();
-        $order_details = $order->getSummaryDetails();
         $language = Language::getIsoById($fields['id_lang']);
-        $country = Country::getIsoById($order_details['invoice']->id_country);
 
-        if (!is_null($language) && !is_null($country)) {
-            return $language . '_' . $country;
+        if (!in_array($language, array('fi', 'sv', 'en'))) {
+            $language = 'en';
         }
 
-        return '';
+        return $language . '_FI';
     }
 
     /**

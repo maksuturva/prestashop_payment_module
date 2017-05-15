@@ -184,7 +184,7 @@ class Maksuturva extends PaymentModule
     /**
      * Callback for the `payment` hook.
      *
-     * Used to display the payment gateway in the checkout.
+     * Used to display the payment gateway in the checkout for PS <= 1.6.
      *
      * @param array $params
      * @return string
@@ -213,6 +213,44 @@ class Maksuturva extends PaymentModule
     }
 
     /**
+     * Callback for the `paymentOptions` hook.
+     *
+     * Used to display the payment gateway in the checkout for PS 1.7+.
+     *
+     * @param array $params
+     * @return array
+     */
+    public function hookPaymentOptions($params)
+    {
+        // only EUR is supported - we validate it against
+        // 1) shop (if it has EUR)
+        // 2) cart (if it has only EUR products within)
+        if (!$this->checkCurrency($params['cart'])) {
+            return '';
+        }
+
+        $gateway = new MaksuturvaGatewayImplementation($this, $params['cart']);
+        $action = $gateway->getPaymentUrl();
+        $fields = $gateway->getFieldArray();
+        $inputs = array();
+        foreach ($fields as $name => $value) {
+            $inputs[] = array(
+                'name' => $name,
+                'type' => 'hidden',
+                'value' => $value,
+            );
+        }
+
+        $newOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption();
+        $newOption->setModuleName($this->name)
+            ->setAction($action)
+            ->setInputs($inputs)
+            ->setLogo(Media::getMediaPath(_PS_MODULE_DIR_.$this->name.'/views/img/maksuturva.gif'));
+
+        return array($newOption);
+    }
+
+    /**
      * Callback for the `paymentReturn` hook.
      *
      * Used to display the order confirmation page.
@@ -222,12 +260,14 @@ class Maksuturva extends PaymentModule
      */
     public function hookPaymentReturn($params)
     {
-        if (!isset($params['objOrder'])) {
+        $orderKey = (_PS_VERSION_ >= '1.7') ? 'order' : 'objOrder';
+
+        if (!isset($params[$orderKey])) {
             return '';
         }
 
         /** @var OrderCore|Order $order */
-        $order = $params['objOrder'];
+        $order = $params[$orderKey];
 
         $status_map = array(
             $this->getConfig('PS_OS_PAYMENT') => 'ok',
@@ -244,10 +284,13 @@ class Maksuturva extends PaymentModule
             'this_path' => $this->getPath(),
             'this_path_ssl' => $this->getPathSSL(),
             'status' => $status,
-            'message' => Tools::getValue('mks_msg')
+            'message' => Tools::getValue('mks_msg'),
+            'shop_name' => $this->context->shop->name
         ));
 
-        if (_PS_VERSION_ >= '1.6') {
+        if (_PS_VERSION_ >= '1.7') {
+            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs_17.tpl');
+        } elseif (_PS_VERSION_ >= '1.6') {
             return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
         } else {
             return $this->display(__FILE__, 'views/templates/hook/payment_return.tpl');
@@ -668,6 +711,7 @@ class Maksuturva extends PaymentModule
     /**
      * @param string $key
      * @param mixed $value
+     * @return mixed
      */
     private function setConfig($key, $value)
     {
@@ -681,13 +725,19 @@ class Maksuturva extends PaymentModule
      */
     private function registerHooks()
     {
-        return ($this->registerHook('header')
+        $registered = ($this->registerHook('header')
             && $this->registerHook('payment')
             && $this->registerHook('paymentReturn')
             && $this->registerHook('adminOrder')
             && $this->registerHook('orderDetailDisplayed')
             && $this->registerHook('PDFInvoice')
         );
+
+        if (_PS_VERSION_ >= '1.7') {
+            $registered = $registered && $this->registerHook('paymentOptions');
+        }
+
+        return $registered;
     }
 
     /**

@@ -81,7 +81,7 @@ class MaksuturvaPayment
     public static function create(array $data)
     {
         $created = Db::getInstance()->execute(sprintf(
-            "INSERT INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`)
+            "REPLACE INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`)
               VALUES (%d, %d, '%s', '%s', NOW());",
             _DB_PREFIX_,
             (int)$data['id_order'],
@@ -170,7 +170,7 @@ class MaksuturvaPayment
     protected function load($id_order)
     {
         $query = sprintf('SELECT * FROM `%smt_payment` WHERE id_order = %d LIMIT 1;', _DB_PREFIX_, (int)$id_order);
-        $data = Db::getInstance()->s($query);
+        $data = Db::getInstance()->executeS($query);
         if (!(is_array($data) && count($data) === 1)) {
             throw new MaksuturvaException('Failed to load Maksuturva payment');
         }
