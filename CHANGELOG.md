@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ## [2.1.0] - 15.5.2017
+### Changed
+- Replace payment details into database instead of inserting them, to avoid issues when test orders have been purged
+with e.g. PS Cleaner module before going live and the same IDs are used for new orders
 ### Added
 - Support for PrestaShop version 1.7.x
 
