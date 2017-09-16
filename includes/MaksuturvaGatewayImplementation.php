@@ -41,6 +41,12 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      * @var float the calculated total amount of the order.
      */
     private $order_total = 0.00;
+    
+    /**
+	 * @var float the total seller costs - shipping costs. 
+	 * It is set to zero if there is a free shipping discount
+	 */
+	private $seller_costs = 0.00;
 
     /**
      * Constructor.
@@ -98,7 +104,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             'pmt_deliverypostalcode' => $delivery_data['postal_code'],
             'pmt_deliverycity' => $delivery_data['city'],
             'pmt_deliverycountry' => $delivery_data['country'],
-            'pmt_sellercosts' => $this->filterPrice($order_details['total_shipping']),
+            'pmt_sellercosts' => $this->filterPrice($this->seller_costs),
             'pmt_rows' => count($payment_row_data),
             'pmt_rows_data' => $payment_row_data,
             // Possibility to add pre-selected payment method as a hard-coded parameter.
@@ -174,6 +180,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             } else {
                 $row_name = $module->l('Shipping Costs');
             }
+            
+            $this->seller_costs += $order_details['total_shipping'];
 
             $shipping_vat = (($order_details['total_shipping'] / $order_details['total_shipping_tax_exc']) - 1) * 100;
 
@@ -238,7 +246,15 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             foreach ($order_details['discounts'] as $discount) {
                 $discount_value = (-1) * abs($discount['value_real']);
                 $discount_total += $discount_value;
-                $this->order_total += $discount_value;
+                
+                if($discount['free_shipping']){
+					$this->seller_costs += $discount_value;
+					$discount_type = 2;
+				}
+				else{
+					$this->order_total += $discount_value;
+					$discount_type = 6;
+				}
 
                 $row_name = (!empty($discount['name']) ? $discount['name'] : $module->l('Discounts'));
                 $row_desc = (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts'));
@@ -251,7 +267,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
                     'pmt_row_price_gross' => $this->filterPrice($discount_value),
                     'pmt_row_vat' => '0,00',
                     'pmt_row_discountpercentage' => '0,00',
-                    'pmt_row_type' => 6,
+                    'pmt_row_type' => $discount_type,
                 );
             }
 
