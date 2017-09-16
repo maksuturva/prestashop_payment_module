@@ -602,6 +602,7 @@ abstract class MaksuturvaGatewayAbstract
      * Helper function to filter out problematic characters.
      *
      * So far only quotation marks have been needed to filter out.
+     * Replacing multiple consecutive spaces with one space.
      *
      * @param string $string
      * @return string
@@ -609,6 +610,7 @@ abstract class MaksuturvaGatewayAbstract
     public function filterCharacters($string)
     {
         $new_string = str_replace('"', "", $string);
+        $new_string = preg_replace('/\s+/',' ', $new_string);
         if (!is_null($new_string) && mb_strlen($new_string) > 0) {
             return $new_string;
         }
