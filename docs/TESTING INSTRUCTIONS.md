@@ -3,7 +3,7 @@ TESTING THE PAYMENT MODULE WITH MAKSUTURVA PAYMENT SERVICE
 We encourage you to test the functionalities of the module and how it suits your needs in a good time before the planned
 release of your webstore.
 
-Maksuturva / eMaksut -payment modules have been released under the open source GNU LGPL 2.1 licence since 2012 and have
+Maksuturva payment modules have been released under the open source GNU LGPL 2.1 licence since 2012 and have
 had several improvements since. But even though the modules have been tested in Maksuturva's test environment, one
 should always keep in mind that the licence explicitly states that licence does not guarantee that the module is
 faultless or that it fits the needs of you or your webstore. Your webstore software might also have functionalities
@@ -24,9 +24,7 @@ TESTING WITH A TEST ACCOUNT
 ---------------------------
 For testing the module with actual internet bank, credit card or SveaWebPay services, you can order a test account for
 yourself.
-
-For Maksuturva-service: http://test1.maksuturva.fi/MerchantSubscriptionBeginning.pmt  
-For eMaksut-service: http://test1.maksuturva.fi/MerchantSubscriptionBeginning.pmt?emaksut=true
+https://test1.maksuturva.fi/MerchantSubscriptionBeginning.pmt  
 
 When ordering a test account signing the order with your TUPAS bank credentials is not required. When you have completed
 the order and stored your test account ID and secret key, we kindly ask you to contact us for us to activate the
@@ -38,9 +36,9 @@ payer credentials are already prefilled or displayed for you. Do not try to use 
 environment.
 
 For testing our payment service without using actual money, you need to set communication URL in the module
-configurations as http://test1.maksuturva.fi. All our test environment services are found under that domain unlike our
+configurations as https://test1.maksuturva.fi. All our test environment services are found under that domain unlike our
 production environment services which are found under SSL-secured domain https://www.maksuturva.fi. Test environment for
-KauppiasExtranet can be found similarly at http://test1.maksuturva.fi/extranet/.
+KauppiasExtranet can be found similarly at https://test1.maksuturva.fi/extranet/.
 
 
 If sandbox testing passes but testing with test server fails, the reason most likely is in communication URL, seller id
@@ -51,12 +49,7 @@ or end of the inputs.
 Maksuturva payment service APIs and Integration Guidelines
 -------------------------------
 Instructions and manuals for integration can be found at:  
-Finnish: https://www.maksuturva.fi/fi/ohjeet/palvelun-kayttoonotto/integrointiohjeet-ja-rajapintakuvaukset/  
-English: https://www.maksuturva.fi/en/instructions/getting-started/apis-and-integration-guidelines/
+http://docs.maksuturva.fi
 
 These are found helpful in most cases.
-
-Suomen Maksuturva Oy
-18.3.2013
-
 
