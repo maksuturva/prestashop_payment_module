@@ -1,53 +1,13 @@
 <?php
-/**
- * 2017 Maksuturva Group Oy
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * https://www.gnu.org/licenses/lgpl-2.1.html
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to info@maksuturva.fi so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
- * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2017 Maksuturva Group Oy
- * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
- */
 
-/**
- * Main class for gateway payments
- * @author Maksuturva
- */
 class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 {
     const SANDBOX_SELLER_ID = 'testikauppias';
     const SANDBOX_SECRET_KEY = '11223344556677889900';
 
-    /**
-     * @var Maksuturva|null the payment module.
-     */
     public $module;
-
-    /**
-     * @var float the calculated total amount of the order.
-     */
     private $order_total = 0.00;
-
-    /**
-     * Constructor.
-     *
-     * @param Maksuturva $module
-     * @param CartCore|Cart $order
-     */
+    
     public function __construct(Maksuturva $module, Cart $order)
     {
         $this->module = $module;
@@ -58,19 +18,15 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
         $this->setPaymentIdPrefix($module->getPaymentIdPrefix());
         $this->setPaymentData($this->createPaymentData($module, $order));
     }
-
-    /**
-     * @param Maksuturva $module
-     * @param CartCore|Cart $order
-     * @return array
-     */
+    
     private function createPaymentData(Maksuturva $module, Cart $order)
     {
         $payment_row_data = $this->createPaymentRowData($module, $order);
+        
         $buyer_data = $this->createBuyerData($order);
         $delivery_data = $this->createDeliveryData($order);
         $order_details = $order->getSummaryDetails();
-        /** @var CustomerCore|Customer $customer */
+        
         $customer = new Customer($order->id_customer);
 
         return array(
@@ -106,12 +62,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             // 'pmt_paymentmethod' => 'FI03',
         );
     }
-
-    /**
-     * @param Maksuturva $module
-     * @param CartCore|Cart $order
-     * @return array
-     */
+    
     private function createPaymentRowData(Maksuturva $module, Cart $order)
     {
         $payment_rows = array();
@@ -156,12 +107,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 
         return $payment_rows;
     }
-
-    /**
-     * @param Maksuturva $module
-     * @param CartCore|Cart $order
-     * @return array|null
-     */
+    
     private function createPaymentRowShippingData(Maksuturva $module, Cart $order)
     {
         $order_details = $order->getSummaryDetails();
@@ -332,6 +278,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
         if (Tools::strlen($this->pmt_id_prefix)) {
             $pmt_id .= $this->pmt_id_prefix;
         }
+        
         return $pmt_id . $this->getInternalPaymentId($order);
     }
 

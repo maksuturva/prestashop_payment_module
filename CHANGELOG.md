@@ -5,6 +5,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [2.2.0] - 24.6.2019
+### Changed
+- Support for PHP version 7.3/7.3
+- Added support for handling payments with error or canceled payments (no order created in PrestaShop if order is canceled)
+
 ## [2.1.0] - 15.5.2017
 ### Changed
 - Replace payment details into database instead of inserting them, to avoid issues when test orders have been purged

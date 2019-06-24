@@ -23,26 +23,29 @@
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 /**
- * Class allow to display tpl on the FO
+ * Upgrades the module to version 2.1.0.
+ *
+ * Registers new hooks used in PrestaShop 1.7+.
+ *
+ * @param Maksuturva $object
+ * @return bool
  */
-class BWDisplay extends FrontController
+function upgrade_module_2_2_0($object)
 {
-    // Assign template, on 1.4 create it else assign for 1.5
-    public function setTemplate($template)
-    {
-        if (_PS_VERSION_ >= '1.5') {
-            parent::setTemplate($template);
-        } else {
-            $this->template = $template;
-        }
+    $success = true;
+
+    if (_PS_VERSION_ >= '1.7') {
+        $success = $success && $object->registerHook('paymentOptions');
+        $success = $success && $object->registerHook('displayAdminOrder');
+        $success = $success && $object->registerHook('displayOrderDetail');
+        $success = $success && $object->registerHook('paymentOptions');
+        $success = $success && $object->registerHook('actionPDFInvoiceRender');
     }
 
-    // Overload displayContent for 1.4
-    public function displayContent()
-    {
-        parent::displayContent();
-
-        echo Context::getContext()->smarty->fetch($this->template);
-    }
+    return $success;
 }
