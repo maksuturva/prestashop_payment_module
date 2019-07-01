@@ -1,36 +1,14 @@
 <?php
-/**
- * 2017 Maksuturva Group Oy
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * https://www.gnu.org/licenses/lgpl-2.1.html
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to info@maksuturva.fi so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
- * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2017 Maksuturva Group Oy
- * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
- */
 
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-/*
- * Only try to load class files if we can resolve the __FILE__ global to the current file.
- * We need to do this as this module file is parsed with eval() on the modules page, and eval() messes up the __FILE__.
- */
+if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
+    $module_dir = dirname(__FILE__);
+    require_once($module_dir . '/includes/include.php');
+}
+
 if ((basename(__FILE__) === 'maksuturva.php')) {
     $module_dir = dirname(__FILE__);
     require_once($module_dir . '/includes/MaksuturvaException.php');
@@ -41,31 +19,8 @@ if ((basename(__FILE__) === 'maksuturva.php')) {
     require_once($module_dir . '/includes/MaksuturvaPaymentValidator.php');
 }
 
-/**
- * Payment module for accepts payments using Maksuturva.
- *
- * @property bool $active
- * @property int $id
- * @property string $_path
- * @property string $table
- * @property string $identifier
- * @property ContextCore|Context $context
- *
- * @property int currentOrder
- *
- * @method string l($string, $specific = false)
- * @method string displayConfirmation($string)
- * @method string displayWarning($warning)
- * @method string displayError($error)
- * @method string display($file, $template, $cacheId = null, $compileId = null)
- * @method bool registerHook($hook_name)
- * @method bool validateOrder()
- */
 class Maksuturva extends PaymentModule
 {
-    /**
-     * @var array
-     */
     private static $config_keys = array(
         'MAKSUTURVA_SELLER_ID',
         'MAKSUTURVA_SECRET_KEY',
@@ -76,35 +31,27 @@ class Maksuturva extends PaymentModule
         'MAKSUTURVA_SANDBOX',
         'MAKSUTURVA_OS_AUTHORIZATION',
     );
-
-    /**
-     * Class constructor: assign some configuration values
-     */
+    
     public function __construct()
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.1.0';
+        $this->version = '2.2.0';
         $this->author = 'Maksuturva';
+        
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
+        
         $this->bootstrap = true;
 
         parent::__construct();
 
         $this->displayName = $this->l('Maksuturva');
+        
         $this->description = $this->l('Accepts payments using Maksuturva');
         $this->confirmUninstall = $this->l('Are you sure you want to delete the Maksuturva module?');
-
-        /* Backward compatibility */
-        if (_PS_VERSION_ < '1.5') {
-            require_once(_PS_MODULE_DIR_ . $this->name . '/backward_compatibility/backward.php');
-        }
     }
-
-    /**
-     * @inheritdoc
-     */
+    
     public function install()
     {
         if (!parent::install()
@@ -118,10 +65,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-
-    /**
-     * @inheritdoc
-     */
+    
     public function uninstall()
     {
         if (!$this->deleteConfig()
@@ -132,12 +76,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-
-    /**
-     * Displays and handles the module administration page.
-     *
-     * @return string
-     */
+    
     public function getContent()
     {
         $html = '';
@@ -146,91 +85,25 @@ class Maksuturva extends PaymentModule
         return $html;
     }
 
-    /**
-     * Create a admin link URL.
-     *
-     * This is a copy of the same method in the "LinkCore" class with added support for PS 1.4.
-     *
-     * @param string $controller the name of the controller to link to.
-     * @param boolean $with_token include or not the token in the url.
-     * @return string the URL.
-     */
     public function getAdminLink($controller, $with_token = true)
     {
-        if (_PS_VERSION_ >= '1.5') {
-            return $this->context->link->getAdminLink('AdminModules', false);
-        }
-
-        $params = array('tab' => $controller);
-        if ($with_token) {
-            $params['token'] = Tools::getAdminTokenLite($controller);
-        }
-
-        return 'index.php?' . http_build_query($params);
+        return $this->context->link->getAdminLink('AdminModules', false);
     }
-
-    /**
-     * Callback for the `header` hook.
-     *
-     * Used to add CSS to the shop frontend.
-     */
+    
     public function hookHeader()
     {
-        if (_PS_VERSION_ >= '1.6') {
-            $this->context->controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
-        }
+        $this->context->controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
     }
-
-    /**
-     * Callback for the `payment` hook.
-     *
-     * Used to display the payment gateway in the checkout for PS <= 1.6.
-     *
-     * @param array $params
-     * @return string
-     */
-    public function hookPayment($params)
-    {
-        // only EUR is supported - we validate it against
-        // 1) shop (if it has EUR)
-        // 2) cart (if it has only EUR products within)
-        if (!$this->checkCurrency($params['cart'])) {
-            return '';
-        }
-
-        $this->context->smarty->assign(
-            array(
-                'this_path' => $this->getPath(),
-                'this_path_ssl' => $this->getPathSSL(),
-            )
-        );
-
-        if (_PS_VERSION_ >= '1.6') {
-            return $this->display(__FILE__, 'views/templates/hook/payment_twbs.tpl');
-        } else {
-            return $this->display(__FILE__, 'views/templates/hook/payment.tpl');
-        }
-    }
-
-    /**
-     * Callback for the `paymentOptions` hook.
-     *
-     * Used to display the payment gateway in the checkout for PS 1.7+.
-     *
-     * @param array $params
-     * @return array
-     */
+    
     public function hookPaymentOptions($params)
     {
-        // only EUR is supported - we validate it against
-        // 1) shop (if it has EUR)
-        // 2) cart (if it has only EUR products within)
         if (!$this->checkCurrency($params['cart'])) {
             return '';
         }
 
         $gateway = new MaksuturvaGatewayImplementation($this, $params['cart']);
         $action = $gateway->getPaymentUrl();
+        
         $fields = $gateway->getFieldArray();
         $inputs = array();
         foreach ($fields as $name => $value) {
@@ -250,23 +123,34 @@ class Maksuturva extends PaymentModule
         return array($newOption);
     }
 
-    /**
-     * Callback for the `paymentReturn` hook.
-     *
-     * Used to display the order confirmation page.
-     *
-     * @param array $params
-     * @return string
-     */
+    public function hookPayment($params)
+    {
+        if (!$this->checkCurrency($params['cart'])) {
+            return '';
+        }
+        
+        $this->context->smarty->assign(
+            array(
+                'this_path' => $this->getPath(),
+                'this_path_ssl' => $this->getPathSSL(),
+            )
+        );
+        
+        return $this->display(__FILE__, 'views/templates/hook/payment_twbs.tpl');
+    }
+    
     public function hookPaymentReturn($params)
     {
-        $orderKey = (_PS_VERSION_ >= '1.7') ? 'order' : 'objOrder';
+        if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
+            $orderKey = 'order';
+        } else {
+            $orderKey = 'objOrder';
+        }
 
         if (!isset($params[$orderKey])) {
             return '';
         }
 
-        /** @var OrderCore|Order $order */
         $order = $params[$orderKey];
 
         $status_map = array(
@@ -276,10 +160,9 @@ class Maksuturva extends PaymentModule
             $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION') => 'pending',
             $this->getConfig('PS_OS_CANCELED') => 'cancel',
         );
-        $status = isset($status_map[$order->getCurrentState()])
-            ? $status_map[$order->getCurrentState()]
-            : 'error';
-
+        
+        $status = isset($status_map[$order->getCurrentState()]) ? $status_map[$order->getCurrentState()] : 'error';
+        
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
             'this_path_ssl' => $this->getPathSSL(),
@@ -288,24 +171,14 @@ class Maksuturva extends PaymentModule
             'shop_name' => $this->context->shop->name
         ));
 
-        if (_PS_VERSION_ >= '1.7') {
-            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs_17.tpl');
-        } elseif (_PS_VERSION_ >= '1.6') {
-            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
+        if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
+            return $this->fetch('module:maksuturva/views/templates/hook/payment_return_twbs_17.tpl');
         } else {
-            return $this->display(__FILE__, 'views/templates/hook/payment_return.tpl');
+            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
         }
     }
-
-    /**
-     * Callback for the `adminOrder` hook.
-     *
-     * Automatically verifies the order status in Maksuturva and displays the result on the order administration page.
-     *
-     * @param array $params
-     * @return string
-     */
-    public function hookAdminOrder($params)
+    
+    public function hookDisplayAdminOrder($params)
     {
         if (!isset($params['id_order'])) {
             return '';
@@ -402,22 +275,10 @@ class Maksuturva extends PaymentModule
             ));
         }
 
-        if (_PS_VERSION_ >= '1.6') {
-            return $this->display(__FILE__, 'views/templates/admin/payment_status_twbs.tpl');
-        } else {
-            return $this->display(__FILE__, 'views/templates/admin/payment_status.tpl');
-        }
+        return $this->display(__FILE__, 'views/templates/admin/payment_status_twbs.tpl');
     }
 
-    /**
-     * Callback for the `orderDetailDisplayed` hook.
-     *
-     * Adds information about payment surcharges that may have been applied to the order.
-     *
-     * @param array $params
-     * @return string
-     */
-    public function hookOrderDetailDisplayed($params)
+    public function hookDisplayOrderDetail($params)
     {
         if (!isset($params['order'])) {
             return '';
@@ -442,21 +303,9 @@ class Maksuturva extends PaymentModule
             ),
         ));
 
-        if (_PS_VERSION_ >= '1.6') {
-            return $this->display(__FILE__, 'views/templates/hook/order_details_twbs.tpl');
-        } else {
-            return $this->display(__FILE__, 'views/templates/hook/order_details.tpl');
-        }
+        return $this->display(__FILE__, 'views/templates/hook/order_details_twbs.tpl');
     }
 
-    /**
-     * Callback for the `displayPDFInvoice` hook.
-     *
-     * Adds information about payment surcharges that may have been applied to the order.
-     *
-     * @param array $params
-     * @return string
-     */
     public function hookDisplayPDFInvoice($params)
     {
         if (!isset($params['object']) || !($params['object'] instanceof OrderInvoice)) {
@@ -477,16 +326,8 @@ class Maksuturva extends PaymentModule
         $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
         return 'Maksuturva - ' . $notice;
     }
-
-    /**
-     * Callback for the `PDFInvoice` hook.
-     *
-     * Adds information about payment surcharges that may have been applied to the order.
-     *
-     * @param array $params
-     * @return string
-     */
-    public function hookPDFInvoice($params)
+    
+    public function hookActionPDFInvoiceRender($params)
     {
         if (!isset($params['pdf'], $params['id_order'])) {
             return '';
@@ -512,14 +353,6 @@ class Maksuturva extends PaymentModule
         return $notice;
     }
 
-    /**
-     * Validates a payment and registers the order in PrestaShop.
-     *
-     * @param CartCore|Cart $cart
-     * @param CustomerCore|Customer $customer
-     * @param array $params
-     * @return string
-     */
     public function validatePayment(Cart $cart, Customer $customer, array $params)
     {
         if (!$this->checkCurrency($cart)) {
@@ -528,32 +361,40 @@ class Maksuturva extends PaymentModule
 
         $gateway = new MaksuturvaGatewayImplementation($this, $cart);
         $validator = $gateway->validatePayment($params);
-
+        
         if ($validator->getStatus() === 'error') {
             $id_order_state = $this->getConfig('PS_OS_ERROR');
             $message = implode(', ', $validator->getErrors());
+            $new_message = 'error';
         } elseif ($validator->getStatus() === 'delayed') {
             $id_order_state = $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION');
             $message = $this->l('Payment is awaiting confirmation');
+            $new_message = 'delayed';
         } elseif ($validator->getStatus() === 'cancel') {
             $id_order_state = $this->getConfig('PS_OS_CANCELED');
             $message = $this->l('Payment was canceled');
+            $new_message = 'cancel';
         } else {
             $id_order_state = $this->getConfig('PS_OS_PAYMENT');
             $message = $this->l('Payment was successfully registered');
+            $new_message = 'success';
         }
 
-        $this->validateOrder(
-            (int)$cart->id,
-            (int)$id_order_state,
-            $cart->getOrderTotal(),
-            $this->displayName,
-            $message,
-            array(),
-            (int)$cart->id_currency,
-            false,
-            $customer->secure_key
-        );
+        if ($new_message != 'cancel' AND $new_message != 'error') {
+            $this->validateOrder(
+                (int)$cart->id,
+                (int)$id_order_state,
+                $cart->getOrderTotal(),
+                $this->displayName,
+                $message,
+                array(),
+                (int)$cart->id_currency,
+                false,
+                $customer->secure_key
+            );
+        } else {
+            return array('message' => $message, 'new_message' => $new_message);
+        }
 
         /** @var OrderCore|Order $order */
         $order = new Order((int)$this->currentOrder);
@@ -581,25 +422,19 @@ class Maksuturva extends PaymentModule
             }
         }
 
-        return $message;
+        return array('message' => $message, 'new_message' => $new_message);
     }
 
-    /**
-     * Checks if the cart currency is one of the modules supported currencies.
-     *
-     * Currently, only EUR is supported.
-     *
-     * @param CartCore|Cart $cart
-     * @return boolean
-     */
     public function checkCurrency(Cart $cart)
     {
-        /** @var CurrencyCore|Currency $check_currency */
         $check_currency = new Currency($cart->id_currency);
+        
+        // Only EUR is supported
         $supported_currencies = array('EUR');
+        
         $currencies = $this->getCurrency($cart->id_currency);
 
-        if (is_array($currencies) && count($currencies) > 0) {
+        if (is_array($currencies) && !empty($currencies)) {
             foreach ($currencies as $currency) {
                 if ($check_currency->id == $currency['id_currency']
                     && in_array($check_currency->iso_code, $supported_currencies)
@@ -634,13 +469,9 @@ class Maksuturva extends PaymentModule
      */
     public function getPaymentUrl(array $params = array())
     {
-        if (_PS_VERSION_ >= '1.5') {
-            /** @var LinkCore|Link $link */
-            $link = $this->context->link;
-            return $link->getModuleLink($this->name, 'validation', $params, true/* SSL */);
-        } else {
-            return $this->getPathSSL() . 'validation.php' . (!empty($params) ? ('?' . http_build_query($params)) : '');
-        }
+        $link = $this->context->link;
+        
+        return $link->getModuleLink($this->name, 'validation', $params, true);
     }
 
     /**
@@ -717,34 +548,23 @@ class Maksuturva extends PaymentModule
     {
         return Configuration::updateValue($key, $value);
     }
-
-    /**
-     * Registers all the hooks used by the module.
-     *
-     * @return bool
-     */
+    
+    
     private function registerHooks()
     {
         $registered = ($this->registerHook('header')
-            && $this->registerHook('payment')
             && $this->registerHook('paymentReturn')
-            && $this->registerHook('adminOrder')
-            && $this->registerHook('orderDetailDisplayed')
+            && $this->registerHook('payment')
+            && $this->registerHook('displayAdminOrder')
+            && $this->registerHook('displayOrderDetail')
             && $this->registerHook('PDFInvoice')
+            && $this->registerHook('paymentOptions')
+            && $this->registerHook('actionPDFInvoiceRender')
         );
-
-        if (_PS_VERSION_ >= '1.7') {
-            $registered = $registered && $this->registerHook('paymentOptions');
-        }
-
+        
         return $registered;
     }
-
-    /**
-     * Creates the initial config for the module.
-     *
-     * @return bool
-     */
+    
     private function createConfig()
     {
         return ($this->setConfig('MAKSUTURVA_SELLER_ID', '')
@@ -771,12 +591,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-
-    /**
-     * Creates any additional db tables used by the module.
-     *
-     * @return bool
-     */
+    
     private function createTables()
     {
         return Db::getInstance()->execute(sprintf(
@@ -830,9 +645,8 @@ class Maksuturva extends PaymentModule
         $state->delivery = false;
         $state->logable = true;
         $state->invoice = true;
-        if (_PS_VERSION_ >= '1.5') {
-            $state->module_name = $this->name;
-        }
+        $state->module_name = $this->name;
+        
         if ($state->add()) {
             copy(_PS_MODULE_DIR_ . $this->name . '/logo.gif', _PS_IMG_DIR_ . 'os/' . $state->id . '.gif');
         }
@@ -841,8 +655,6 @@ class Maksuturva extends PaymentModule
             return false;
         }
 
-        // Older PS versions will not have these order states in the configuration table, but only as constants.
-        // Enter the states into the configuration table with the value of the constant for easier use later on.
         $order_states = array('PS_OS_PAYMENT', 'PS_OS_CANCELED', 'PS_OS_ERROR', 'PS_OS_OUTOFSTOCK');
         foreach ($order_states as $os) {
             if (!$this->getConfig($os)) {
@@ -857,10 +669,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-
-    /**
-     * @return string
-     */
+    
     private function displayForm()
     {
         $form_data = array(
@@ -891,8 +700,7 @@ class Maksuturva extends PaymentModule
                         ),
                     ),
                     'submit' => array(
-                        'title' => $this->l('Save'),
-                        'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
+                        'title' => $this->l('Save')
                     )
                 ),
             ),
@@ -907,7 +715,8 @@ class Maksuturva extends PaymentModule
                             'type' => 'text',
                             'label' => $this->l('Communication URL'),
                             'name' => 'MAKSUTURVA_URL',
-                            'required' => true
+                            'required' => true,
+                            'desc' => 'https://test1.maksuturva.fi/'.', '.$this->l('for testing')
                         ),
                         array(
                             'type' => 'text',
@@ -957,8 +766,7 @@ class Maksuturva extends PaymentModule
                         ),
                     ),
                     'submit' => array(
-                        'title' => $this->l('Save'),
-                        'class' => (_PS_VERSION_ < '1.6') ? 'button' : null,
+                        'title' => $this->l('Save')
                     )
                 ),
             )
