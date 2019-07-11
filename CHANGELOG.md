@@ -50,6 +50,7 @@ method in MaksuturvaGatewayImplementation.php and Maksuturva Payment interface d
 - Module directory structure updated to enable installation through PrestaShop user interface.
 
 [Unreleased]: https://github.com/maksuturva/prestashop_payment_module/compare/2.1.0...HEAD
+[2.2.0]: https://github.com/maksuturva/prestashop_payment_module/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/maksuturva/prestashop_payment_module/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/maksuturva/prestashop_payment_module/compare/122...2.0.0
 [122]: https://github.com/maksuturva/prestashop_payment_module/compare/121...122
