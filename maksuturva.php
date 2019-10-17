@@ -36,7 +36,7 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.2.0';
+        $this->version = '2.2.1';
         $this->author = 'Maksuturva';
         
         $this->currencies = true;
@@ -114,11 +114,14 @@ class Maksuturva extends PaymentModule
             );
         }
 
+		$pw_image_url = $this->getPathSSL().'views/img/Svea_logo.png';
+		
         $newOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $newOption->setModuleName($this->name)
             ->setAction($action)
             ->setInputs($inputs)
-            ->setLogo(Media::getMediaPath(_PS_MODULE_DIR_.$this->name.'/views/img/maksuturva.gif'));
+            ->setCallToActionText($this->l('Maksuturva'))
+            ->setAdditionalInformation('<img src='.$pw_image_url.' class="img-fluid img-responsive"');
 
         return array($newOption);
     }
