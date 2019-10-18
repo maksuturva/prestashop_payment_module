@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [2.2.1] - 17.10.2019
+### Changed
+- Replacing images for re-branding
+
 ## [2.2.0] - 24.6.2019
 ### Changed
 - Support for PHP version 7.3/7.3
