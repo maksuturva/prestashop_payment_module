@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [2.2.1] - 17.10.2019
 ### Changed
-- Replacing images for re-branding
+- Replacing images for re-branding from Maksuturva to Svea
 
 ## [2.2.0] - 24.6.2019
 ### Changed
