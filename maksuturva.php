@@ -36,7 +36,7 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.2.1';
+        $this->version = '2.2.2';
         $this->author = 'Maksuturva';
         
         $this->currencies = true;
@@ -105,6 +105,7 @@ class Maksuturva extends PaymentModule
         $action = $gateway->getPaymentUrl();
         
         $fields = $gateway->getFieldArray();
+        
         $inputs = array();
         foreach ($fields as $name => $value) {
             $inputs[] = array(

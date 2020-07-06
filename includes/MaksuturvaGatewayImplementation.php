@@ -8,6 +8,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     public $module;
     private $order_total = 0.00;
     
+    private $seller_costs = 0.00;
+    
     public function __construct(Maksuturva $module, Cart $order)
     {
         $this->module = $module;
@@ -21,6 +23,16 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     
     private function createPaymentData(Maksuturva $module, Cart $order)
     {
+        $free_shipping = 0;
+        $cart = new Cart($order->id);
+        $discounts = $cart->getCartRules();
+        foreach ($discounts as $discount) {
+            if ($discount['free_shipping'] == 1) {
+                $free_shipping = 1;
+                break;
+            }
+        }
+
         $payment_row_data = $this->createPaymentRowData($module, $order);
         
         $buyer_data = $this->createBuyerData($order);
@@ -54,7 +66,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             'pmt_deliverypostalcode' => $delivery_data['postal_code'],
             'pmt_deliverycity' => $delivery_data['city'],
             'pmt_deliverycountry' => $delivery_data['country'],
-            'pmt_sellercosts' => $this->filterPrice($order_details['total_shipping']),
+            'pmt_sellercosts' => $this->filterPrice($this->seller_costs),
             'pmt_rows' => count($payment_row_data),
             'pmt_rows_data' => $payment_row_data,
             // Possibility to add pre-selected payment method as a hard-coded parameter.
@@ -104,12 +116,22 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
         if (is_array($payment_row_discount)) {
             $payment_rows = array_merge($payment_rows, $payment_row_discount);
         }
-
+        
         return $payment_rows;
     }
     
     private function createPaymentRowShippingData(Maksuturva $module, Cart $order)
     {
+        $free_shipping = 0;
+        $cart = new Cart($order->id);
+        $discounts = $cart->getCartRules();
+        foreach ($discounts as $discount) {
+            if ($discount['free_shipping'] == 1) {
+                $free_shipping = 1;
+                break;
+            }
+        }
+        
         $order_details = $order->getSummaryDetails();
 
         if (isset($order_details['total_shipping']) && $order_details['total_shipping'] > 0) {
@@ -120,6 +142,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             } else {
                 $row_name = $module->l('Shipping Costs');
             }
+
+            $this->seller_costs += $order_details['total_shipping'];
 
             $shipping_vat = (($order_details['total_shipping'] / $order_details['total_shipping_tax_exc']) - 1) * 100;
 
@@ -176,15 +200,22 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     {
         $order_details = $order->getSummaryDetails();
 
-        if (isset($order_details['total_discounts']) && $order_details['total_discounts'] > 0) {
-            $payment_rows_discount = array();
+        $payment_rows_discount = array();
 
+        if (isset($order_details['total_discounts']) && $order_details['total_discounts'] > 0) {
             $discount_total = 0;
             $discount_value = 0;
             foreach ($order_details['discounts'] as $discount) {
                 $discount_value = (-1) * abs($discount['value_real']);
                 $discount_total += $discount_value;
-                $this->order_total += $discount_value;
+                
+                if ($discount['free_shipping']) {
+                    $this->seller_costs = $this->seller_costs + $discount_value;
+					$discount_type = 2;
+				} else {
+					$this->order_total += $discount_value;
+					$discount_type = 6;
+                }
 
                 $row_name = (!empty($discount['name']) ? $discount['name'] : $module->l('Discounts'));
                 $row_desc = (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts'));
@@ -197,7 +228,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
                     'pmt_row_price_gross' => $this->filterPrice($discount_value),
                     'pmt_row_vat' => '0,00',
                     'pmt_row_discountpercentage' => '0,00',
-                    'pmt_row_type' => 6,
+                    'pmt_row_type' => $discount_type
                 );
             }
 
@@ -209,10 +240,42 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
                 $fixed_row['pmt_row_price_gross'] = $this->filterPrice($discount_value + $new_value);
                 $payment_rows_discount[] = $fixed_row;
             }
-
-            return $payment_rows_discount;
         }
 
+        // Gift products not present in total_discount parameter
+        if (isset($order_details['gift_products']) && is_array($order_details['gift_products'])) {
+            $gift_products = $order_details['gift_products'];
+
+            $discount_total = 0;
+            $discount_value = 0;
+            
+            foreach ($gift_products as $discount) {
+                $discount_value = (-1) * abs($discount['price_with_reduction']);
+                $discount_total += $discount_value;
+                
+                $this->order_total += $discount_value;
+                $discount_type = 6;
+
+                $row_name = $module->l('Gift');
+                $row_desc = $module->l('Gift product discount');
+
+                $payment_rows_discount[] = array(
+                    'pmt_row_name' => $row_name,
+                    'pmt_row_desc' => $row_desc,
+                    'pmt_row_quantity' => 1,
+                    'pmt_row_deliverydate' => date('d.m.Y'),
+                    'pmt_row_price_gross' => $this->filterPrice($discount_value),
+                    'pmt_row_vat' => '0,00',
+                    'pmt_row_discountpercentage' => '0,00',
+                    'pmt_row_type' => $discount_type
+                );
+            }
+        }
+
+        if (!empty($payment_rows_discount)) {
+            return $payment_rows_discount;
+        }
+        
         return null;
     }
 
