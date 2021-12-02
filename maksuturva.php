@@ -36,8 +36,8 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.2.2';
-        $this->author = 'Maksuturva';
+        $this->version = '2.2.3';
+        $this->author = 'Svea Payments';
         
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
