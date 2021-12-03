@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [2.2.3] - 02.12.2021
+### Changed
+- Replacing translations for re-branding from Maksuturva to Svea
 
 ## [2.2.1] - 17.10.2019
 ### Changed
