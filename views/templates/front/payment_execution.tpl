@@ -12,10 +12,9 @@
 {else}
 	<h3>{l s='Maksuturva payment' mod='maksuturva'}</h3>
 	<form action="{$mt_form_action|escape:'html':'UTF-8'}" method="post">
-		<img src="{$this_path|escape:'html':'UTF-8'}views/img/maksuturva.gif"
+		<img src="{$this_path|escape:'html':'UTF-8'}views/img/Svea_logo.png"
 			 alt="{l s='Pay with Maksuturva' mod='maksuturva'}"
-			 width="115"
-			 height="29"/>
+			 class="img-fluid img-responsive"/>
 		<p>
 			{l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}
 			{l s='Here is a short summary of your order:' mod='maksuturva'}
