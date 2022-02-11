@@ -43,10 +43,9 @@
             <h3 class="page-subheading">
                 {l s='Maksuturva payment' mod='maksuturva'}
             </h3>
-            <img src="{$this_path|escape:'html':'UTF-8'}views/img/maksuturva.gif"
+            <img src="{$this_path|escape:'html':'UTF-8'}views/img/Svea_logo.png"
                  alt="{l s='Pay with Maksuturva' mod='maksuturva'}"
-                 width="115"
-                 height="29"/>
+                 class="img-fluid img-responsive"/>
             <p class="cheque-indent">
                 <strong class="dark">
                     {l s='You have chosen to pay with Maksuturva.' mod='maksuturva'}
