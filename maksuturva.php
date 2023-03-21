@@ -36,7 +36,7 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.2.4';
+        $this->version = '2.2.5';
         $this->author = 'Svea Payments';
         
         $this->currencies = true;
@@ -264,11 +264,18 @@ class Maksuturva extends PaymentModule
                 break;
         }
 
+        if (version_compare(_PS_VERSION_, "1.7.7.0", ">=")) {
+            $class = 'card-body';
+        } else {
+            $class = 'row';
+        }
+
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
             'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
             'mt_pmt_id' => $payment->getPmtReference(),
             'mt_pmt_status_message' => $msg,
+            'mt_pmt_class' => $class,
         ));
         if ($payment->includesSurcharge()) {
             $this->context->smarty->assign(array(
@@ -330,7 +337,7 @@ class Maksuturva extends PaymentModule
         $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
         return 'Maksuturva - ' . $notice;
     }
-    
+
     public function hookActionPDFInvoiceRender($params)
     {
         if (!isset($params['pdf'], $params['id_order'])) {

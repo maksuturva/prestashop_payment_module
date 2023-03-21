@@ -22,12 +22,12 @@
 * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
 *}
 
-<div class="panel">
-    <div class="panel-heading">
+<div class="panel card">
+    <div class="panel-heading card-header">
         <img src="{$this_path|escape:'html':'UTF-8'}/logo.png" width="20" height="20"/>
         {l s='Maksuturva' mod='maksuturva'}
     </div>
-    <div class="row">
+    <div class="{$mt_pmt_class}">
         <div class="table-responsive">
             <table class="table">
                 <thead>
