@@ -31,27 +31,27 @@ class Maksuturva extends PaymentModule
         'MAKSUTURVA_SANDBOX',
         'MAKSUTURVA_OS_AUTHORIZATION',
     );
-    
+
     public function __construct()
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.2.5';
+        $this->version = '2.3.0';
         $this->author = 'Svea Payments';
-        
+
         $this->currencies = true;
         $this->currencies_mode = 'checkbox';
-        
+
         $this->bootstrap = true;
 
         parent::__construct();
 
         $this->displayName = $this->l('Maksuturva');
-        
+
         $this->description = $this->l('Accepts payments using Maksuturva');
         $this->confirmUninstall = $this->l('Are you sure you want to delete the Maksuturva module?');
     }
-    
+
     public function install()
     {
         if (!parent::install()
@@ -65,7 +65,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-    
+
     public function uninstall()
     {
         if (!$this->deleteConfig()
@@ -76,7 +76,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-    
+
     public function getContent()
     {
         $html = '';
@@ -89,12 +89,12 @@ class Maksuturva extends PaymentModule
     {
         return $this->context->link->getAdminLink('AdminModules', false);
     }
-    
-    public function hookHeader()
+
+    public function hookDisplayHeader()
     {
         $this->context->controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
     }
-    
+
     public function hookPaymentOptions($params)
     {
         if (!$this->checkCurrency($params['cart'])) {
@@ -103,9 +103,9 @@ class Maksuturva extends PaymentModule
 
         $gateway = new MaksuturvaGatewayImplementation($this, $params['cart']);
         $action = $gateway->getPaymentUrl();
-        
+
         $fields = $gateway->getFieldArray();
-        
+
         $inputs = array();
         foreach ($fields as $name => $value) {
             $inputs[] = array(
@@ -116,7 +116,7 @@ class Maksuturva extends PaymentModule
         }
 
 		$pw_image_url = $this->getPathSSL().'views/img/Svea_logo.png';
-		
+
         $newOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         $newOption->setModuleName($this->name)
             ->setAction($action)
@@ -129,21 +129,22 @@ class Maksuturva extends PaymentModule
 
     public function hookPayment($params)
     {
+        die('here');
         if (!$this->checkCurrency($params['cart'])) {
             return '';
         }
-        
+
         $this->context->smarty->assign(
             array(
                 'this_path' => $this->getPath(),
                 'this_path_ssl' => $this->getPathSSL(),
             )
         );
-        
+
         return $this->display(__FILE__, 'views/templates/hook/payment_twbs.tpl');
     }
-    
-    public function hookPaymentReturn($params)
+
+    public function hookDisplayPaymentReturn($params)
     {
         if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
             $orderKey = 'order';
@@ -164,9 +165,9 @@ class Maksuturva extends PaymentModule
             $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION') => 'pending',
             $this->getConfig('PS_OS_CANCELED') => 'cancel',
         );
-        
+
         $status = isset($status_map[$order->getCurrentState()]) ? $status_map[$order->getCurrentState()] : 'error';
-        
+
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
             'this_path_ssl' => $this->getPathSSL(),
@@ -181,7 +182,7 @@ class Maksuturva extends PaymentModule
             return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
         }
     }
-    
+
     public function hookDisplayAdminOrder($params)
     {
         if (!isset($params['id_order'])) {
@@ -372,7 +373,7 @@ class Maksuturva extends PaymentModule
 
         $gateway = new MaksuturvaGatewayImplementation($this, $cart);
         $validator = $gateway->validatePayment($params);
-        
+
         if ($validator->getStatus() === 'error') {
             $id_order_state = $this->getConfig('PS_OS_ERROR');
             $message = implode(', ', $validator->getErrors());
@@ -439,10 +440,10 @@ class Maksuturva extends PaymentModule
     public function checkCurrency(Cart $cart)
     {
         $check_currency = new Currency($cart->id_currency);
-        
+
         // Only EUR is supported
         $supported_currencies = array('EUR');
-        
+
         $currencies = $this->getCurrency($cart->id_currency);
 
         if (is_array($currencies) && !empty($currencies)) {
@@ -481,7 +482,7 @@ class Maksuturva extends PaymentModule
     public function getPaymentUrl(array $params = array())
     {
         $link = $this->context->link;
-        
+
         return $link->getModuleLink($this->name, 'validation', $params, true);
     }
 
@@ -559,23 +560,23 @@ class Maksuturva extends PaymentModule
     {
         return Configuration::updateValue($key, $value);
     }
-    
-    
+
+
     private function registerHooks()
     {
-        $registered = ($this->registerHook('header')
-            && $this->registerHook('paymentReturn')
+        $registered = ($this->registerHook('displayHeader')
+            && $this->registerHook('displayPaymentReturn')
             && $this->registerHook('payment')
             && $this->registerHook('displayAdminOrder')
             && $this->registerHook('displayOrderDetail')
-            && $this->registerHook('PDFInvoice')
+            && $this->registerHook('displayPDFInvoice')
             && $this->registerHook('paymentOptions')
             && $this->registerHook('actionPDFInvoiceRender')
         );
-        
+
         return $registered;
     }
-    
+
     private function createConfig()
     {
         return ($this->setConfig('MAKSUTURVA_SELLER_ID', '')
@@ -602,7 +603,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-    
+
     private function createTables()
     {
         return Db::getInstance()->execute(sprintf(
@@ -657,7 +658,7 @@ class Maksuturva extends PaymentModule
         $state->logable = true;
         $state->invoice = true;
         $state->module_name = $this->name;
-        
+
         if ($state->add()) {
             copy(_PS_MODULE_DIR_ . $this->name . '/logo.gif', _PS_IMG_DIR_ . 'os/' . $state->id . '.gif');
         }
@@ -680,7 +681,7 @@ class Maksuturva extends PaymentModule
 
         return true;
     }
-    
+
     private function displayForm()
     {
         $form_data = array(
