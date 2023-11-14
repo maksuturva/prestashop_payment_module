@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fb4ff4805315301e8e4ccc535c4b021e",
+    "content-hash": "db2a338e7b9f8f038803ae98370c53c8",
     "packages": [],
     "packages-dev": [
         {
@@ -773,6 +773,61 @@
             ],
             "description": "PrestaShop coding standards",
             "time": "2022-10-18T14:19:51+00:00"
+        },
+        {
+            "name": "prestashop/phpstan-prestashop",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PrestaShop/phpstan-prestashop.git",
+                "reference": "8e915210f8071f517fcbcbcc2fde6078ce7fbc36"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PrestaShop/phpstan-prestashop/zipball/8e915210f8071f517fcbcbcc2fde6078ce7fbc36",
+                "reference": "8e915210f8071f517fcbcbcc2fde6078ce7fbc36",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2|^8.0",
+                "phpstan/phpstan": "^1.2.0"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^4.10",
+                "phpstan/phpstan-phpunit": "^1.0.0",
+                "phpstan/phpstan-strict-rules": "^1.1.0",
+                "phpunit/phpunit": "^8.5",
+                "symfony/console": "^5.2"
+            },
+            "type": "phpstan-extension",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.12-dev"
+                },
+                "phpstan": {
+                    "includes": [
+                        "extension.neon",
+                        "rules.neon"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PHPStanForPrestaShop\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PrestaShop SA",
+                    "email": "contact@prestashop.com"
+                }
+            ],
+            "description": "PrestaShop extension for PHPStan",
+            "time": "2021-11-23T09:22:24+00:00"
         },
         {
             "name": "psr/cache",

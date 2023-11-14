@@ -4,7 +4,7 @@
     "type": "prestashop-module",
     "require-dev": {
         "prestashop/php-dev-tools": "^4.3",
-        "phpstan/phpstan": "^1.10"
+        "prestashop/phpstan-prestashop": "^2.0"
     },
     "scripts": {
         "autoindex": "./vendor/bin/autoindex prestashop:add:index",
