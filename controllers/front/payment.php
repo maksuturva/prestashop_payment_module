@@ -4,11 +4,11 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
     public $display_column_left = false;
-    
+
     public function initContent()
     {
         parent::initContent();
-        
+
         $cart = $this->context->cart;
         $link = $this->context->link;
 
@@ -17,7 +17,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
         }
 
         $gateway = new MaksuturvaGatewayImplementation($this->module, $cart);
-        
+
         $this->context->smarty->assign(array(
             'count_products' => $cart->nbProducts(),
             'total' => $cart->getOrderTotal(true, Cart::BOTH),
@@ -27,11 +27,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             'mt_form_action' => $gateway->getPaymentUrl(),
             'mt_extra_fields' => $gateway->getFieldArray(),
         ));
-        
-        if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
-            return $this->setTemplate('module:maksuturva/views/templates/front/payment_execution_twbs.tpl');
-        } else {
-            $this->setTemplate('payment_execution.tpl');
-        }
+
+        return $this->setTemplate('module:maksuturva/views/templates/front/payment_execution_twbs.tpl');
     }
 }

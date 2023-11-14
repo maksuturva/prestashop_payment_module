@@ -4,10 +4,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
-    $module_dir = dirname(__FILE__);
-    require_once($module_dir . '/includes/include.php');
-}
+$module_dir = dirname(__FILE__);
+require_once($module_dir . '/includes/include.php');
 
 if ((basename(__FILE__) === 'maksuturva.php')) {
     $module_dir = dirname(__FILE__);
@@ -47,6 +45,11 @@ class Maksuturva extends PaymentModule
         parent::__construct();
 
         $this->displayName = $this->l('Maksuturva');
+
+        $this->ps_versions_compliancy = [
+            'min' => '1.7.1.0',
+            'max' => _PS_VERSION_,
+        ];
 
         $this->description = $this->l('Accepts payments using Maksuturva');
         $this->confirmUninstall = $this->l('Are you sure you want to delete the Maksuturva module?');
@@ -127,30 +130,9 @@ class Maksuturva extends PaymentModule
         return array($newOption);
     }
 
-    public function hookPayment($params)
-    {
-        die('here');
-        if (!$this->checkCurrency($params['cart'])) {
-            return '';
-        }
-
-        $this->context->smarty->assign(
-            array(
-                'this_path' => $this->getPath(),
-                'this_path_ssl' => $this->getPathSSL(),
-            )
-        );
-
-        return $this->display(__FILE__, 'views/templates/hook/payment_twbs.tpl');
-    }
-
     public function hookDisplayPaymentReturn($params)
     {
-        if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
-            $orderKey = 'order';
-        } else {
-            $orderKey = 'objOrder';
-        }
+        $orderKey = 'order';
 
         if (!isset($params[$orderKey])) {
             return '';
@@ -176,11 +158,7 @@ class Maksuturva extends PaymentModule
             'shop_name' => $this->context->shop->name
         ));
 
-        if (version_compare(_PS_VERSION_, "1.7.0.0", ">=")) {
-            return $this->fetch('module:maksuturva/views/templates/hook/payment_return_twbs_17.tpl');
-        } else {
-            return $this->display(__FILE__, 'views/templates/hook/payment_return_twbs.tpl');
-        }
+        return $this->fetch('module:maksuturva/views/templates/hook/payment_return_twbs_17.tpl');
     }
 
     public function hookDisplayAdminOrder($params)
@@ -265,11 +243,7 @@ class Maksuturva extends PaymentModule
                 break;
         }
 
-        if (version_compare(_PS_VERSION_, "1.7.7.0", ">=")) {
-            $class = 'card-body';
-        } else {
-            $class = 'row';
-        }
+        $class = 'card-body';
 
         $this->context->smarty->assign(array(
             'this_path' => $this->getPath(),
@@ -566,7 +540,6 @@ class Maksuturva extends PaymentModule
     {
         $registered = ($this->registerHook('displayHeader')
             && $this->registerHook('displayPaymentReturn')
-            && $this->registerHook('payment')
             && $this->registerHook('displayAdminOrder')
             && $this->registerHook('displayOrderDetail')
             && $this->registerHook('displayPDFInvoice')

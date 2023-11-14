@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [2.3.0] - 13.11.2023
 - PrestaShop 8.1 support
+- Drop support for prestashop below 1.7.1.0
 
 ### Changed
 - added LICENSE file
