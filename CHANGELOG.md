@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - PrestaShop 8.1 support
 
 ### Changed
+- added LICENSE file
 - use `displayHeader` instead of deprecated `Header` hook
 - use `displayPaymentReturn` instead of deprecated `paymentReturn` hook
 - use `displayPDFInvoice` instead of deprecated `PDFInvoice` hook
