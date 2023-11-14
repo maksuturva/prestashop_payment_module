@@ -1,11 +1,11 @@
 <?php
 /**
- * 2017 Maksuturva Group Oy
+ * Copyright (C) 2023 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
  * https://www.gnu.org/licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
@@ -18,8 +18,8 @@
  * versions in the future. If you wish to customize PrestaShop for your
  * needs please refer to http://www.prestashop.com for more information.
  *
- * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2017 Maksuturva Group Oy
+ * @author    Svea Payments Oy <info@svea.fi>
+ * @copyright 2023 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -29,32 +29,32 @@
 class MaksuturvaPayment
 {
     /**
-     * @var int the ID of the PS order object this payment is for.
+     * @var int the ID of the PS order object this payment is for
      */
     protected $id_order;
 
     /**
-     * @var string the payment status.
+     * @var string the payment status
      */
     protected $status;
 
     /**
-     * @var array the payment data sent to the gateway.
+     * @var array the payment data sent to the gateway
      */
-    protected $data_sent = array();
+    protected $data_sent = [];
 
     /**
-     * @var array the payment data received from the gateway.
+     * @var array the payment data received from the gateway
      */
-    protected $data_received = array();
+    protected $data_received = [];
 
     /**
-     * @var string the datetime when the payment was added.
+     * @var string the datetime when the payment was added
      */
     protected $date_add;
 
     /**
-     * @var string the datetime when the payment was last updated.
+     * @var string the datetime when the payment was last updated
      */
     protected $date_upd;
 
@@ -74,6 +74,7 @@ class MaksuturvaPayment
      * Creates a new payment and stores it in the database.
      *
      * @param array $data
+     *
      * @return MaksuturvaPayment
      *
      * @throws MaksuturvaException
@@ -84,8 +85,8 @@ class MaksuturvaPayment
             "REPLACE INTO `%smt_payment` (`id_order`, `status`, `data_sent`, `data_received`, `date_add`)
               VALUES (%d, %d, '%s', '%s', NOW());",
             _DB_PREFIX_,
-            (int)$data['id_order'],
-            (int)$data['status'],
+            (int) $data['id_order'],
+            (int) $data['status'],
             pSQL(json_encode($data['data_sent'])),
             pSQL(json_encode($data['data_received']))
         ));
@@ -93,7 +94,7 @@ class MaksuturvaPayment
             throw new MaksuturvaException('Failed to create Maksuturva payment');
         }
 
-        return new self((int)$data['id_order']);
+        return new self((int) $data['id_order']);
     }
 
     /**
@@ -141,7 +142,7 @@ class MaksuturvaPayment
      */
     public function includesSurcharge()
     {
-        return ($this->getSurcharge() > 0);
+        return $this->getSurcharge() > 0;
     }
 
     /**
@@ -149,7 +150,7 @@ class MaksuturvaPayment
      */
     public function cancel()
     {
-        $this->status = (int)Configuration::get('PS_OS_PAYMENT');
+        $this->status = (int) Configuration::get('PS_OS_PAYMENT');
         $this->update();
     }
 
@@ -158,7 +159,7 @@ class MaksuturvaPayment
      */
     public function complete()
     {
-        $this->status = (int)Configuration::get('PS_OS_CANCELED');
+        $this->status = (int) Configuration::get('PS_OS_CANCELED');
         $this->update();
     }
 
@@ -169,14 +170,14 @@ class MaksuturvaPayment
      */
     protected function load($id_order)
     {
-        $query = sprintf('SELECT * FROM `%smt_payment` WHERE id_order = %d LIMIT 1;', _DB_PREFIX_, (int)$id_order);
+        $query = sprintf('SELECT * FROM `%smt_payment` WHERE id_order = %d LIMIT 1;', _DB_PREFIX_, (int) $id_order);
         $data = Db::getInstance()->executeS($query);
         if (!(is_array($data) && count($data) === 1)) {
             throw new MaksuturvaException('Failed to load Maksuturva payment');
         }
 
-        $this->id_order = (int)$data[0]['id_order'];
-        $this->status = (int)$data[0]['status'];
+        $this->id_order = (int) $data[0]['id_order'];
+        $this->status = (int) $data[0]['status'];
         $this->data_sent = json_decode($data[0]['data_sent'], true);
         $this->data_received = json_decode($data[0]['data_received'], true);
         $this->date_add = $data[0]['date_add'];
@@ -192,8 +193,8 @@ class MaksuturvaPayment
         Db::getInstance()->execute(sprintf(
             'UPDATE `%smt_payment` SET `status` = %d, `date_upd` = NOW() WHERE `id_order` = %d',
             _DB_PREFIX_,
-            (int)$this->status,
-            (int)$this->id_order
+            (int) $this->status,
+            (int) $this->id_order
         ));
     }
 }

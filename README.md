@@ -1,7 +1,7 @@
 Svea payment module for PrestaShop
 ==================================
 
-Copyright (C) 2017 Svea Payments Oy
+Copyright (C) 2023 Svea Payments Oy
 
 This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later
@@ -20,3 +20,20 @@ e-mail: info@svea.fi
 
 Svea Payments Oy, hereby disclaims all copyright interest in the library 'Svea payment module' written for
 Svea Payments Oy
+
+
+Development
+===========
+
+This module follow PrestaShop coding standards. Please run
+
+```
+composer install --dev
+composer run autoindex
+composer run lint
+composer run phpstan
+```
+
+Before committing your changes
+
+

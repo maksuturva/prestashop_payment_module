@@ -22,26 +22,13 @@
  * @copyright 2023 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
-if (!defined('_PS_VERSION_')) {
-    exit;
-}
 
-/**
- * Upgrades the module to version 2.1.0.
- *
- * Registers new hooks used in PrestaShop 1.7+.
- *
- * @param Maksuturva $object
- *
- * @return bool
- */
-function upgrade_module_2_1_0($object)
-{
-    $success = true;
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
 
-    if (_PS_VERSION_ >= '1.7') {
-        $success = $success && $object->registerHook('paymentOptions');
-    }
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
 
-    return $success;
-}
+header('Location: ../');
+exit;

@@ -1,11 +1,11 @@
 <?php
 /**
- * 2017 Maksuturva Group Oy
+ * Copyright (C) 2023 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
  * https://www.gnu.org/licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
@@ -18,8 +18,8 @@
  * versions in the future. If you wish to customize PrestaShop for your
  * needs please refer to http://www.prestashop.com for more information.
  *
- * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2017 Maksuturva Group Oy
+ * @author    Svea Payments Oy <info@svea.fi>
+ * @copyright 2023 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -59,49 +59,49 @@ abstract class MaksuturvaGatewayAbstract
     const ROUTE_STATUS_QUERY = '/PaymentStatusQuery.pmt';
 
     /**
-     * @var string gateway URL for making new payments.
+     * @var string gateway URL for making new payments
      */
     protected $base_url = 'https://www.maksuturva.fi/NewPaymentExtended.pmt';
 
     /**
-     * @var string gateway URL for checking payment statuses.
+     * @var string gateway URL for checking payment statuses
      */
     protected $base_url_status_query = 'https://www.maksuturva.fi/PaymentStatusQuery.pmt';
 
     /**
-     * @var string seller ID to use for identification when calling the gateway.
+     * @var string seller ID to use for identification when calling the gateway
      */
     protected $seller_id;
 
     /**
-     * @var string seller secret key to use for identification when calling the gateway.
+     * @var string seller secret key to use for identification when calling the gateway
      */
     protected $secret_key;
 
     /**
-     * @var string charset for the payment data.
+     * @var string charset for the payment data
      */
     protected $charset = 'UTF-8';
 
     /**
-     * @var string charset for the payment http data.
+     * @var string charset for the payment http data
      */
     protected $charset_http = 'UTF-8';
 
     /**
-     * @var mixed prefix used for the `pmt_id` field.
+     * @var mixed prefix used for the `pmt_id` field
      */
     protected $pmt_id_prefix;
 
     /**
-     * @var string algorithm used for hashing (sha512, sha256, sha1 or md5).
+     * @var string algorithm used for hashing (sha512, sha256, sha1 or md5)
      */
     protected $hash_algorithm;
 
     /**
-     * @var array the payment data.
+     * @var array the payment data
      */
-    protected $payment_data = array(
+    protected $payment_data = [
         'pmt_action' => 'NEW_PAYMENT_EXTENDED',
         'pmt_version' => '0004',
         'pmt_escrow' => 'Y',
@@ -110,17 +110,17 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_escrowchangeallowed' => 'N',
         'pmt_charset' => 'UTF-8',
         'pmt_charsethttp' => 'UTF-8',
-    );
+    ];
 
     /**
-     * @var array payment query status data.
+     * @var array payment query status data
      */
-    protected $status_query_data = array();
+    protected $status_query_data = [];
 
     /**
-     * @var array mandatory properties in the payment data.
+     * @var array mandatory properties in the payment data
      */
-    private static $mandatory_data = array(
+    private static $mandatory_data = [
         'pmt_action',               //alphanumeric  max-length: 50   min-length: 4   NEW_PAYMENT_EXTENDED
         'pmt_version',              //alphanumeric  max-length: 4    min-length: 4   0004
         'pmt_sellerid',             //alphanumeric  max-length: 15   -
@@ -152,12 +152,12 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_hashversion',          //alphanumeric  max-length: 10   -               {SHA-512, SHA-256, SHA-1, MD5}
         'pmt_keygeneration',        //numeric       max-length: 3    -
 //        'pmt_hash',                 //alphanumeric  max-length: 128  min-length: 32
-    );
+    ];
 
     /**
-     * @var array optional properties in the payment data.
+     * @var array optional properties in the payment data
      */
-    private static $optional_data = array(
+    private static $optional_data = [
         'pmt_selleriban',
         'pmt_userlocale',
         'pmt_invoicefromseller',
@@ -165,12 +165,12 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_buyeridentificationcode',
         'pmt_buyerphone',
         'pmt_buyeremail',
-    );
+    ];
 
     /**
-     * @var array mandatory properties for the payment data rows.
+     * @var array mandatory properties for the payment data rows
      */
-    private static $row_mandatory_data = array(
+    private static $row_mandatory_data = [
         'pmt_row_name',                  //alphanumeric  max-length: 40    -
         'pmt_row_desc',                  //alphanumeric  max-length: 1000  min-length: 1
         'pmt_row_quantity',              //numeric       max-length: 8     min-length: 1
@@ -180,20 +180,20 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_row_vat',                   //alphanumeric  max-length: 5     min-length: 4   n,nn
         'pmt_row_discountpercentage',    //alphanumeric  max-length: 5     min-length: 4   n,nn
         'pmt_row_type',                  //numeric       max-length: 5     min-length: 1
-    );
+    ];
 
     /**
-     * @var array optional properties for the payment data rows.
+     * @var array optional properties for the payment data rows
      */
-    private static $row_optional_data = array(
+    private static $row_optional_data = [
         'pmt_row_articlenr',
         'pmt_row_unit',
-    );
+    ];
 
     /**
-     * @var array properties used for hashing.
+     * @var array properties used for hashing
      */
-    private static $hash_data = array(
+    private static $hash_data = [
         'pmt_action',
         'pmt_version',
         'pmt_selleriban',
@@ -225,60 +225,60 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_sellercosts',
         //'pmt_row_* fields in specified order, one row at a time',
         // '<merchant’s secret key >'
-    );
+    ];
 
     /**
-     * @var array field filters (min, max).
+     * @var array field filters (min, max)
      */
-    private static $field_filters = array(
-        'pmt_action' => array(4, 50),
-        'pmt_version' => array(4, 4),
-        'pmt_sellerid' => array(1, 15),
-        'pmt_selleriban' => array(18, 30), // optional
-        'pmt_id' => array(1, 20),
-        'pmt_orderid' => array(1, 50),
-        'pmt_reference' => array(3, 20), // > 100
-        'pmt_duedate' => array(10, 10),
-        'pmt_userlocale' => array(5, 5), // optional
-        'pmt_amount' => array(4, 17),
-        'pmt_currency' => array(3, 3),
-        'pmt_okreturn' => array(1, 200),
-        'pmt_errorreturn' => array(1, 200),
-        'pmt_cancelreturn' => array(1, 200),
-        'pmt_delayedpayreturn' => array(1, 200),
-        'pmt_escrow' => array(1, 1),
-        'pmt_escrowchangeallowed' => array(1, 1),
-        'pmt_invoicefromseller' => array(1, 1),    // opt
-        'pmt_paymentmethod' => array(4, 4), // opt
-        'pmt_buyeridentificationcode' => array(9, 11),    // opt
-        'pmt_buyername' => array(1, 40),
-        'pmt_buyeraddress' => array(1, 40),
-        'pmt_buyerpostalcode' => array(1, 5),
-        'pmt_buyercity' => array(1, 40),
-        'pmt_buyercountry' => array(1, 2),
-        'pmt_buyerphone' => array(0, 40),    // opt
-        'pmt_buyeremail' => array(0, 40),    // opt
-        'pmt_deliveryname' => array(1, 40),
-        'pmt_deliveryaddress' => array(1, 40),
-        'pmt_deliverypostalcode' => array(1, 5),
-        'pmt_deliverycity' => array(1, 40),
-        'pmt_deliverycountry' => array(1, 2),
-        'pmt_sellercosts' => array(4, 17),
-        'pmt_rows' => array(1, 4),
-        'pmt_row_name' => array(1, 40),
-        'pmt_row_desc' => array(1, 1000),
-        'pmt_row_quantity' => array(1, 8),
-        'pmt_row_deliverydate' => array(10, 10),
-        'pmt_row_price_gross' => array(4, 17),
-        'pmt_row_price_net' => array(4, 17),
-        'pmt_row_vat' => array(4, 5),
-        'pmt_row_discountpercentage' => array(4, 5),
-        'pmt_row_type' => array(1, 5),
-        'pmt_charset' => array(1, 15),
-        'pmt_charsethttp' => array(1, 15),
-        'pmt_hashversion' => array(1, 10),
-        'pmt_keygeneration' => array(1, 3),
-    );
+    private static $field_filters = [
+        'pmt_action' => [4, 50],
+        'pmt_version' => [4, 4],
+        'pmt_sellerid' => [1, 15],
+        'pmt_selleriban' => [18, 30], // optional
+        'pmt_id' => [1, 20],
+        'pmt_orderid' => [1, 50],
+        'pmt_reference' => [3, 20], // > 100
+        'pmt_duedate' => [10, 10],
+        'pmt_userlocale' => [5, 5], // optional
+        'pmt_amount' => [4, 17],
+        'pmt_currency' => [3, 3],
+        'pmt_okreturn' => [1, 200],
+        'pmt_errorreturn' => [1, 200],
+        'pmt_cancelreturn' => [1, 200],
+        'pmt_delayedpayreturn' => [1, 200],
+        'pmt_escrow' => [1, 1],
+        'pmt_escrowchangeallowed' => [1, 1],
+        'pmt_invoicefromseller' => [1, 1],    // opt
+        'pmt_paymentmethod' => [4, 4], // opt
+        'pmt_buyeridentificationcode' => [9, 11],    // opt
+        'pmt_buyername' => [1, 40],
+        'pmt_buyeraddress' => [1, 40],
+        'pmt_buyerpostalcode' => [1, 5],
+        'pmt_buyercity' => [1, 40],
+        'pmt_buyercountry' => [1, 2],
+        'pmt_buyerphone' => [0, 40],    // opt
+        'pmt_buyeremail' => [0, 40],    // opt
+        'pmt_deliveryname' => [1, 40],
+        'pmt_deliveryaddress' => [1, 40],
+        'pmt_deliverypostalcode' => [1, 5],
+        'pmt_deliverycity' => [1, 40],
+        'pmt_deliverycountry' => [1, 2],
+        'pmt_sellercosts' => [4, 17],
+        'pmt_rows' => [1, 4],
+        'pmt_row_name' => [1, 40],
+        'pmt_row_desc' => [1, 1000],
+        'pmt_row_quantity' => [1, 8],
+        'pmt_row_deliverydate' => [10, 10],
+        'pmt_row_price_gross' => [4, 17],
+        'pmt_row_price_net' => [4, 17],
+        'pmt_row_vat' => [4, 5],
+        'pmt_row_discountpercentage' => [4, 5],
+        'pmt_row_type' => [1, 5],
+        'pmt_charset' => [1, 15],
+        'pmt_charsethttp' => [1, 15],
+        'pmt_hashversion' => [1, 10],
+        'pmt_keygeneration' => [1, 3],
+    ];
 
     /**
      * Checks if the payment data is valid.
@@ -287,13 +287,13 @@ abstract class MaksuturvaGatewayAbstract
      */
     protected function validatePaymentData()
     {
-        $delivery_fields = array(
+        $delivery_fields = [
             'pmt_deliveryname' => 'pmt_buyername',
             'pmt_deliveryaddress' => 'pmt_buyeraddress',
             'pmt_deliverypostalcode' => 'pmt_buyerpostalcode',
             'pmt_deliverycity' => 'pmt_buyercity',
-            'pmt_deliverycountry' => 'pmt_buyercountry'
-        );
+            'pmt_deliverycountry' => 'pmt_buyercountry',
+        ];
 
         foreach ($delivery_fields as $k => $v) {
             if ((!isset($this->payment_data[$k])) || mb_strlen(trim($this->payment_data[$k])) == 0
@@ -305,18 +305,12 @@ abstract class MaksuturvaGatewayAbstract
 
         foreach (self::$mandatory_data as $field) {
             if (!array_key_exists($field, $this->payment_data)) {
-                throw new MaksuturvaGatewayException(
-                    sprintf('Field "%s" is mandatory', $field),
-                    self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
-                );
+                throw new MaksuturvaGatewayException(sprintf('Field "%s" is mandatory', $field), self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS);
             }
 
             if ($field === 'pmt_reference') {
-                if (mb_strlen((string)$this->payment_data['pmt_reference']) < 3) {
-                    throw new MaksuturvaGatewayException(
-                        sprintf('Field "%s" needs to have at least 3 digits', $field),
-                        self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
-                    );
+                if (mb_strlen((string) $this->payment_data['pmt_reference']) < 3) {
+                    throw new MaksuturvaGatewayException(sprintf('Field "%s" needs to have at least 3 digits', $field), self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS);
                 }
             }
         }
@@ -325,19 +319,12 @@ abstract class MaksuturvaGatewayAbstract
         if (array_key_exists('pmt_rows_data', $this->payment_data)) {
             foreach ($this->payment_data['pmt_rows_data'] as $row_data) {
                 $this->validatePaymentDataItem($row_data, $count_rows);
-                $count_rows++;
+                ++$count_rows;
             }
         }
 
         if ($count_rows != $this->payment_data['pmt_rows']) {
-            throw new MaksuturvaGatewayException(
-                sprintf(
-                    'The amount of items (%s) passed in field "pmt_rows" does not match with real amount(%s)',
-                    $this->payment_data['pmt_rows'],
-                    $count_rows
-                ),
-                self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS
-            );
+            throw new MaksuturvaGatewayException(sprintf('The amount of items (%s) passed in field "pmt_rows" does not match with real amount(%s)', $this->payment_data['pmt_rows'], $count_rows), self::EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS);
         }
 
         $this->filterFields();
@@ -356,11 +343,7 @@ abstract class MaksuturvaGatewayAbstract
         foreach (self::$row_mandatory_data as $field) {
             if (array_key_exists($field, $data)) {
                 if ($field === 'pmt_row_price_gross' && array_key_exists('pmt_row_price_net', $data)) {
-                    throw new MaksuturvaGatewayException(sprintf(
-                        'pmt_row_price_net%d and pmt_row_price_gross%d are both supplied, only one of them should be',
-                        $count_rows,
-                        $count_rows
-                    ));
+                    throw new MaksuturvaGatewayException(sprintf('pmt_row_price_net%d and pmt_row_price_gross%d are both supplied, only one of them should be', $count_rows, $count_rows));
                 }
             } else {
                 if ($field === 'pmt_row_price_gross' && array_key_exists('pmt_row_price_net', $data)) {
@@ -381,7 +364,7 @@ abstract class MaksuturvaGatewayAbstract
      */
     protected function createPaymentHash()
     {
-        $hash_data = array();
+        $hash_data = [];
         foreach (self::$hash_data as $field) {
             switch ($field) {
                 case 'pmt_selleriban':
@@ -412,40 +395,41 @@ abstract class MaksuturvaGatewayAbstract
      * Turn the given reference number into a Maksuturva reference number.
      *
      * @param int $number
+     *
      * @return string
+     *
      * @throws MaksuturvaGatewayException
      */
     protected function getPmtReferenceNumber($number)
     {
         if ($number < 100) {
-            throw new MaksuturvaGatewayException(
-                'Cannot generate reference numbers for an ID smaller than 100',
-                self::EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100
-            );
+            throw new MaksuturvaGatewayException('Cannot generate reference numbers for an ID smaller than 100', self::EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100);
         }
 
-        $multiples = array(7, 3, 1);
-        $str = (string)$number;
+        $multiples = [7, 3, 1];
+        $str = (string) $number;
         $sum = 0;
         $j = 0;
-        for ($i = mb_strlen($str) - 1; $i >= 0; $i--) {
-            $sum += (int)mb_substr($str, $i, 1) * (int)($multiples[$j % 3]);
-            $j++;
+        for ($i = mb_strlen($str) - 1; $i >= 0; --$i) {
+            $sum += (int) mb_substr($str, $i, 1) * (int) ($multiples[$j % 3]);
+            ++$j;
         }
 
-        $next_ten = ceil((int)$sum / 10) * 10;
-        return $str . (string)(abs($next_ten - $sum));
+        $next_ten = ceil((int) $sum / 10) * 10;
+
+        return $str . (string) (abs($next_ten - $sum));
     }
 
     /**
      * Validates the consistency of maksuturva responses for a given status query.
      *
      * @param array $data
-     * @return boolean
+     *
+     * @return bool
      */
     private function verifyStatusQueryResponse($data)
     {
-        $hash_fields = array(
+        $hash_fields = [
             'pmtq_action',
             'pmtq_version',
             'pmtq_sellerid',
@@ -455,16 +439,16 @@ abstract class MaksuturvaGatewayAbstract
             'pmtq_returntext',
             'pmtq_sellercosts',
             'pmtq_paymentmethod',
-            'pmtq_escrow'
-        );
+            'pmtq_escrow',
+        ];
 
-        $optional_hash_fields = array(
+        $optional_hash_fields = [
             'pmtq_sellercosts',
             'pmtq_paymentmethod',
-            'pmtq_escrow'
-        );
+            'pmtq_escrow',
+        ];
 
-        $hash_data = array();
+        $hash_data = [];
         foreach ($hash_fields as $field) {
             if (!isset($data[$field]) && !in_array($field, $optional_hash_fields)) {
                 return false;
@@ -503,9 +487,7 @@ abstract class MaksuturvaGatewayAbstract
                 || array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
             ) {
                 if (mb_strlen($value) < self::$field_filters[$k][0]) {
-                    throw new MaksuturvaGatewayException(
-                        sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0])
-                    );
+                    throw new MaksuturvaGatewayException(sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0]));
                 }
 
                 if (mb_strlen($value) > self::$field_filters[$k][1]) {
@@ -520,9 +502,7 @@ abstract class MaksuturvaGatewayAbstract
                     && in_array($k, self::$row_optional_data) && mb_strlen($value))
             ) {
                 if (mb_strlen($value) < self::$field_filters[$k][0]) {
-                    throw new MaksuturvaGatewayException(
-                        sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0])
-                    );
+                    throw new MaksuturvaGatewayException(sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0]));
                 }
 
                 if (mb_strlen($value) > self::$field_filters[$k][1]) {
@@ -549,11 +529,7 @@ abstract class MaksuturvaGatewayAbstract
                     || array_key_exists($k, self::$field_filters) && in_array($k, self::$row_mandatory_data)
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
-                        throw new MaksuturvaGatewayException(sprintf(
-                            'Field "%s" should be at least %d characters long.',
-                            $k,
-                            self::$field_filters[$k][0]
-                        ));
+                        throw new MaksuturvaGatewayException(sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0]));
                     }
 
                     if (mb_strlen($value) > self::$field_filters[$k][1]) {
@@ -574,11 +550,7 @@ abstract class MaksuturvaGatewayAbstract
                         && in_array($k, self::$row_optional_data) && mb_strlen($value))
                 ) {
                     if (mb_strlen($value) < self::$field_filters[$k][0]) {
-                        throw new MaksuturvaGatewayException(sprintf(
-                            'Field "%s" should be at least %d characters long.',
-                            $k,
-                            self::$field_filters[$k][0]
-                        ));
+                        throw new MaksuturvaGatewayException(sprintf('Field "%s" should be at least %d characters long.', $k, self::$field_filters[$k][0]));
                     }
 
                     if (mb_strlen($value) > self::$field_filters[$k][1]) {
@@ -604,11 +576,12 @@ abstract class MaksuturvaGatewayAbstract
      * So far only quotation marks have been needed to filter out.
      *
      * @param string $string
+     *
      * @return string
      */
     public function filterCharacters($string)
     {
-        $new_string = str_replace('"', "", $string);
+        $new_string = str_replace('"', '', $string);
         if (!is_null($new_string) && mb_strlen($new_string) > 0) {
             return $new_string;
         }
@@ -620,6 +593,7 @@ abstract class MaksuturvaGatewayAbstract
      * Magic get for fetching payment data fields.
      *
      * @param string $name
+     *
      * @return null
      */
     public function __get($name)
@@ -637,6 +611,7 @@ abstract class MaksuturvaGatewayAbstract
      * Calculate a hash for given data.
      *
      * @param array $hash_data
+     *
      * @return string
      */
     public function createHash(array $hash_data)
@@ -649,6 +624,7 @@ abstract class MaksuturvaGatewayAbstract
         }
 
         $hash_string .= $this->secret_key . '&';
+
         return Tools::strtoupper(hash($this->hash_algorithm, $hash_string));
     }
 
@@ -676,19 +652,18 @@ abstract class MaksuturvaGatewayAbstract
      * 3) Invalid returned data (hash or consistency) - return false
      *
      * @param array $data Configuration values to be used
+     *
      * @return array|bool
+     *
      * @throws MaksuturvaGatewayException
      */
-    public function statusQuery($data = array())
+    public function statusQuery($data = [])
     {
         if (!function_exists('curl_init')) {
-            throw new MaksuturvaGatewayException(
-                'cURL is needed in order to communicate with the maksuturva server. Check your PHP installation.',
-                self::EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED
-            );
+            throw new MaksuturvaGatewayException('cURL is needed in order to communicate with the maksuturva server. Check your PHP installation.', self::EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED);
         }
 
-        $default_fields = array(
+        $default_fields = [
             'pmtq_action' => 'PAYMENT_STATUS_QUERY',
             'pmtq_version' => '0004',
             'pmtq_sellerid' => $this->payment_data['pmt_sellerid'],
@@ -696,20 +671,20 @@ abstract class MaksuturvaGatewayAbstract
             'pmtq_resptype' => 'XML',
             'pmtq_return' => '',
             'pmtq_hashversion' => $this->payment_data['pmt_hashversion'],
-            'pmtq_keygeneration' => '001'
-        );
+            'pmtq_keygeneration' => '001',
+        ];
 
         // Overrides with user-defined fields.
         $this->status_query_data = array_merge($default_fields, $data);
 
         // Last step: the hash is placed correctly.
-        $hash_fields = array(
+        $hash_fields = [
             'pmtq_action',
             'pmtq_version',
             'pmtq_sellerid',
-            'pmtq_id'
-        );
-        $hash_data = array();
+            'pmtq_id',
+        ];
+        $hash_data = [];
         foreach ($hash_fields as $field) {
             $hash_data[$field] = $this->status_query_data[$field];
         }
@@ -728,16 +703,14 @@ abstract class MaksuturvaGatewayAbstract
 
         $res = curl_exec($request);
         if ($res === false) {
-            throw new MaksuturvaGatewayException(
-                'Failed to communicate with maksuturva. Please check the network connection.'
-            );
+            throw new MaksuturvaGatewayException('Failed to communicate with maksuturva. Please check the network connection.');
         }
         curl_close($request);
 
         // We will not rely on xml parsing - instead,
         // the fields are going to be collected by means of regular expression.
-        $parsed_response = array();
-        $response_fields = array(
+        $parsed_response = [];
+        $response_fields = [
             'pmtq_action',
             'pmtq_version',
             'pmtq_sellerid',
@@ -754,8 +727,8 @@ abstract class MaksuturvaGatewayAbstract
             'pmtq_buyeraddress2',
             'pmtq_buyerpostalcode',
             'pmtq_buyercity',
-            'pmtq_hash'
-        );
+            'pmtq_hash',
+        ];
         foreach ($response_fields as $field) {
             preg_match("/<$field>(.*)?<\/$field>/i", $res, $matches);
             if (count($matches) == 2) {
@@ -765,10 +738,7 @@ abstract class MaksuturvaGatewayAbstract
 
         // Do not provide a response which is not valid.
         if (!$this->verifyStatusQueryResponse($parsed_response)) {
-            throw new MaksuturvaGatewayException(
-                'The authenticity of the answer could not be verified. Hashes did not match.',
-                self::EXCEPTION_CODE_HASHES_DONT_MATCH
-            );
+            throw new MaksuturvaGatewayException('The authenticity of the answer could not be verified. Hashes did not match.', self::EXCEPTION_CODE_HASHES_DONT_MATCH);
         }
 
         // Return the response - verified.
@@ -779,13 +749,14 @@ abstract class MaksuturvaGatewayAbstract
      * Turns the payment data into a single level associative array.
      *
      * @return array
+     *
      * @throws MaksuturvaGatewayException
      */
     public function getFieldArray()
     {
         $this->validatePaymentData();
 
-        $return_array = array();
+        $return_array = [];
         $this->payment_data['pmt_reference'] = $this->getPmtReferenceNumber($this->payment_data['pmt_reference']);
         foreach ($this->payment_data as $key => $data) {
             if ($key == 'pmt_rows_data') {
@@ -795,7 +766,7 @@ abstract class MaksuturvaGatewayAbstract
                         $return_array[$this->httpEncode($k . $row_count)] = $this->httpEncode($v);
                     }
 
-                    $row_count++;
+                    ++$row_count;
                 }
             } else {
                 $return_array[$this->httpEncode($key)] = $this->httpEncode($data);
@@ -810,7 +781,8 @@ abstract class MaksuturvaGatewayAbstract
      * Encodes the data to the defined "http encoding".
      *
      * @param string $data
-     * @param null|string $from_encoding
+     * @param string|null $from_encoding
+     *
      * @return string
      */
     public function httpEncode($data, $from_encoding = null)
@@ -824,8 +796,9 @@ abstract class MaksuturvaGatewayAbstract
      * By default both `to` and `from` encoding is the one defined in `$this->charset`.
      *
      * @param mixed $data
-     * @param null|string $to_encoding
-     * @param null|string $from_encoding
+     * @param string|null $to_encoding
+     * @param string|null $from_encoding
+     *
      * @return string
      */
     public function encode($data, $to_encoding = null, $from_encoding = null)
@@ -914,10 +887,7 @@ abstract class MaksuturvaGatewayAbstract
             $this->payment_data['pmt_hashversion'] = 'MD5';
             $this->hash_algorithm = 'md5';
         } else {
-            throw new MaksuturvaGatewayException(
-                'the hash algorithms SHA-512, SHA-256, SHA-1 and MD5 are not supported!',
-                self::EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED
-            );
+            throw new MaksuturvaGatewayException('the hash algorithms SHA-512, SHA-256, SHA-1 and MD5 are not supported!', self::EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED);
         }
     }
 }

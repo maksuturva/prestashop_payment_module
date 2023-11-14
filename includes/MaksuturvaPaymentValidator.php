@@ -1,11 +1,11 @@
 <?php
 /**
- * 2017 Maksuturva Group Oy
+ * Copyright (C) 2023 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the GNU Lesser General Public License (LGPLv2.1)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
  * https://www.gnu.org/licenses/lgpl-2.1.html
  * If you did not receive a copy of the license and are unable to
@@ -18,8 +18,8 @@
  * versions in the future. If you wish to customize PrestaShop for your
  * needs please refer to http://www.prestashop.com for more information.
  *
- * @author    Maksuturva Group Oy <info@maksuturva.fi>
- * @copyright 2017 Maksuturva Group Oy
+ * @author    Svea Payments Oy <info@svea.fi>
+ * @copyright 2023 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -39,9 +39,9 @@ class MaksuturvaPaymentValidator
     const STATUS_ERROR = 'error';
 
     /**
-     * @var array all mandatory fields that must exist in the validated params.
+     * @var array all mandatory fields that must exist in the validated params
      */
-    private static $mandatory_fields = array(
+    private static $mandatory_fields = [
         'pmt_action',
         'pmt_version',
         'pmt_id',
@@ -52,33 +52,33 @@ class MaksuturvaPaymentValidator
         'pmt_paymentmethod',
         'pmt_escrow',
         'pmt_hash',
-    );
+    ];
 
     /**
-     * @var array fields that can be ignored during data consistency checks.
+     * @var array fields that can be ignored during data consistency checks
      */
-    private static $ignored_consistency_check_fields = array(
+    private static $ignored_consistency_check_fields = [
         'pmt_hash',
         'pmt_paymentmethod',
         'pmt_reference',
         'pmt_sellercosts',
-        'pmt_escrow'
-    );
+        'pmt_escrow',
+    ];
 
     /**
-     * @var MaksuturvaGatewayImplementation|null the payment gateway.
+     * @var MaksuturvaGatewayImplementation|null the payment gateway
      */
     protected $gateway;
 
     /**
-     * @var string the status of the validation.
+     * @var string the status of the validation
      */
     protected $status;
 
     /**
-     * @var array validation errors encountered during validation.
+     * @var array validation errors encountered during validation
      */
-    protected $errors = array();
+    protected $errors = [];
 
     /**
      * Constructor.
@@ -97,9 +97,10 @@ class MaksuturvaPaymentValidator
      * In other cases, we rely on the gateway status code.
      *
      * @param array $params
+     *
      * @return MaksuturvaPaymentValidator
      */
-    public function validate(array $params = array())
+    public function validate(array $params = [])
     {
         switch ($this->getAction($params)) {
             case self::ACTION_CANCEL:
@@ -175,9 +176,10 @@ class MaksuturvaPaymentValidator
      * - delayed
      *
      * @param array $params
+     *
      * @return string
      */
-    protected function getAction(array $params = array())
+    protected function getAction(array $params = [])
     {
         $action = self::ACTION_OK;
 
@@ -198,12 +200,13 @@ class MaksuturvaPaymentValidator
      * If a mandatory field is not set in the params list, a validation error will issued.
      *
      * @param array $params
+     *
      * @return array
      */
     protected function validateMandatoryFields(array $params)
     {
-        $values = array();
-        $missing_fields = array();
+        $values = [];
+        $missing_fields = [];
 
         foreach (self::$mandatory_fields as $field) {
             if (isset($params[$field])) {
@@ -270,7 +273,7 @@ class MaksuturvaPaymentValidator
      */
     protected function validateConsistency(array $values)
     {
-        $not_matching_fields = array();
+        $not_matching_fields = [];
 
         foreach ($values as $key => $value) {
             if (in_array($key, self::$ignored_consistency_check_fields)) {

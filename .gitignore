@@ -1,6 +1,11 @@
 config.xml
 config_*.xml
 
+/vendor
+
+# caches
+.php-cs-fixer.cache
+
 # editors
 *~
 \#*\#
