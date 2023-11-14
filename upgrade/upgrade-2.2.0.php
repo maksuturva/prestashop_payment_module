@@ -27,25 +27,19 @@ if (!defined('_PS_VERSION_')) {
 }
 
 /**
- * Upgrades the module to version 2.1.0.
+ * Upgrades the module to version 2.2.0.
  *
  * Registers new hooks used in PrestaShop 1.7+.
  *
- * @param Maksuturva $object
+ * @param Maksuturva $module
  *
  * @return bool
  */
-function upgrade_module_2_2_0($object)
+function upgrade_module_2_2_0($module)
 {
-    $success = true;
-
-    if (_PS_VERSION_ >= '1.7') {
-        $success = $success && $object->registerHook('paymentOptions');
-        $success = $success && $object->registerHook('displayAdminOrder');
-        $success = $success && $object->registerHook('displayOrderDetail');
-        $success = $success && $object->registerHook('paymentOptions');
-        $success = $success && $object->registerHook('actionPDFInvoiceRender');
-    }
-
-    return $success;
+    return $module->registerhook('paymentOptions')
+        && $module->registerhook('displayAdminOrder')
+        && $module->registerhook('displayOrderDetail')
+        && $module->registerhook('actionPDFInvoiceRender')
+        ;
 }

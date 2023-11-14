@@ -25,31 +25,41 @@
 class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
-    public $display_column_left = false;
 
+    /**
+     * @return void
+     */
     public function initContent()
     {
         parent::initContent();
 
+        /** @var Cart */
         $cart = $this->context->cart;
+
+        /** @var Link */
         $link = $this->context->link;
 
-        if (!Validate::isLoadedObject($cart) || !$this->module->checkCurrency($cart)) {
+        /** @var Maksuturva */
+        $module = $this->module;
+
+        if (!Validate::isLoadedObject($cart) || !$module->checkCurrency($cart)) {
             Tools::redirect('index.php?controller=order');
         }
 
-        $gateway = new MaksuturvaGatewayImplementation($this->module, $cart);
+        $gateway = new MaksuturvaGatewayImplementation($module, $cart);
 
-        $this->context->smarty->assign([
+        /** @var Smarty */
+        $smarty = $this->context->smarty;
+        $smarty->assign([
             'count_products' => $cart->nbProducts(),
             'total' => $cart->getOrderTotal(true, Cart::BOTH),
-            'this_path' => $this->module->getPath(),
-            'this_path_ssl' => $this->module->getPathSSL(),
+            'this_path' => $module->getPath(),
+            'this_path_ssl' => $module->getPathSSL(),
             'back_button' => $link->getPageLink('order', true, null, 'step=3'),
             'mt_form_action' => $gateway->getPaymentUrl(),
             'mt_extra_fields' => $gateway->getFieldArray(),
         ]);
 
-        return $this->setTemplate('module:maksuturva/views/templates/front/payment_execution_twbs.tpl');
+        $this->setTemplate('module:maksuturva/views/templates/front/payment_execution_twbs.tpl');
     }
 }

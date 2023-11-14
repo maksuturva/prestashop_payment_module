@@ -31,17 +31,11 @@ if (!defined('_PS_VERSION_')) {
  *
  * Registers new hooks used in PrestaShop 1.7+.
  *
- * @param Maksuturva $object
+ * @param Maksuturva $module
  *
  * @return bool
  */
-function upgrade_module_2_1_0($object)
+function upgrade_module_2_1_0($module)
 {
-    $success = true;
-
-    if (_PS_VERSION_ >= '1.7') {
-        $success = $success && $object->registerHook('paymentOptions');
-    }
-
-    return $success;
+    return $module->registerHook('paymentOptions');
 }

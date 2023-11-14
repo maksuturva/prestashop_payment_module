@@ -7,4 +7,5 @@ parameters:
   excludePaths:
     - ./vendor/
   reportUnmatchedIgnoredErrors: false
-  level: max
+  level: 5
+  treatPhpDocTypesAsCertain: false

@@ -38,6 +38,7 @@ if ((basename(__FILE__) === 'maksuturva.php')) {
 
 class Maksuturva extends PaymentModule
 {
+    /** @var array<string> */
     private static $config_keys = [
         'MAKSUTURVA_SELLER_ID',
         'MAKSUTURVA_SECRET_KEY',
@@ -74,7 +75,7 @@ class Maksuturva extends PaymentModule
         $this->confirmUninstall = $this->l('Are you sure you want to delete the Maksuturva module?');
     }
 
-    public function install()
+    public function install(): bool
     {
         if (!parent::install()
             || !$this->registerHooks()
@@ -88,7 +89,7 @@ class Maksuturva extends PaymentModule
         return true;
     }
 
-    public function uninstall()
+    public function uninstall(): bool
     {
         if (!$this->deleteConfig()
             || !parent::uninstall()
@@ -99,7 +100,7 @@ class Maksuturva extends PaymentModule
         return true;
     }
 
-    public function getContent()
+    public function getContent(): string
     {
         $html = '';
         $html .= $this->postProcess();
@@ -108,23 +109,36 @@ class Maksuturva extends PaymentModule
         return $html;
     }
 
-    public function getAdminLink($controller, $with_token = true)
+    public function getAdminLink(string $controller, bool $with_token = true): string
     {
-        return $this->context->link->getAdminLink('AdminModules', false);
+        /** @var Link */
+        $link = $this->context->link;
+
+        return $link->getAdminLink('AdminModules', $with_token);
     }
 
-    public function hookDisplayHeader()
+    public function hookDisplayHeader(): void
     {
-        $this->context->controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
+        /** @var Controller */
+        $controller = $this->context->controller;
+
+        $controller->addCSS($this->_path . '/views/css/maksuturva.css', 'all');
     }
 
-    public function hookPaymentOptions($params)
+    /**
+     * @param array<mixed> $params
+     * @return array<PrestaShop\PrestaShop\Core\Payment\PaymentOption>
+     */
+    public function hookPaymentOptions(array $params): array
     {
-        if (!$this->checkCurrency($params['cart'])) {
-            return '';
+        /** @var Cart */
+        $cart = $params['cart'];
+
+        if (!$this->checkCurrency($cart)) {
+            return [];
         }
 
-        $gateway = new MaksuturvaGatewayImplementation($this, $params['cart']);
+        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
         $action = $gateway->getPaymentUrl();
 
         $fields = $gateway->getFieldArray();
@@ -141,7 +155,9 @@ class Maksuturva extends PaymentModule
         $pw_image_url = $this->getPathSSL() . 'views/img/Svea_logo.png';
 
         $newOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption();
-        $newOption->setModuleName($this->name)
+        /** @var string */
+        $moduleName = $this->name;
+        $newOption->setModuleName($moduleName)
             ->setAction($action)
             ->setInputs($inputs)
             ->setCallToActionText($this->l('Maksuturva'))
@@ -150,7 +166,10 @@ class Maksuturva extends PaymentModule
         return [$newOption];
     }
 
-    public function hookDisplayPaymentReturn($params)
+    /**
+     * @param array<mixed> $params
+     */
+    public function hookDisplayPaymentReturn(array $params): string
     {
         $orderKey = 'order';
 
@@ -158,6 +177,7 @@ class Maksuturva extends PaymentModule
             return '';
         }
 
+        /** @var Order */
         $order = $params[$orderKey];
 
         $status_map = [
@@ -170,33 +190,42 @@ class Maksuturva extends PaymentModule
 
         $status = isset($status_map[$order->getCurrentState()]) ? $status_map[$order->getCurrentState()] : 'error';
 
-        $this->context->smarty->assign([
+        /** @var Shop */
+        $shop = $this->context->shop;
+
+        /** @var Smarty */
+        $smarty = $this->context->smarty;
+
+        $smarty->assign([
             'this_path' => $this->getPath(),
             'this_path_ssl' => $this->getPathSSL(),
             'status' => $status,
             'message' => Tools::getValue('mks_msg'),
-            'shop_name' => $this->context->shop->name,
+            'shop_name' => $shop->name,
         ]);
 
         return $this->fetch('module:maksuturva/views/templates/hook/payment_return_twbs_17.tpl');
     }
 
-    public function hookDisplayAdminOrder($params)
+    /**
+     * @param array<mixed> $params
+     */
+    public function hookDisplayAdminOrder($params): string
     {
         if (!isset($params['id_order'])) {
             return '';
         }
 
         try {
-            $payment = new MaksuturvaPayment((int) $params['id_order']);
+            $payment = new MaksuturvaPayment(intval($params['id_order']));
         } catch (Exception $e) {
             // The order was not payed using Maksuturva.
             return '';
         }
 
-        /** @var OrderCore|Order $order */
+        /** @var Order $order */
         $order = new Order((int) $params['id_order']);
-        /** @var CartCore|Cart $cart */
+        /** @var Cart $cart */
         $cart = new Cart((int) $order->id_cart);
 
         switch ($payment->getStatus()) {
@@ -265,7 +294,10 @@ class Maksuturva extends PaymentModule
 
         $class = 'card-body';
 
-        $this->context->smarty->assign([
+        /** @var Smarty */
+        $smarty = $this->context->smarty;
+
+        $smarty->assign([
             'this_path' => $this->getPath(),
             'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
             'mt_pmt_id' => $payment->getPmtReference(),
@@ -273,7 +305,7 @@ class Maksuturva extends PaymentModule
             'mt_pmt_class' => $class,
         ]);
         if ($payment->includesSurcharge()) {
-            $this->context->smarty->assign([
+            $smarty->assign([
                 'mt_pmt_surcharge_message' => sprintf(
                     'This order has been subject to a payment surcharge of %s EUR',
                     $payment->getSurcharge()
@@ -403,7 +435,7 @@ class Maksuturva extends PaymentModule
             return ['message' => $message, 'new_message' => $new_message];
         }
 
-        /** @var OrderCore|Order $order */
+        /** @var Order $order */
         $order = new Order((int) $this->currentOrder);
         if (!Validate::isLoadedObject($order)) {
             return $this->l('Failed to find order');
@@ -422,7 +454,7 @@ class Maksuturva extends PaymentModule
             $order->total_paid_tax_excl += $surcharge;
             $order->total_paid_tax_incl += $surcharge;
             if (method_exists($order, 'addOrderPayment')) {
-                $order->addOrderPayment($surcharge);
+                $order->addOrderPayment((string) $surcharge);
             } else {
                 $order->total_paid_real += $surcharge;
                 $order->update();

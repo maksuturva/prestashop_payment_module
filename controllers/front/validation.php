@@ -24,26 +24,34 @@
  */
 class MaksuturvaValidationModuleFrontController extends ModuleFrontController
 {
-    public $display_column_left = false;
-    public $display_column_right = false;
-
-    public function postProcess()
+    public function postProcess(): void
     {
         $this->validatePayment();
     }
 
-    public function preProcess()
+    public function preProcess(): void
     {
         $this->validatePayment();
     }
 
-    protected function validatePayment()
+    protected function validatePayment(): void
     {
+        /** @var Maksuturva */
+        $module = $this->module;
+
+        /** @var Cart  */
+        $cart = $this->context->cart;
+
+        /** @var Smarty */
+        $smarty = $this->context->smarty;
+
+        /** @var Shop */
+        $shop = $this->context->shop;
+
         if (!$this->isPaymentMethodValid()) {
-            exit($this->module->l('This payment method is not available.', 'maksuturva'));
+            exit($module->l('This payment method is not available.', 'maksuturva'));
         }
 
-        $cart = $this->context->cart;
         if (!$cart || !$cart->id_customer || !$cart->id_address_delivery || !$cart->id_address_invoice) {
             $this->doRedirect('order', ['step' => 1]);
         }
@@ -53,30 +61,30 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             $this->doRedirect('order', ['step' => 1]);
         }
 
-        $mks_message = $this->module->validatePayment($cart, $customer, $_GET);
+        $mks_message = $module->validatePayment($cart, $customer, $_GET);
 
         if (is_array($mks_message)) {
             if ($mks_message['new_message'] != 'error' and $mks_message['new_message'] != 'cancel') {
                 $this->doRedirect('order-confirmation', [
                     'id_cart' => (int) $cart->id,
-                    'id_module' => (int) $this->module->id,
-                    'id_order' => (int) $this->module->currentOrder,
+                    'id_module' => (int) $module->id,
+                    'id_order' => (int) $module->currentOrder,
                     'key' => $customer->secure_key,
                     'mks_msg' => $mks_message,
                 ]);
             } else {
-                $this->context->smarty->assign([
+                $smarty->assign([
                     'error_message' => $mks_message['new_message'],
-                    'shop_name' => $this->context->shop->name,
-                    'this_path' => $this->module->getPath(),
+                    'shop_name' => $shop->name,
+                    'this_path' => $module->getPath(),
                 ]);
 
-                return $this->setTemplate('module:maksuturva/views/templates/front/error.tpl');
+                $this->setTemplate('module:maksuturva/views/templates/front/error.tpl');
             }
         }
     }
 
-    protected function isPaymentMethodValid()
+    protected function isPaymentMethodValid(): bool
     {
         if (!$this->module->active) {
             return false;
@@ -91,7 +99,11 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         return false;
     }
 
-    protected function doRedirect($controller, array $params = [])
+    /**
+     * @param string $controller
+     * @param array<mixed> $params
+     */
+    protected function doRedirect(string $controller, array $params = []): void
     {
         $query_string = !empty($params) ? http_build_query($params) : '';
 
