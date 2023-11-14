@@ -30,6 +30,7 @@ This module follow PrestaShop coding standards. Please run
 ```
 composer install --dev
 composer run autoindex
+composer run header-stamp
 composer run lint
 composer run phpstan
 ```
