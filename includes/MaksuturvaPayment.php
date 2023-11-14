@@ -34,7 +34,7 @@ class MaksuturvaPayment
     protected $id_order;
 
     /**
-     * @var string the payment status
+     * @var int the payment status
      */
     protected $status;
 
@@ -104,7 +104,7 @@ class MaksuturvaPayment
      */
     public function getStatus()
     {
-        return $this->status;
+        return (int) $this->status;
     }
 
     /**
@@ -125,10 +125,10 @@ class MaksuturvaPayment
     public function getSurcharge()
     {
         if (isset($this->data_sent['pmt_sellercosts'], $this->data_received['pmt_sellercosts'])) {
-            $sent_seller_cost = str_replace(',', '.', $this->data_sent['pmt_sellercosts']);
-            $received_seller_cost = str_replace(',', '.', $this->data_received['pmt_sellercosts']);
+            $sent_seller_cost = (float) str_replace(',', '.', $this->data_sent['pmt_sellercosts']);
+            $received_seller_cost = (float) str_replace(',', '.', $this->data_received['pmt_sellercosts']);
             if ($received_seller_cost > $sent_seller_cost) {
-                return number_format($received_seller_cost - $sent_seller_cost, 2, '.', '');
+                return $received_seller_cost - $sent_seller_cost;
             }
         }
 

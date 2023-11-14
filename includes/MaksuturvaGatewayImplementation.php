@@ -186,7 +186,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 
     /**
      * @param Maksuturva $module
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return array|null
      */
@@ -216,7 +216,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 
     /**
      * @param Maksuturva $module
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return array|null
      */
@@ -304,7 +304,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return array
      */
@@ -323,7 +323,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return array
      */
@@ -342,7 +342,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return string
      */
@@ -359,9 +359,9 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
-     * @return int
+     * @return string
      */
     private function getPaymentId(Cart $order)
     {
@@ -374,32 +374,13 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
     }
 
     /**
-     * @param CartCore|Cart $order
+     * @param Cart $order
      *
      * @return int
      */
     private function getInternalPaymentId(Cart $order)
     {
         return $order->id + 100;
-    }
-
-    /**
-     * @param array $params
-     *
-     * @return string
-     */
-    private function getAction(array $params)
-    {
-        $action = 'ok';
-        if (isset($params['delayed']) && $params['delayed'] == '1') {
-            $action = 'delayed';
-        } elseif (isset($params['cancel']) && $params['cancel'] == '1') {
-            $action = 'cancel';
-        } elseif (isset($params['error']) && $params['error'] == '1') {
-            $action = 'error';
-        }
-
-        return $action;
     }
 
     /**

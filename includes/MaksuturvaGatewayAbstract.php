@@ -46,14 +46,14 @@ abstract class MaksuturvaGatewayAbstract
     const STATUS_QUERY_PAYER_RECLAMATION = '95';
     const STATUS_QUERY_CANCELLED = '99';
 
-    const EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED = '00';
-    const EXCEPTION_CODE_URL_GENERATION_ERRORS = '01';
-    const EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS = '02';
-    const EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100 = '03';
-    const EXCEPTION_CODE_FIELD_MISSING = '04';
-    const EXCEPTION_CODE_INVALID_ITEM = '05';
-    const EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED = '06';
-    const EXCEPTION_CODE_HASHES_DONT_MATCH = '07';
+    const EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED = 00;
+    const EXCEPTION_CODE_URL_GENERATION_ERRORS = 01;
+    const EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS = 02;
+    const EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100 = 03;
+    const EXCEPTION_CODE_FIELD_MISSING = 04;
+    const EXCEPTION_CODE_INVALID_ITEM = 05;
+    const EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED = 06;
+    const EXCEPTION_CODE_HASHES_DONT_MATCH = 07;
 
     const ROUTE_PAYMENT = '/NewPaymentExtended.pmt';
     const ROUTE_STATUS_QUERY = '/PaymentStatusQuery.pmt';
@@ -581,6 +581,7 @@ abstract class MaksuturvaGatewayAbstract
      */
     public function filterCharacters($string)
     {
+        /** @var string */
         $new_string = str_replace('"', '', $string);
         if (!is_null($new_string) && mb_strlen($new_string) > 0) {
             return $new_string;
