@@ -67,7 +67,7 @@ class Maksuturva extends PaymentModule
         $this->displayName = $this->l('Maksuturva');
 
         $this->ps_versions_compliancy = [
-            'min' => '1.7.1.0',
+            'min' => '1.7.6',
             'max' => _PS_VERSION_,
         ];
 
