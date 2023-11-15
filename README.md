@@ -29,6 +29,7 @@ This module follow PrestaShop coding standards. Please run
 
 ```
 composer install --dev
+composer dump-autoload --optimize --no-dev --classmap-authoritative
 composer run autoindex
 composer run header-stamp
 composer run lint
@@ -36,5 +37,3 @@ composer run phpstan
 ```
 
 Before committing your changes
-
-
