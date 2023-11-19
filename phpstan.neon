@@ -1,0 +1,11 @@
+includes:
+  - ./vendor/prestashop/php-dev-tools/phpstan/ps-module-extension.neon
+
+parameters:
+  paths:
+    - ./
+  excludePaths:
+    - ./vendor/
+  reportUnmatchedIgnoredErrors: false
+  level: 5
+  treatPhpDocTypesAsCertain: false

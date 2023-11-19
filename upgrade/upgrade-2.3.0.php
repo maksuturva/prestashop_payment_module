@@ -27,15 +27,21 @@ if (!defined('_PS_VERSION_')) {
 }
 
 /**
- * Upgrades the module to version 2.1.0.
+ * Upgrades the module to version 2.3.0.
  *
- * Registers new hooks used in PrestaShop 1.7+.
+ * Registers new hooks used in PrestaShop 8.1+.
  *
  * @param Maksuturva $module
  *
  * @return bool
  */
-function upgrade_module_2_1_0($module)
+function upgrade_module_2_3_0($module)
 {
-    return $module->registerHook('paymentOptions');
+    return $module->unregisterHook('Header')
+        && $module->registerhook('displayHeader')
+        && $module->unregisterHook('paymentReturn')
+        && $module->registerhook('displayPaymentReturn')
+        && $module->unregisterHook('PDFInvoice')
+        && $module->registerhook('displayPDFInvoice')
+        ;
 }

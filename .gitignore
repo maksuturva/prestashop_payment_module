@@ -1,1 +1,17 @@
+config.xml
 config_*.xml
+
+/vendor
+
+# caches
+.php-cs-fixer.cache
+
+# editors
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*

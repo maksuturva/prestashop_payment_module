@@ -1,0 +1,29 @@
+{
+    "name": "svea/maksuturva",
+    "description": "Svea payments integration for PrestaShop",
+    "type": "prestashop-module",
+    "autoload": {
+	"psr-4": {
+	},
+	"classmap": [
+	    "maksuturva.php"
+	],
+	"exclude-from-classmap": []
+    },
+    "config": {
+	"prepend-autoloader": false,
+	"preferred-install": "dist"
+    },
+    "require-dev": {
+        "prestashop/php-dev-tools": "^4.3",
+        "prestashop/phpstan-prestashop": "^2.0"
+    },
+    "scripts": {
+        "autoindex": "./vendor/bin/autoindex prestashop:add:index",
+        "lint": "./vendor/bin/php-cs-fixer fix",
+        "header-stamp": "./vendor/bin/header-stamp --license=LGPLHeader.txt --exclude=vendor,tests,_dev",
+        "phpstan": "_PS_ROOT_DIR_=../../ ./vendor/bin/phpstan analyse --memory-limit 1G"
+    },
+    "author": "PrestaShop",
+    "license": "OSL-3.0"
+}

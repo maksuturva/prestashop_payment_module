@@ -3,9 +3,24 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [2.3.0] - 13.11.2023
+- PrestaShop 8.1 support
+- Drop support for PrestaShop below 1.7.6
+- Minimum php version 7.2
+
+### Changed
+- added LICENSE file
+- use `displayHeader` instead of deprecated `Header` hook
+- use `displayPaymentReturn` instead of deprecated `paymentReturn` hook
+- use `displayPDFInvoice` instead of deprecated `PDFInvoice` hook
+- use json_encode instead of deprecated and removed Tools::jsonEncode
+
+### Added
+- README file with not much information yet
+
 ## [2.2.4] - 10.02.2022
 - Updated logos
+
 ## [2.2.3] - 02.12.2021
 ### Changed
 - Replacing translations for re-branding from Maksuturva to Svea
