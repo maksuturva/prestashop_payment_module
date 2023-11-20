@@ -30,10 +30,10 @@ jobs:
       # create zip package (note, vendor folder is currently only used for testing. Don't include it in the release)
       - name: Create zip package
         run: |
-          mkdir -p release
-          rsync -arv --exclude='release' --exclude='.git/' --exclude='.github/' --exclude='.vendor/' --exclude='.gitignore' ./release/maksuturva/
+          mkdir -p release/maksuturva
+          rsync -arv --exclude='release' --exclude='.git/' --exclude='.github/' --exclude='.vendor/' --exclude='.gitignore' . ./release/maksuturva/
           cd release
-          zip -r v${{ steps.get_version.outputs.VERSION }}-maksuturva.zip maksuturva/
+          zip -r ${{ steps.get_version.outputs.VERSION }}-maksuturva.zip maksuturva/
 
       # create new release
       # https://github.com/actions/create-release
@@ -60,5 +60,5 @@ jobs:
           # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./release/v${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
-          asset_name: v${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
+          asset_name: ${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
           asset_content_type: application/zip
