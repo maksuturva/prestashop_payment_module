@@ -34,6 +34,7 @@ jobs:
           rsync -arv --exclude='release' --exclude='.git/' --exclude='.github/' --exclude='.vendor/' --exclude='.gitignore' . ./release/maksuturva/
           cd release
           zip -r ${{ steps.get_version.outputs.VERSION }}-maksuturva.zip maksuturva/
+          pwd
           ls -alrt
 
       # create new release
@@ -60,6 +61,6 @@ jobs:
           # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which includes a `upload_url`.
           # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
+          asset_path: ./release/${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
           asset_name: ${{ steps.get_version.outputs.VERSION }}-maksuturva.zip
           asset_content_type: application/zip
