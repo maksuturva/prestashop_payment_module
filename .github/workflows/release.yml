@@ -34,6 +34,7 @@ jobs:
           rsync -arv --exclude='release' --exclude='.git/' --exclude='.github/' --exclude='.vendor/' --exclude='.gitignore' . ./release/maksuturva/
           cd release
           zip -r ${{ steps.get_version.outputs.VERSION }}-maksuturva.zip maksuturva/
+          ls -alrt
 
       # create new release
       # https://github.com/actions/create-release
