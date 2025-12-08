@@ -39,7 +39,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         /** @var Maksuturva */
         $module = $this->module;
 
-        /** @var Cart  */
+        /** @var Cart */
         $cart = $this->context->cart;
 
         /** @var Smarty */
@@ -75,6 +75,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             } else {
                 $smarty->assign([
                     'error_message' => $mks_message['new_message'],
+		    'error_message_detail' => $mks_message['message'],
                     'shop_name' => $shop->name,
                     'this_path' => $module->getPath(),
                 ]);

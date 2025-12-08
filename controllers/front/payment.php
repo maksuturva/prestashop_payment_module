@@ -46,7 +46,23 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             Tools::redirect('index.php?controller=order');
         }
 
-        $gateway = new MaksuturvaGatewayImplementation($module, $cart);
+        try {
+            $paymentAttempt = MaksuturvaPayment::startForCart($module, $cart);
+            $gateway = new MaksuturvaGatewayImplementation($module, $cart, $paymentAttempt);
+            $fields = $gateway->getFieldArray();
+            $paymentAttempt->recordRequest($fields);
+        } catch (Exception $e) {
+            /** @var Smarty */
+            $smarty = $this->context->smarty;
+            $smarty->assign([
+                'error_message' => $module->l('Unable to initialize Maksuturva payment, please try again.'),
+                'shop_name' => $this->context->shop->name,
+                'this_path' => $module->getPath(),
+            ]);
+            $this->setTemplate('module:maksuturva/views/templates/front/error.tpl');
+
+            return;
+        }
 
         /** @var Smarty */
         $smarty = $this->context->smarty;
@@ -57,7 +73,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             'this_path_ssl' => $module->getPathSSL(),
             'back_button' => $link->getPageLink('order', true, null, 'step=3'),
             'mt_form_action' => $gateway->getPaymentUrl(),
-            'mt_extra_fields' => $gateway->getFieldArray(),
+            'mt_extra_fields' => $fields,
         ]);
 
         $this->setTemplate('module:maksuturva/views/templates/front/payment_execution_twbs.tpl');

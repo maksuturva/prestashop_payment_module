@@ -32,9 +32,15 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 
     private $seller_costs = 0.00;
 
-    public function __construct(Maksuturva $module, Cart $order)
+    /**
+     * @var MaksuturvaPayment|null current payment attempt
+     */
+    private $paymentAttempt;
+
+    public function __construct(Maksuturva $module, Cart $order, MaksuturvaPayment $paymentAttempt = null)
     {
         $this->module = $module;
+        $this->paymentAttempt = $paymentAttempt;
         $this->setBaseUrl($module->getGatewayUrl());
         $this->seller_id = ($module->isSandbox() ? self::SANDBOX_SELLER_ID : $module->getSellerId());
         $this->secret_key = ($module->isSandbox() ? self::SANDBOX_SECRET_KEY : $module->getSecretKey());
@@ -365,6 +371,12 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     private function getPaymentId(Cart $order)
     {
+        if ($this->paymentAttempt instanceof MaksuturvaPayment
+            && Tools::strlen($this->paymentAttempt->getPmtId())
+        ) {
+            return $this->paymentAttempt->getPmtId();
+        }
+
         $pmt_id = '';
         if (Tools::strlen($this->pmt_id_prefix)) {
             $pmt_id .= $this->pmt_id_prefix;
@@ -432,6 +444,10 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     public function checkPaymentId($pmt_id)
     {
+        if ($this->paymentAttempt instanceof MaksuturvaPayment) {
+            return $this->paymentAttempt->getPmtId() === $pmt_id;
+        }
+
         if (Tools::strlen($this->pmt_id_prefix)
             && Tools::substr($pmt_id, 0, Tools::strlen($this->pmt_id_prefix)) === $this->pmt_id_prefix
         ) {

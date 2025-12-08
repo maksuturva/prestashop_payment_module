@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.4.0] - 8.12.2025
+### Added
+- Generate a unique payment attempt and `pmt_id` every time checkout is started to allow retries.
+- Store structured logs for payment requests and each callback received from Svea to ease debugging.
+
+### Changed
+- Reworked the `mt_payment` table to keep cart level payment attempts that can later be linked to created orders.
+- Validation flow now relies on the stored payment attempt data instead of regenerating payloads on the fly.
+- Stylized return and confirm pages a bit
+
 ## [2.3.0] - 13.11.2023
 - PrestaShop 8.1 support
 - Drop support for PrestaShop below 1.7.6

@@ -122,7 +122,7 @@ $_MODULE['<{maksuturva}prestashop>payment_return_twbs_88526efe38fd18179a127024ab
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_15d18c17d7aef219c342bb0d81e823ab'] = 'Your order will be shipped as soon as possible.';
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_0db71da7150c27142eef9d22b843b4a9'] = 'For any questions or for further information, please contact our';
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_64430ad2835be8ad60c59e7d44e4b0b1'] = 'customer support';
-$_MODULE['<{maksuturva}prestashop>payment_return_twbs_60cc46d58b23f7b478ffcc73ed70ae57'] = 'Your order on %s is pending.';
+$_MODULE['<{maksuturva}prestashop>payment_return_twbs_60cc46d58b23f7b478ffcc73ed70ae57'] = 'Your order on %s is pending payment confirmation.';
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_1c346020243c79105d099206f6973f2b'] = 'Your order will be shipped as soon as we receive the payment confirmation.';
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_40c3a1fb31d97ba83c2e71b99d58ba10'] = 'Your order on %s has been canceled.';
 $_MODULE['<{maksuturva}prestashop>payment_return_twbs_abcd10a3b2f38f78042c8fd5f5e30ca4'] = 'An error occurred while processing the payment.';

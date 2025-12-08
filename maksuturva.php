@@ -54,7 +54,7 @@ class Maksuturva extends PaymentModule
     {
         $this->name = 'maksuturva';
         $this->tab = 'payments_gateways';
-        $this->version = '2.3.0';
+        $this->version = '2.4.0';
         $this->author = 'Svea Payments';
 
         $this->currencies = true;
@@ -127,6 +127,7 @@ class Maksuturva extends PaymentModule
 
     /**
      * @param array<mixed> $params
+     *
      * @return array<PrestaShop\PrestaShop\Core\Payment\PaymentOption>
      */
     public function hookPaymentOptions(array $params): array
@@ -138,10 +139,22 @@ class Maksuturva extends PaymentModule
             return [];
         }
 
-        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
-        $action = $gateway->getPaymentUrl();
+        try {
+            $paymentAttempt = MaksuturvaPayment::startForCart($this, $cart);
+            $gateway = new MaksuturvaGatewayImplementation($this, $cart, $paymentAttempt);
+            $fields = $gateway->getFieldArray();
+            $paymentAttempt->recordRequest($fields);
+        } catch (Exception $e) {
+            PrestaShopLogger::addLog(sprintf(
+                '[Maksuturva] Failed to start payment attempt for cart %d: %s',
+                (int) $cart->id,
+                $e->getMessage()
+            ), 3);
 
-        $fields = $gateway->getFieldArray();
+            return [];
+        }
+
+        $action = $gateway->getPaymentUrl();
 
         $inputs = [];
         foreach ($fields as $name => $value) {
@@ -248,7 +261,7 @@ class Maksuturva extends PaymentModule
             case (int) $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
             default:
                 try {
-                    $gateway = new MaksuturvaGatewayImplementation($this, $cart);
+                    $gateway = new MaksuturvaGatewayImplementation($this, $cart, $payment);
                     $response = $gateway->statusQuery();
                     switch ($response['pmtq_returncode']) {
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
@@ -257,7 +270,7 @@ class Maksuturva extends PaymentModule
                             if ($order->getCurrentState() !== $this->getConfig('PS_OS_PAYMENT')) {
                                 $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
                             }
-                            (new MaksuturvaPayment((int) $order->id))->complete();
+                            $payment->complete();
                             $msg = $this->l('The payment confirmation was received - payment accepted');
                             break;
 
@@ -269,12 +282,12 @@ class Maksuturva extends PaymentModule
                             if ($order->getCurrentState() !== $this->getConfig('PS_OS_CANCELED')) {
                                 $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
                             }
-                            (new MaksuturvaPayment((int) $order->id))->cancel();
+                            $payment->cancel();
                             $msg = $this->l('The payment was canceled in Maksuturva');
                             break;
 
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_NOT_FOUND:
-                            (new MaksuturvaPayment((int) $order->id))->cancel();
+                            $payment->cancel();
                             $msg = $this->l('The payment could not be tracked by Maksuturva, please check manually');
                             break;
 
@@ -394,11 +407,46 @@ class Maksuturva extends PaymentModule
 
     public function validatePayment(Cart $cart, Customer $customer, array $params)
     {
-        if (!$this->checkCurrency($cart)) {
-            return $this->l('The cart currency is not supported');
+        if (!isset($params['pmt_id'])) {
+            return [
+                'message' => $this->l('Missing payment identifier'),
+                'new_message' => 'error',
+            ];
         }
 
-        $gateway = new MaksuturvaGatewayImplementation($this, $cart);
+        try {
+            $paymentAttempt = MaksuturvaPayment::fromPmtId($params['pmt_id']);
+        } catch (Exception $e) {
+            return [
+                'message' => $this->l('The payment did not match any payment attempt'),
+                'new_message' => 'error',
+            ];
+        }
+
+        $cart = new Cart((int) $paymentAttempt->getCartId());
+        if (!Validate::isLoadedObject($cart)) {
+            return [
+                'message' => $this->l('Failed to find cart for the payment attempt'),
+                'new_message' => 'error',
+            ];
+        }
+
+        $customer = new Customer((int) $cart->id_customer);
+        if (!Validate::isLoadedObject($customer)) {
+            return [
+                'message' => $this->l('Failed to find customer for the payment attempt'),
+                'new_message' => 'error',
+            ];
+        }
+
+        if (!$this->checkCurrency($cart)) {
+            return [
+                'message' => $this->l('The cart currency is not supported'),
+                'new_message' => 'error',
+            ];
+        }
+
+        $gateway = new MaksuturvaGatewayImplementation($this, $cart, $paymentAttempt);
         $validator = $gateway->validatePayment($params);
 
         if ($validator->getStatus() === 'error') {
@@ -419,7 +467,9 @@ class Maksuturva extends PaymentModule
             $new_message = 'success';
         }
 
-        if ($new_message != 'cancel' and $new_message != 'error') {
+        $paymentAttempt->recordResponse($params, (int) $id_order_state);
+
+        if ($new_message !== 'cancel' && $new_message !== 'error') {
             $this->validateOrder(
                 (int) $cart->id,
                 (int) $id_order_state,
@@ -441,15 +491,10 @@ class Maksuturva extends PaymentModule
             return $this->l('Failed to find order');
         }
 
-        $payment = MaksuturvaPayment::create([
-            'id_order' => (int) $order->id,
-            'status' => (int) $id_order_state,
-            'data_sent' => $gateway->getFieldArray(),
-            'data_received' => $params,
-        ]);
+        $paymentAttempt->attachOrder((int) $order->id);
 
-        if ($payment->includesSurcharge()) {
-            $surcharge = $payment->getSurcharge();
+        if ($paymentAttempt->includesSurcharge()) {
+            $surcharge = $paymentAttempt->getSurcharge();
             $order->total_paid += $surcharge;
             $order->total_paid_tax_excl += $surcharge;
             $order->total_paid_tax_incl += $surcharge;
@@ -636,13 +681,21 @@ class Maksuturva extends PaymentModule
     {
         return Db::getInstance()->execute(sprintf(
             'CREATE TABLE IF NOT EXISTS `%smt_payment` (
-			  `id_order` int(10) unsigned NOT NULL,
+			  `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT,
+			  `id_order` int(10) unsigned DEFAULT NULL,
+			  `id_cart` int(10) unsigned NOT NULL,
+			  `attempt` int(10) unsigned NOT NULL DEFAULT 1,
+			  `pmt_id` varchar(40) NOT NULL,
 			  `status` int(10) unsigned NOT NULL DEFAULT 0,
 			  `data_sent` LONGBLOB NULL DEFAULT NULL,
 			  `data_received` LONGBLOB NULL DEFAULT NULL,
+			  `logs` LONGTEXT NULL DEFAULT NULL,
 			  `date_add` DATETIME NOT NULL,
 			  `date_upd` DATETIME NULL DEFAULT NULL,
-			  PRIMARY KEY (`id_order`)
+			  PRIMARY KEY (`id_mt_payment`),
+			  UNIQUE KEY `uniq_pmt_id` (`pmt_id`),
+			  KEY `idx_id_order` (`id_order`),
+			  KEY `idx_id_cart` (`id_cart`)
 			) ENGINE=%s DEFAULT CHARSET=utf8;',
             _DB_PREFIX_,
             _MYSQL_ENGINE_
