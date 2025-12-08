@@ -39,44 +39,41 @@ function upgrade_module_2_4_0($module)
     $old_table = _DB_PREFIX_ . 'mt_payment';
     $new_table = _DB_PREFIX_ . 'mt_payment_tmp';
 
-    $queries = [
-        'DROP TABLE IF EXISTS `' . $new_table . '`',
-        sprintf(
-            'CREATE TABLE `%s` (
-			  `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT,
-			  `id_order` int(10) unsigned DEFAULT NULL,
-			  `id_cart` int(10) unsigned NOT NULL,
-			  `attempt` int(10) unsigned NOT NULL DEFAULT 1,
-			  `pmt_id` varchar(40) NOT NULL,
-			  `status` int(10) unsigned NOT NULL DEFAULT 0,
-			  `data_sent` LONGBLOB NULL DEFAULT NULL,
-			  `data_received` LONGBLOB NULL DEFAULT NULL,
-			  `logs` LONGTEXT NULL DEFAULT NULL,
-			  `date_add` DATETIME NOT NULL,
-			  `date_upd` DATETIME NULL DEFAULT NULL,
-			  PRIMARY KEY (`id_mt_payment`),
-			  UNIQUE KEY `uniq_pmt_id` (`pmt_id`),
-			  KEY `idx_id_order` (`id_order`),
-			  KEY `idx_id_cart` (`id_cart`)
-			) ENGINE=%s DEFAULT CHARSET=utf8;',
-            $new_table,
-            _MYSQL_ENGINE_
-        ),
-    ];
-
-    foreach ($queries as $sql) {
-        if (!$db->execute($sql)) {
-            return false;
-        }
+    // Drop temp table if exists
+    if (!$db->execute('DROP TABLE IF EXISTS `' . bqSQL($new_table) . '`')) {
+        return false;
     }
 
-    $rows = $db->executeS(sprintf(
-        'SELECT p.*, o.id_cart
-           FROM `%s` p
-           LEFT JOIN `%sorders` o ON (o.id_order = p.id_order)',
-        $old_table,
-        _DB_PREFIX_
-    ));
+    // Create new table structure
+    $create_sql = 'CREATE TABLE `' . bqSQL($new_table) . '` (
+        `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT,
+        `id_order` int(10) unsigned DEFAULT NULL,
+        `id_cart` int(10) unsigned NOT NULL,
+        `attempt` int(10) unsigned NOT NULL DEFAULT 1,
+        `pmt_id` varchar(40) NOT NULL,
+        `status` int(10) unsigned NOT NULL DEFAULT 0,
+        `data_sent` LONGBLOB NULL DEFAULT NULL,
+        `data_received` LONGBLOB NULL DEFAULT NULL,
+        `logs` LONGTEXT NULL DEFAULT NULL,
+        `date_add` DATETIME NOT NULL,
+        `date_upd` DATETIME NULL DEFAULT NULL,
+        PRIMARY KEY (`id_mt_payment`),
+        UNIQUE KEY `uniq_pmt_id` (`pmt_id`),
+        KEY `idx_id_order` (`id_order`),
+        KEY `idx_id_cart` (`id_cart`)
+    ) ENGINE=' . bqSQL(_MYSQL_ENGINE_) . ' DEFAULT CHARSET=utf8';
+
+    if (!$db->execute($create_sql)) {
+        return false;
+    }
+
+    // Select old data to migrate
+    $query = new DbQuery();
+    $query->select('p.*, o.id_cart');
+    $query->from('mt_payment', 'p');
+    $query->leftJoin('orders', 'o', 'o.id_order = p.id_order');
+
+    $rows = $db->executeS($query);
     if ($rows === false) {
         return false;
     }
@@ -101,36 +98,39 @@ function upgrade_module_2_4_0($module)
             ? $row['data_received']
             : json_encode([]);
 
-        $date_upd = isset($row['date_upd']) && Tools::strlen($row['date_upd'])
-            ? "'" . pSQL($row['date_upd']) . "'"
-            : 'NULL';
+        $insert_data = [
+            'id_cart' => (int) $id_cart,
+            'attempt' => 1,
+            'pmt_id' => pSQL($pmt_id),
+            'status' => isset($row['status']) ? (int) $row['status'] : 0,
+            'data_sent' => pSQL($data_sent_value),
+            'data_received' => pSQL($data_received_value),
+            'logs' => pSQL(json_encode([])),
+            'date_add' => pSQL($row['date_add']),
+        ];
 
-        $insert = sprintf(
-            "INSERT INTO `%s`
-                (`id_order`, `id_cart`, `attempt`, `pmt_id`, `status`, `data_sent`, `data_received`, `logs`, `date_add`, `date_upd`)
-             VALUES (%s, %d, 1, '%s', %d, '%s', '%s', '%s', '%s', %s);",
-            $new_table,
-            $id_order > 0 ? (int) $id_order : 'NULL',
-            $id_cart,
-            pSQL($pmt_id),
-            isset($row['status']) ? (int) $row['status'] : 0,
-            pSQL($data_sent_value),
-            pSQL($data_received_value),
-            pSQL(json_encode([])),
-            pSQL($row['date_add']),
-            $date_upd
-        );
+        if ($id_order > 0) {
+            $insert_data['id_order'] = (int) $id_order;
+        } else {
+            $insert_data['id_order'] = null;
+        }
 
-        if (!$db->execute($insert)) {
+        if (isset($row['date_upd']) && Tools::strlen($row['date_upd'])) {
+            $insert_data['date_upd'] = pSQL($row['date_upd']);
+        } else {
+            $insert_data['date_upd'] = null;
+        }
+
+        if (!$db->insert('mt_payment_tmp', $insert_data)) {
             return false;
         }
     }
 
-    if (!$db->execute('DROP TABLE IF EXISTS `' . $old_table . '`')) {
+    if (!$db->execute('DROP TABLE IF EXISTS `' . bqSQL($old_table) . '`')) {
         return false;
     }
 
-    if (!$db->execute(sprintf('RENAME TABLE `%s` TO `%s`', $new_table, $old_table))) {
+    if (!$db->execute('RENAME TABLE `' . bqSQL($new_table) . '` TO `' . bqSQL($old_table) . '`')) {
         return false;
     }
 

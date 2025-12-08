@@ -109,13 +109,17 @@ class MaksuturvaPayment
     public static function startForCart(Maksuturva $module, Cart $cart)
     {
         $db = Db::getInstance();
-        $created = $db->execute(sprintf(
-            "INSERT INTO `%smt_payment` (`id_order`, `id_cart`, `status`, `logs`, `date_add`, `date_upd`)
-             VALUES (NULL, %d, 0, '%s', NOW(), NOW());",
-            _DB_PREFIX_,
-            (int) $cart->id,
-            pSQL(json_encode([]))
-        ));
+        $created = $db->insert(
+            'mt_payment',
+            [
+                'id_order' => null,
+                'id_cart' => (int) $cart->id,
+                'status' => 0,
+                'logs' => pSQL(json_encode([])),
+                'date_add' => date('Y-m-d H:i:s'),
+                'date_upd' => date('Y-m-d H:i:s'),
+            ]
+        );
         if (!$created) {
             throw new MaksuturvaException('Failed to initialize Maksuturva payment attempt');
         }
@@ -124,15 +128,15 @@ class MaksuturvaPayment
         $attempt = self::getAttemptNumber((int) $cart->id, $id);
         $pmt_id = self::buildPaymentId($module->getPaymentIdPrefix(), (int) $cart->id, $attempt);
 
-        $updated = $db->execute(sprintf(
-            "UPDATE `%smt_payment`
-                SET `attempt` = %d, `pmt_id` = '%s', `date_upd` = NOW()
-              WHERE `id_mt_payment` = %d",
-            _DB_PREFIX_,
-            (int) $attempt,
-            pSQL($pmt_id),
-            (int) $id
-        ));
+        $updated = $db->update(
+            'mt_payment',
+            [
+                'attempt' => (int) $attempt,
+                'pmt_id' => pSQL($pmt_id),
+                'date_upd' => date('Y-m-d H:i:s'),
+            ],
+            'id_mt_payment = ' . (int) $id
+        );
         if (!$updated) {
             throw new MaksuturvaException('Failed to finalize Maksuturva payment attempt');
         }
@@ -164,12 +168,11 @@ class MaksuturvaPayment
      */
     protected static function getAttemptNumber($cart_id, $entry_id)
     {
-        $query = sprintf(
-            'SELECT COUNT(*) FROM `%smt_payment` WHERE `id_cart` = %d AND `id_mt_payment` <= %d',
-            _DB_PREFIX_,
-            (int) $cart_id,
-            (int) $entry_id
-        );
+        $query = new DbQuery();
+        $query->select('COUNT(*)');
+        $query->from('mt_payment');
+        $query->where('id_cart = ' . (int) $cart_id);
+        $query->where('id_mt_payment <= ' . (int) $entry_id);
 
         return (int) Db::getInstance()->getValue($query);
     }
@@ -283,25 +286,26 @@ class MaksuturvaPayment
             throw new MaksuturvaException('Unsupported Maksuturva payment lookup field');
         }
 
+        $query = new DbQuery();
+        $query->select('*');
+        $query->from('mt_payment');
+        $query->orderBy('id_mt_payment DESC');
+        $query->limit(1);
+
         switch ($field) {
             case 'pmt_id':
-                $where = sprintf("`pmt_id` = '%s'", pSQL($value));
+                $query->where("pmt_id = '" . pSQL($value) . "'");
                 break;
 
             case 'id_mt_payment':
-                $where = sprintf('`id_mt_payment` = %d', (int) $value);
+                $query->where('id_mt_payment = ' . (int) $value);
                 break;
 
             default:
-                $where = sprintf('`%s` = %d', bqSQL($field), (int) $value);
+                $query->where(bqSQL($field) . ' = ' . (int) $value);
                 break;
         }
 
-        $query = sprintf(
-            'SELECT * FROM `%smt_payment` WHERE %s ORDER BY `id_mt_payment` DESC LIMIT 1;',
-            _DB_PREFIX_,
-            $where
-        );
         $data = Db::getInstance()->executeS($query);
         if (!(is_array($data) && count($data) === 1)) {
             throw new MaksuturvaException('Failed to load Maksuturva payment');
@@ -426,23 +430,25 @@ class MaksuturvaPayment
      */
     protected function update()
     {
-        Db::getInstance()->execute(sprintf(
-            'UPDATE `%smt_payment`
-                SET `id_order` = %s,
-                    `status` = %d,
-                    `data_sent` = %s,
-                    `data_received` = %s,
-                    `logs` = %s,
-                    `date_upd` = NOW()
-              WHERE `id_mt_payment` = %d',
-            _DB_PREFIX_,
-            $this->id_order > 0 ? (int) $this->id_order : 'NULL',
-            (int) $this->status,
-            $this->encodeData($this->data_sent),
-            $this->encodeData($this->data_received),
-            $this->encodeData($this->logs),
-            (int) $this->id
-        ));
+        $data = [
+            'status' => (int) $this->status,
+            'data_sent' => $this->encodeData($this->data_sent),
+            'data_received' => $this->encodeData($this->data_received),
+            'logs' => $this->encodeData($this->logs),
+            'date_upd' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($this->id_order > 0) {
+            $data['id_order'] = (int) $this->id_order;
+        } else {
+            $data['id_order'] = null;
+        }
+
+        Db::getInstance()->update(
+            'mt_payment',
+            $data,
+            'id_mt_payment = ' . (int) $this->id
+        );
     }
 
     /**
@@ -457,6 +463,6 @@ class MaksuturvaPayment
             $json = '[]';
         }
 
-        return "'" . pSQL($json) . "'";
+        return pSQL($json);
     }
 }

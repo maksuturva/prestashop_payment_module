@@ -679,27 +679,25 @@ class Maksuturva extends PaymentModule
 
     private function createTables()
     {
-        return Db::getInstance()->execute(sprintf(
-            'CREATE TABLE IF NOT EXISTS `%smt_payment` (
-			  `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT,
-			  `id_order` int(10) unsigned DEFAULT NULL,
-			  `id_cart` int(10) unsigned NOT NULL,
-			  `attempt` int(10) unsigned NOT NULL DEFAULT 1,
-			  `pmt_id` varchar(40) NOT NULL,
-			  `status` int(10) unsigned NOT NULL DEFAULT 0,
-			  `data_sent` LONGBLOB NULL DEFAULT NULL,
-			  `data_received` LONGBLOB NULL DEFAULT NULL,
-			  `logs` LONGTEXT NULL DEFAULT NULL,
-			  `date_add` DATETIME NOT NULL,
-			  `date_upd` DATETIME NULL DEFAULT NULL,
-			  PRIMARY KEY (`id_mt_payment`),
-			  UNIQUE KEY `uniq_pmt_id` (`pmt_id`),
-			  KEY `idx_id_order` (`id_order`),
-			  KEY `idx_id_cart` (`id_cart`)
-			) ENGINE=%s DEFAULT CHARSET=utf8;',
-            _DB_PREFIX_,
-            _MYSQL_ENGINE_
-        ));
+        $sql = 'CREATE TABLE IF NOT EXISTS `' . bqSQL(_DB_PREFIX_) . 'mt_payment` (
+            `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `id_order` int(10) unsigned DEFAULT NULL,
+            `id_cart` int(10) unsigned NOT NULL,
+            `attempt` int(10) unsigned NOT NULL DEFAULT 1,
+            `pmt_id` varchar(40) NOT NULL,
+            `status` int(10) unsigned NOT NULL DEFAULT 0,
+            `data_sent` LONGBLOB NULL DEFAULT NULL,
+            `data_received` LONGBLOB NULL DEFAULT NULL,
+            `logs` LONGTEXT NULL DEFAULT NULL,
+            `date_add` DATETIME NOT NULL,
+            `date_upd` DATETIME NULL DEFAULT NULL,
+            PRIMARY KEY (`id_mt_payment`),
+            UNIQUE KEY `uniq_pmt_id` (`pmt_id`),
+            KEY `idx_id_order` (`id_order`),
+            KEY `idx_id_cart` (`id_cart`)
+        ) ENGINE=' . bqSQL(_MYSQL_ENGINE_) . ' DEFAULT CHARSET=utf8';
+
+        return Db::getInstance()->execute($sql);
     }
 
     /**
