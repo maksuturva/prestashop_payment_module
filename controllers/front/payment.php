@@ -90,8 +90,8 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             // Error: store error data for initContent()
             $this->payment_init_success = false;
             $this->context->smarty->assign([
-                'error_message' => $module->l('Unable to initialize payment'),
-                'error_message_detail' => $module->l('An error occurred while preparing your payment. Please try again.'),
+                'error_message' => 'error',
+                'error_message_detail' => $module->l('Unable to initialize payment. An error occurred while preparing your payment. Please try again.'),
                 'shop_name' => $this->context->shop->name,
                 'this_path' => $module->getPath(),
             ]);
