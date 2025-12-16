@@ -28,11 +28,13 @@
     <h3>{l s='Something went wrong!' mod='maksuturva'}</h3>
 
     {if isset($error_message)}
-        {if $error_message == 'error'}
-            <p class="alert alert-warning">{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
-{*	    <p class="small">{$error_message_detail}</p> *}
+        {if $error_message == 'cancel'}
+            <p class="alert alert-warning">{l s='You have cancelled the payment.' mod='maksuturva'}</p>
         {else}
-            <p class="alert alert-warning">{l s='Your have cancelled the payment.' mod='maksuturva'}</p>
+            <p class="alert alert-warning">{$error_message|escape:'html':'UTF-8'}</p>
+            {if isset($error_message_detail)}
+                <p class="small text-muted">{$error_message_detail|escape:'html':'UTF-8'}</p>
+            {/if}
         {/if}
     {/if}
 
