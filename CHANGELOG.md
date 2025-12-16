@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [2.4.0] - 8.12.2025
+## [3.0.0] - 8.12.2025
 ### Added
 - Generate a unique payment attempt and `pmt_id` every time checkout is started to allow retries.
 - Store structured logs for payment requests and each callback received from Svea to ease debugging.

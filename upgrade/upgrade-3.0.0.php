@@ -31,7 +31,7 @@ if (!defined('_PS_VERSION_')) {
  *
  * @return bool
  */
-function upgrade_module_2_4_0($module)
+function upgrade_module_3_0_0($module)
 {
     unset($module);
 
