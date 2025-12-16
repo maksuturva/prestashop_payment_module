@@ -45,7 +45,6 @@ class Maksuturva extends PaymentModule
         'MAKSUTURVA_SECRET_KEY_VERSION',
         'MAKSUTURVA_URL',
         'MAKSUTURVA_PMT_ID_PREFIX',
-        'MAKSUTURVA_ENCODING',
         'MAKSUTURVA_SANDBOX',
         'MAKSUTURVA_OS_AUTHORIZATION',
     ];
@@ -590,7 +589,7 @@ class Maksuturva extends PaymentModule
      */
     public function getEncoding(): string
     {
-        return (string) $this->getConfig('MAKSUTURVA_ENCODING');
+        return 'UTF-8';
     }
 
     /**
@@ -643,7 +642,6 @@ class Maksuturva extends PaymentModule
             && $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', '001')
             && $this->setConfig('MAKSUTURVA_URL', 'https://www.maksuturva.fi')
             && $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', '')
-            && $this->setConfig('MAKSUTURVA_ENCODING', 'UTF-8')
             && $this->setConfig('MAKSUTURVA_SANDBOX', '1');
     }
 
@@ -821,26 +819,6 @@ class Maksuturva extends PaymentModule
                                 ],
                             ],
                         ],
-                        [
-                            'type' => 'radio',
-                            'label' => $this->l('Communication Encoding'),
-                            'name' => 'MAKSUTURVA_ENCODING',
-                            'class' => 't',
-                            'required' => true,
-                            'is_bool' => false,
-                            'values' => [
-                                [
-                                    'id' => 'mks_utf',
-                                    'value' => 'UTF-8',
-                                    'label' => 'UTF-8',
-                                ],
-                                [
-                                    'id' => 'mks_iso',
-                                    'value' => 'ISO-8859-1',
-                                    'label' => 'ISO-8859-1',
-                                ],
-                            ],
-                        ],
                     ],
                     'submit' => [
                         'title' => $this->l('Save'),
@@ -904,10 +882,6 @@ class Maksuturva extends PaymentModule
                 'MAKSUTURVA_SANDBOX',
                 $this->getConfig('MAKSUTURVA_SANDBOX')
             ),
-            'MAKSUTURVA_ENCODING' => Tools::getValue(
-                'MAKSUTURVA_ENCODING',
-                $this->getConfig('MAKSUTURVA_ENCODING')
-            ),
         ];
     }
 
@@ -925,7 +899,6 @@ class Maksuturva extends PaymentModule
             $seller_id = Tools::getValue('MAKSUTURVA_SELLER_ID');
             $secret_key = Tools::getValue('MAKSUTURVA_SECRET_KEY');
             $secret_key_version = Tools::getValue('MAKSUTURVA_SECRET_KEY_VERSION');
-            $encoding = Tools::getValue('MAKSUTURVA_ENCODING');
             $url = Tools::getValue('MAKSUTURVA_URL');
             $pmt_prefix = Tools::getValue('MAKSUTURVA_PMT_ID_PREFIX');
 
@@ -939,9 +912,6 @@ class Maksuturva extends PaymentModule
             }
             if (!preg_match('/^[0-9]{3}$/', (string) $secret_key_version)) {
                 $errors[] = $this->l('Invalid Secret Key Version. Should be numeric and 3 digits long, e.g. 001');
-            }
-            if ($encoding != 'UTF-8' && $encoding != 'ISO-8859-1') {
-                $errors[] = $this->l('Invalid Encoding');
             }
             if ($sandbox != '0' && $sandbox != '1') {
                 $errors[] = $this->l('Invalid Sandbox flag');
@@ -957,7 +927,6 @@ class Maksuturva extends PaymentModule
                 $this->setConfig('MAKSUTURVA_SELLER_ID', trim($seller_id));
                 $this->setConfig('MAKSUTURVA_SECRET_KEY', trim($secret_key));
                 $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', $secret_key_version);
-                $this->setConfig('MAKSUTURVA_ENCODING', $encoding);
                 $this->setConfig('MAKSUTURVA_SANDBOX', $sandbox);
                 $this->setConfig('MAKSUTURVA_URL', $url);
                 $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', $pmt_prefix);

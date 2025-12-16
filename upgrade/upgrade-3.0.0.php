@@ -146,5 +146,8 @@ function upgrade_module_3_0_0($module)
         $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD KEY `idx_id_cart` (`id_cart`)');
     }
 
+    // Remove deprecated MAKSUTURVA_ENCODING setting (now hardcoded to UTF-8)
+    Configuration::deleteByName('MAKSUTURVA_ENCODING');
+
     return true;
 }
