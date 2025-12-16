@@ -320,7 +320,7 @@ class Maksuturva extends PaymentModule
         if ($payment->includesSurcharge()) {
             $smarty->assign([
                 'mt_pmt_surcharge_message' => sprintf(
-                    'This order has been subject to a payment surcharge of %s EUR',
+                    $this->l('This order has been subject to a payment surcharge of %s EUR'),
                     $payment->getSurcharge()
                 ),
             ]);
@@ -349,7 +349,7 @@ class Maksuturva extends PaymentModule
         $this->context->smarty->assign([
             'this_path' => $this->getPath(),
             'mt_pmt_surcharge_message' => sprintf(
-                'This order has been subject to a payment surcharge of %s EUR',
+                $this->l('This order has been subject to a payment surcharge of %s EUR'),
                 $payment->getSurcharge()
             ),
         ]);
@@ -374,9 +374,12 @@ class Maksuturva extends PaymentModule
             return '';
         }
 
-        $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
+        $notice = sprintf(
+            $this->l('This order has been subject to a payment surcharge of %s EUR'),
+            $payment->getSurcharge()
+        );
 
-        return 'Maksuturva - ' . $notice;
+        return $this->l('Maksuturva') . ' - ' . $notice;
     }
 
     public function hookActionPDFInvoiceRender(array $params): string
@@ -396,10 +399,13 @@ class Maksuturva extends PaymentModule
             return '';
         }
 
-        $notice = sprintf('This order has been subject to a payment surcharge of %s EUR', $payment->getSurcharge());
+        $notice = sprintf(
+            $this->l('This order has been subject to a payment surcharge of %s EUR'),
+            $payment->getSurcharge()
+        );
 
         $params['pdf']->Ln(6);
-        $params['pdf']->Cell(0, 0, 'Maksuturva - ' . $notice, 0, 0, 'R');
+        $params['pdf']->Cell(0, 0, $this->l('Maksuturva') . ' - ' . $notice, 0, 0, 'R');
         $params['pdf']->Ln(4);
 
         return $notice;
