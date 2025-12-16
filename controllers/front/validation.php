@@ -307,6 +307,9 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
      */
     private function isPaymentAlreadyProcessed(MaksuturvaPayment $paymentAttempt, int $orderId): bool
     {
+        /** @var Maksuturva */
+        $module = $this->module;
+
         // check if payment attempt already has this order attached
         $paymentStatus = $paymentAttempt->getStatus();
 
@@ -316,9 +319,9 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             if (Validate::isLoadedObject($order)) {
                 // check if order is in a final state (paid, cancelled, etc)
                 $finalStates = [
-                    (int) $this->module->getConfig('PS_OS_PAYMENT'),
-                    (int) $this->module->getConfig('PS_OS_CANCELED'),
-                    (int) $this->module->getConfig('PS_OS_ERROR'),
+                    (int) $module->getConfig('PS_OS_PAYMENT'),
+                    (int) $module->getConfig('PS_OS_CANCELED'),
+                    (int) $module->getConfig('PS_OS_ERROR'),
                 ];
 
                 if (in_array($order->getCurrentState(), $finalStates)) {
