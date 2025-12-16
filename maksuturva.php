@@ -329,7 +329,7 @@ class Maksuturva extends PaymentModule
         return $this->display(__FILE__, 'views/templates/admin/payment_status_twbs.tpl');
     }
 
-    public function hookDisplayOrderDetail($params)
+    public function hookDisplayOrderDetail(array $params): string
     {
         if (!isset($params['order'])) {
             return '';
@@ -357,7 +357,7 @@ class Maksuturva extends PaymentModule
         return $this->display(__FILE__, 'views/templates/hook/order_details_twbs.tpl');
     }
 
-    public function hookDisplayPDFInvoice($params)
+    public function hookDisplayPDFInvoice(array $params): string
     {
         if (!isset($params['object']) || !($params['object'] instanceof OrderInvoice)) {
             return '';
@@ -379,7 +379,7 @@ class Maksuturva extends PaymentModule
         return 'Maksuturva - ' . $notice;
     }
 
-    public function hookActionPDFInvoiceRender($params)
+    public function hookActionPDFInvoiceRender(array $params): string
     {
         if (!isset($params['pdf'], $params['id_order'])) {
             return '';
@@ -405,7 +405,7 @@ class Maksuturva extends PaymentModule
         return $notice;
     }
 
-    public function validatePayment(Cart $cart, Customer $customer, array $params)
+    public function validatePayment(Cart $cart, Customer $customer, array $params): array
     {
         if (!isset($params['pmt_id'])) {
             return [
@@ -488,7 +488,10 @@ class Maksuturva extends PaymentModule
         /** @var Order $order */
         $order = new Order((int) $this->currentOrder);
         if (!Validate::isLoadedObject($order)) {
-            return $this->l('Failed to find order');
+            return [
+                'message' => $this->l('Failed to find order'),
+                'new_message' => 'error',
+            ];
         }
 
         $paymentAttempt->attachOrder((int) $order->id);
@@ -509,7 +512,7 @@ class Maksuturva extends PaymentModule
         return ['message' => $message, 'new_message' => $new_message];
     }
 
-    public function checkCurrency(Cart $cart)
+    public function checkCurrency(Cart $cart): bool
     {
         $check_currency = new Currency($cart->id_currency);
 
@@ -534,7 +537,7 @@ class Maksuturva extends PaymentModule
     /**
      * @return string
      */
-    public function getPath()
+    public function getPath(): string
     {
         return $this->_path;
     }
@@ -542,7 +545,7 @@ class Maksuturva extends PaymentModule
     /**
      * @return string
      */
-    public function getPathSSL()
+    public function getPathSSL(): string
     {
         return Tools::getShopDomainSsl(true, true) . __PS_BASE_URI__ . 'modules/' . $this->name . '/';
     }
@@ -552,7 +555,7 @@ class Maksuturva extends PaymentModule
      *
      * @return string
      */
-    public function getPaymentUrl(array $params = [])
+    public function getPaymentUrl(array $params = []): string
     {
         $link = $this->context->link;
 
@@ -560,67 +563,67 @@ class Maksuturva extends PaymentModule
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getSellerId()
+    public function getSellerId(): string
     {
-        return $this->getConfig('MAKSUTURVA_SELLER_ID');
+        return (string) $this->getConfig('MAKSUTURVA_SELLER_ID');
     }
 
     /**
      * @return bool
      */
-    public function isSandbox()
+    public function isSandbox(): bool
     {
         return (int) $this->getConfig('MAKSUTURVA_SANDBOX') === 1;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getSecretKey()
+    public function getSecretKey(): string
     {
-        return $this->getConfig('MAKSUTURVA_SECRET_KEY');
+        return (string) $this->getConfig('MAKSUTURVA_SECRET_KEY');
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getSecretKeyVersion()
+    public function getSecretKeyVersion(): string
     {
-        return $this->getConfig('MAKSUTURVA_SECRET_KEY_VERSION');
+        return (string) $this->getConfig('MAKSUTURVA_SECRET_KEY_VERSION');
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getGatewayUrl()
+    public function getGatewayUrl(): string
     {
-        return $this->getConfig('MAKSUTURVA_URL');
+        return (string) $this->getConfig('MAKSUTURVA_URL');
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getEncoding()
+    public function getEncoding(): string
     {
-        return $this->getConfig('MAKSUTURVA_ENCODING');
+        return (string) $this->getConfig('MAKSUTURVA_ENCODING');
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getPaymentIdPrefix()
+    public function getPaymentIdPrefix(): string
     {
-        return $this->getConfig('MAKSUTURVA_PMT_ID_PREFIX');
+        return (string) $this->getConfig('MAKSUTURVA_PMT_ID_PREFIX');
     }
 
     /**
      * @param string $key
      *
-     * @return mixed
+     * @return string|false
      */
-    public function getConfig($key)
+    public function getConfig(string $key)
     {
         return Configuration::get($key);
     }
