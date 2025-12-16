@@ -967,7 +967,7 @@ class Maksuturva extends PaymentModule
                 $errors[] = $this->l('Payment prefix is invalid');
             }
 
-            if (!sizeof($errors)) {
+            if (!count($errors)) {
                 $this->setConfig('MAKSUTURVA_SELLER_ID', trim($seller_id));
                 $this->setConfig('MAKSUTURVA_SECRET_KEY', trim($secret_key));
                 $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', $secret_key_version);
