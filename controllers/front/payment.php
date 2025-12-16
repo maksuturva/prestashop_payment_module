@@ -72,6 +72,9 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
             $fields = $gateway->getFieldArray();
             $paymentAttempt->recordRequest($fields);
 
+            // Generate CSP nonce for inline styles and scripts
+            $csp_nonce = base64_encode(random_bytes(16));
+
             // Success: store data for initContent()
             $this->payment_init_success = true;
             $this->gateway_data = [
@@ -79,6 +82,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
                 'gateway_fields' => $fields,
                 'cart_total' => $cart->getOrderTotal(true, Cart::BOTH),
                 'shop_name' => $this->context->shop->name,
+                'csp_nonce' => $csp_nonce,
             ];
         } catch (Exception $e) {
             PrestaShopLogger::addLog(sprintf(
@@ -106,7 +110,13 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
         parent::initContent();
 
         if ($this->payment_init_success) {
+            // Add CSP headers for extra security
+            $this->addSecurityHeaders($this->gateway_data['csp_nonce'], $this->gateway_data['gateway_url']);
+
             $this->context->smarty->assign($this->gateway_data);
+            $this->context->smarty->assign([
+                'language_iso' => $this->context->language->iso_code,
+            ]);
             $this->setTemplate('module:maksuturva/views/templates/front/payment_redirect.tpl');
         } else {
             $this->setTemplate('module:maksuturva/views/templates/front/error.tpl');
@@ -114,7 +124,38 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * Redirect to order process page (step 1)
+     * Add security headers for payment redirect page
+     *
+     * @param string $nonce CSP nonce for inline styles and scripts
+     * @param string $gateway_url Payment gateway URL for form submission
+     */
+    protected function addSecurityHeaders(string $nonce, string $gateway_url): void
+    {
+        // Content Security Policy: restrict all external resources
+        // Use nonce for inline styles and scripts
+        // Allow form submission to payment gateway only
+        $csp = implode('; ', [
+            "default-src 'none'",
+            "style-src 'nonce-{$nonce}'",
+            "script-src 'nonce-{$nonce}'",
+            "form-action {$gateway_url}",
+            "base-uri 'self'",
+            "frame-ancestors 'none'",
+        ]);
+        header("Content-Security-Policy: {$csp}");
+
+        // Additional security headers
+        header('X-Frame-Options: DENY');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: no-referrer');
+
+        // Cache control - don't cache this sensitive page
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+    }
+
+    /**
+     * Redirect to order process page
      */
     protected function redirectToOrder(): void
     {

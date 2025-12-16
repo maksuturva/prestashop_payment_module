@@ -21,98 +21,131 @@
  * @copyright 2023 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  *}
-
-{extends file='page.tpl'}
-
-{block name='page_content'}
-<div class="maksuturva-payment-redirect">
-    <style>
-        .maksuturva-payment-redirect {
-            text-align: center;
-            padding: 60px 20px;
-            min-height: 400px;
+<!DOCTYPE html>
+<html lang="{$language_iso|escape:'html':'UTF-8'}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{l s='Redirecting to payment...' mod='maksuturva'} - {$shop_name|escape:'html':'UTF-8'}</title>
+    <style nonce="{$csp_nonce|escape:'html':'UTF-8'}">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .maksuturva-redirect-spinner {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .redirect-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .spinner {
             width: 60px;
             height: 60px;
             margin: 0 auto 30px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #00598c;
             border-radius: 50%;
-            animation: maksuturva-spin 1s linear infinite;
+            animation: spin 1s linear infinite;
         }
-        @keyframes maksuturva-spin {
+        @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .maksuturva-redirect-logo {
-            max-width: 200px;
-            margin: 0 auto 30px;
-        }
-        .maksuturva-redirect-message {
-            font-size: 1.2em;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .maksuturva-redirect-details {
-            color: #666;
+        .logo {
             margin-bottom: 30px;
         }
-        .maksuturva-redirect-manual {
+        .logo-text {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00598c;
+            letter-spacing: 2px;
+        }
+        h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .amount {
+            font-weight: 600;
+            color: #333;
+        }
+        .manual-submit {
             margin-top: 40px;
         }
-        .maksuturva-redirect-manual button {
+        .btn {
+            display: inline-block;
             padding: 12px 30px;
-            font-size: 1.1em;
-            background-color: #3498db;
+            font-size: 16px;
+            background-color: #00598c;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
         }
-        .maksuturva-redirect-manual button:hover {
-            background-color: #2980b9;
+        .btn:hover {
+            background-color: #004570;
+        }
+        .manual-submit p {
+            margin-bottom: 15px;
+            color: #666;
         }
     </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <div class="spinner"></div>
 
-    <div class="maksuturva-redirect-spinner"></div>
-
-    <div class="maksuturva-redirect-logo">
-        <img src="{$urls.base_url}modules/maksuturva/views/img/Svea_logo.png" alt="Maksuturva" class="img-fluid">
-    </div>
-
-    <div class="maksuturva-redirect-message">
-        {l s='Redirecting to Maksuturva payment gateway...' mod='maksuturva'}
-    </div>
-
-    <div class="maksuturva-redirect-details">
-        {l s='Please wait while we redirect you to complete your payment.' mod='maksuturva'}<br>
-        {l s='Total amount:' mod='maksuturva'} <strong>{$cart_total|escape:'html':'UTF-8'}</strong>
-    </div>
-
-    {* Hidden form that will auto-submit to payment gateway *}
-    <form method="POST" action="{$gateway_url|escape:'html':'UTF-8'}" id="maksuturva-payment-form">
-        {foreach from=$gateway_fields key=field_name item=field_value}
-            <input type="hidden" name="{$field_name|escape:'html':'UTF-8'}" value="{$field_value|escape:'html':'UTF-8'}">
-        {/foreach}
-    </form>
-
-    {* Auto-submit with JavaScript *}
-    <script>
-        // Auto-submit the form immediately
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('maksuturva-payment-form').submit();
-        });
-    </script>
-
-    {* Fallback for users without JavaScript *}
-    <noscript>
-        <div class="maksuturva-redirect-manual">
-            <p>{l s='JavaScript is disabled. Please click the button below to continue to payment.' mod='maksuturva'}</p>
-            <button type="submit" form="maksuturva-payment-form">
-                {l s='Continue to Payment' mod='maksuturva'}
-            </button>
+        <div class="logo">
+            <div class="logo-text">SVEA</div>
         </div>
-    </noscript>
-</div>
-{/block}
+
+        <h1>{l s='Redirecting to Maksuturva payment gateway...' mod='maksuturva'}</h1>
+
+        <div class="details">
+            {l s='Please wait while we redirect you to complete your payment.' mod='maksuturva'}<br>
+            {l s='Total amount:' mod='maksuturva'} <span class="amount">{$cart_total|escape:'html':'UTF-8'}</span>
+        </div>
+
+        <form method="POST" action="{$gateway_url|escape:'html':'UTF-8'}" id="payment-form">
+            {foreach from=$gateway_fields key=field_name item=field_value}
+                <input type="hidden" name="{$field_name|escape:'html':'UTF-8'}" value="{$field_value|escape:'html':'UTF-8'}">
+            {/foreach}
+        </form>
+
+        <script nonce="{$csp_nonce|escape:'html':'UTF-8'}">
+            document.getElementById('payment-form').submit();
+        </script>
+
+        <noscript>
+            <div class="manual-submit">
+                <p>{l s='JavaScript is disabled. Please click the button below to continue to payment.' mod='maksuturva'}</p>
+                <button type="submit" form="payment-form" class="btn">
+                    {l s='Continue to Payment' mod='maksuturva'}
+                </button>
+            </div>
+        </noscript>
+    </div>
+</body>
+</html>
