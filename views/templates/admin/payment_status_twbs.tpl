@@ -25,29 +25,44 @@
 <div class="panel card">
     <div class="panel-heading card-header">
         <img src="{$this_path|escape:'html':'UTF-8'}/logo.png" width="20" height="20"/>
-        {l s='Maksuturva' mod='maksuturva'}
+        {l s='Svea Payments' mod='maksuturva'}
     </div>
     <div class="{$mt_pmt_class}">
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th><span class="title_box ">{l s='Payment ID' mod='maksuturva'}</span></th>
-                        <th><span class="title_box ">{l s='Status' mod='maksuturva'}</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{$mt_pmt_id|escape:'html':'UTF-8'}</td>
-                        <td>{$mt_pmt_status_message|escape:'html':'UTF-8'}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="alert alert-info">
+            <strong>{l s='Payment ID' mod='maksuturva'}:</strong> {$mt_pmt_id|escape:'html':'UTF-8'}<br>
+            <strong>{l s='Status' mod='maksuturva'}:</strong> {$mt_pmt_status_message|escape:'html':'UTF-8'}
         </div>
+
         {if !empty($mt_pmt_surcharge_message)}
-            <br /><br />
             <div class="alert alert-warning">
                 {$mt_pmt_surcharge_message|escape:'html':'UTF-8'}
+            </div>
+        {/if}
+
+        {if isset($mt_payment_attempts)}
+            <h4>{l s='Payment Attempts' mod='maksuturva'}</h4>
+            <p class="text-muted">{l s='This order had multiple payment attempts:' mod='maksuturva'}</p>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>{l s='Attempt' mod='maksuturva'}</th>
+                            <th>{l s='Payment ID' mod='maksuturva'}</th>
+                            <th>{l s='Status' mod='maksuturva'}</th>
+                            <th>{l s='Date' mod='maksuturva'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {foreach from=$mt_payment_attempts item=attempt}
+                            <tr>
+                                <td>#{$attempt.attempt|escape:'html':'UTF-8'}</td>
+                                <td>{$attempt.pmt_id|escape:'html':'UTF-8'}</td>
+                                <td>{$attempt.status|escape:'html':'UTF-8'}</td>
+                                <td>{$attempt.date|escape:'html':'UTF-8'}</td>
+                            </tr>
+                        {/foreach}
+                    </tbody>
+                </table>
             </div>
         {/if}
     </div>

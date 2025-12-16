@@ -159,6 +159,39 @@ class MaksuturvaPayment
     }
 
     /**
+     * Returns all payment attempts for a given cart.
+     *
+     * @param int $cart_id
+     *
+     * @return MaksuturvaPayment[]
+     */
+    public static function findAllByCart($cart_id)
+    {
+        $query = new DbQuery();
+        $query->select('id_mt_payment');
+        $query->from('mt_payment');
+        $query->where('id_cart = ' . (int) $cart_id);
+        $query->orderBy('attempt ASC');
+
+        $ids = Db::getInstance()->executeS($query);
+        if (!$ids) {
+            return [];
+        }
+
+        $payments = [];
+        foreach ($ids as $row) {
+            try {
+                $payment = new self((int) $row['id_mt_payment'], 'id_mt_payment');
+                $payments[] = $payment;
+            } catch (MaksuturvaException $e) {
+                // Skip invalid payments
+                continue;
+            }
+        }
+        return $payments;
+    }
+
+    /**
      * Returns the number of attempts for the cart up until the given row.
      *
      * @param int $cart_id
@@ -408,6 +441,26 @@ class MaksuturvaPayment
     public function getAttempt()
     {
         return (int) $this->attempt;
+    }
+
+    /**
+     * Returns the order ID.
+     *
+     * @return int
+     */
+    public function getOrderId()
+    {
+        return (int) $this->id_order;
+    }
+
+    /**
+     * Returns the date when the payment attempt was created.
+     *
+     * @return string
+     */
+    public function getDateAdd()
+    {
+        return (string) $this->date_add;
     }
 
     /**

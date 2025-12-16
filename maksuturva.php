@@ -205,17 +205,30 @@ class Maksuturva extends PaymentModule
             return '';
         }
 
-        try {
-            $payment = new MaksuturvaPayment(intval($params['id_order']));
-        } catch (Exception $e) {
-            // The order was not payed using Maksuturva.
+        /** @var Order $order */
+        $order = new Order((int) $params['id_order']);
+
+        // Get all payment attempts for this order's cart
+        $payments = MaksuturvaPayment::findAllByCart((int) $order->id_cart);
+        if (empty($payments)) {
+            // The order was not paid using Maksuturva
             return '';
         }
 
-        /** @var Order $order */
-        $order = new Order((int) $params['id_order']);
         /** @var Cart $cart */
         $cart = new Cart((int) $order->id_cart);
+
+        // Get the successful payment (the one with id_order set)
+        $successfulPayment = null;
+        foreach ($payments as $p) {
+            if ($p->getOrderId() == $order->id) {
+                $successfulPayment = $p;
+                break;
+            }
+        }
+
+        // If no successful payment, use the latest one for status query
+        $payment = $successfulPayment ?? end($payments);
 
         switch ($payment->getStatus()) {
             case (int) $this->getConfig('PS_OS_PAYMENT'):
@@ -286,12 +299,41 @@ class Maksuturva extends PaymentModule
         /** @var Smarty */
         $smarty = $this->context->smarty;
 
+        // Prepare payment attempts data for template
+        $attempts = [];
+        foreach ($payments as $p) {
+            $attemptStatus = '';
+            switch ($p->getStatus()) {
+                case (int) $this->getConfig('PS_OS_PAYMENT'):
+                    $attemptStatus = $this->l('Paid');
+                    break;
+                case (int) $this->getConfig('PS_OS_CANCELED'):
+                    $attemptStatus = $this->l('Canceled');
+                    break;
+                case (int) $this->getConfig('PS_OS_ERROR'):
+                    $attemptStatus = $this->l('Error');
+                    break;
+                case (int) $this->getConfig('MAKSUTURVA_OS_AUTHORIZATION'):
+                default:
+                    $attemptStatus = $this->l('Pending');
+                    break;
+            }
+
+            $attempts[] = [
+                'attempt' => $p->getAttempt(),
+                'pmt_id' => $p->getPmtId(),
+                'status' => $attemptStatus,
+                'date' => $p->getDateAdd(),
+            ];
+        }
+
         $smarty->assign([
             'this_path' => $this->getPath(),
             'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
             'mt_pmt_id' => $payment->getPmtReference(),
             'mt_pmt_status_message' => $msg,
             'mt_pmt_class' => $class,
+            'mt_payment_attempts' => $attempts,
         ]);
         if ($payment->includesSurcharge()) {
             $smarty->assign([
