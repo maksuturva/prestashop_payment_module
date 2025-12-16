@@ -139,31 +139,9 @@ class Maksuturva extends PaymentModule
             return [];
         }
 
-        try {
-            $paymentAttempt = MaksuturvaPayment::startForCart($this, $cart);
-            $gateway = new MaksuturvaGatewayImplementation($this, $cart, $paymentAttempt);
-            $fields = $gateway->getFieldArray();
-            $paymentAttempt->recordRequest($fields);
-        } catch (Exception $e) {
-            PrestaShopLogger::addLog(sprintf(
-                '[Maksuturva] Failed to start payment attempt for cart %d: %s',
-                (int) $cart->id,
-                $e->getMessage()
-            ), 3);
-
-            return [];
-        }
-
-        $action = $gateway->getPaymentUrl();
-
-        $inputs = [];
-        foreach ($fields as $name => $value) {
-            $inputs[] = [
-                'name' => $name,
-                'type' => 'hidden',
-                'value' => $value,
-            ];
-        }
+        // Don't create pmt_id yet - only when customer commits by clicking Pay
+        // This prevents wasted pmt_ids when customers just browse payment options
+        $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
 
         $pw_image_url = $this->getPathSSL() . 'views/img/Svea_logo.png';
 
@@ -172,7 +150,6 @@ class Maksuturva extends PaymentModule
         $moduleName = $this->name;
         $newOption->setModuleName($moduleName)
             ->setAction($action)
-            ->setInputs($inputs)
             ->setCallToActionText($this->l('Maksuturva'))
             ->setAdditionalInformation('<img src=' . $pw_image_url . ' class="img-fluid img-responsive"');
 
