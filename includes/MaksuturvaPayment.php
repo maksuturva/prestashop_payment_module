@@ -249,20 +249,20 @@ class MaksuturvaPayment
     }
 
     /**
-     * Cancels the payment, i.e. sets it's status to 'PS_OS_PAYMENT';
+     * Cancels the payment, i.e. sets its status to 'PS_OS_CANCELED';
      */
     public function cancel()
     {
-        $this->status = (int) Configuration::get('PS_OS_PAYMENT');
+        $this->status = (int) Configuration::get('PS_OS_CANCELED');
         $this->update();
     }
 
     /**
-     * Completes the payment, i.e. sets it's status to 'PS_OS_CANCELED';
+     * Completes the payment, i.e. sets its status to 'PS_OS_PAYMENT';
      */
     public function complete()
     {
-        $this->status = (int) Configuration::get('PS_OS_CANCELED');
+        $this->status = (int) Configuration::get('PS_OS_PAYMENT');
         $this->update();
     }
 
