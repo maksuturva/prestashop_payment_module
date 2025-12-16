@@ -65,9 +65,9 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
 
             // has customer session but no cart - browser return after m2m created order
             // try to load cart from pmt_id to let existing logic handle the redirect
-            if (isset($_GET['pmt_id'])) {
+            if (Tools::isSubmit('pmt_id')) {
                 try {
-                    $paymentAttempt = MaksuturvaPayment::fromPmtId($_GET['pmt_id']);
+                    $paymentAttempt = MaksuturvaPayment::fromPmtId(Tools::getValue('pmt_id'));
                     $cart = new Cart((int) $paymentAttempt->getCartId());
                 } catch (Exception $e) {
                     // couldn't load cart, fall through to error handling below
@@ -102,7 +102,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             $this->doRedirect('order', ['step' => 1]);
         }
 
-        $mks_message = $module->validatePayment($cart, $customer, $_GET);
+        $mks_message = $module->validatePayment($cart, $customer, $this->getPaymentParams());
 
         if (is_array($mks_message)) {
             if ($mks_message['new_message'] != 'error' and $mks_message['new_message'] != 'cancel') {
@@ -134,7 +134,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         /** @var Maksuturva */
         $module = $this->module;
 
-        $params = $_GET;
+        $params = $this->getPaymentParams();
 
         // validate required parameters are present
         $required_fields = [
@@ -331,6 +331,55 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         }
 
         return false;
+    }
+
+    /**
+     * Extract payment parameters from request using PrestaShop Tools
+     *
+     * @return array
+     */
+    private function getPaymentParams(): array
+    {
+        $params = [];
+
+        // All possible payment gateway parameters
+        $paymentFields = [
+            // Status indicators
+            'ok',
+            'cancel',
+            'error',
+            'delayed',
+            // Payment data
+            'pmt_action',
+            'pmt_version',
+            'pmt_id',
+            'pmt_reference',
+            'pmt_amount',
+            'pmt_currency',
+            'pmt_sellercosts',
+            'pmt_paymentmethod',
+            'pmt_escrow',
+            'pmt_hash',
+            'pmt_buyername',
+            'pmt_buyeraddress',
+            'pmt_buyerpostalcode',
+            'pmt_buyercity',
+            'pmt_buyercountry',
+            'pmt_deliveryname',
+            'pmt_deliveryaddress',
+            'pmt_deliverypostalcode',
+            'pmt_deliverycity',
+            'pmt_deliverycountry',
+        ];
+
+        foreach ($paymentFields as $field) {
+            $value = Tools::getValue($field);
+            if ($value !== false && $value !== '') {
+                $params[$field] = $value;
+            }
+        }
+
+        return $params;
     }
 
     protected function isPaymentMethodValid(): bool
