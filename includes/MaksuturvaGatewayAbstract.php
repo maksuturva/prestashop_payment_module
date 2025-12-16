@@ -698,8 +698,10 @@ abstract class MaksuturvaGatewayAbstract
         curl_setopt($request, CURLOPT_FORBID_REUSE, 1);
         curl_setopt($request, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($request, CURLOPT_POST, 1);
-        curl_setopt($request, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($request, CURLOPT_CONNECTTIMEOUT, 120);
+        curl_setopt($request, CURLOPT_SSL_VERIFYPEER, 1);
+        curl_setopt($request, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($request, CURLOPT_CONNECTTIMEOUT, 30);
+        curl_setopt($request, CURLOPT_TIMEOUT, 60);
         curl_setopt($request, CURLOPT_POSTFIELDS, $this->status_query_data);
 
         $res = curl_exec($request);
