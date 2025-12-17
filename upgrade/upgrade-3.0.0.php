@@ -45,6 +45,10 @@ function upgrade_module_3_0_0($module)
     $has_attempt = false;
     $has_pmt_id = false;
 
+    if (!is_array($columns)) {
+        return false;
+    }
+
     foreach ($columns as $column) {
         if ($column['Field'] === 'id_cart') {
             $has_id_cart = true;

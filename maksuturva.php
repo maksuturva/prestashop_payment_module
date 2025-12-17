@@ -270,8 +270,8 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID_DELIVERY:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_COMPENSATED:
-                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_PAYMENT')) {
-                                $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
+                            if ($order->getCurrentState() !== (int) $this->getConfig('PS_OS_PAYMENT')) {
+                                $order->setCurrentState((int) $this->getConfig('PS_OS_PAYMENT'));
                             }
                             $payment->complete();
                             $msg = $this->l('The payment confirmation was received - payment accepted');
@@ -282,8 +282,8 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_RECLAMATION:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_CANCELLED:
-                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_CANCELED')) {
-                                $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
+                            if ($order->getCurrentState() !== (int) $this->getConfig('PS_OS_CANCELED')) {
+                                $order->setCurrentState((int) $this->getConfig('PS_OS_CANCELED'));
                             }
                             $payment->cancel();
                             $msg = $this->l('The payment was canceled in Maksuturva');
@@ -753,7 +753,7 @@ class Maksuturva extends PaymentModule
             'fi' => 'Odottaa vahvistusta Maksuturvalta',
         ];
 
-        $states = OrderState::getOrderStates($this->getConfig('PS_LANG_DEFAULT'));
+        $states = OrderState::getOrderStates((int) $this->getConfig('PS_LANG_DEFAULT'));
         foreach ($states as $state) {
             if (isset($state['name']) && in_array($state['name'], $translations)) {
                 return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int) $state['id_order_state']);

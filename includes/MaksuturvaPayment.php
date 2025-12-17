@@ -367,7 +367,7 @@ class MaksuturvaPayment
      */
     protected function decodeData($data)
     {
-        if (!isset($data) || !Tools::strlen((string) $data)) {
+        if (!Tools::strlen((string) $data)) {
             return [];
         }
 

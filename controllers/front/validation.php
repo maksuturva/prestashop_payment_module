@@ -94,7 +94,8 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             }
         }
 
-        if (!$cart || !$cart->id_customer || !$cart->id_address_delivery || !$cart->id_address_invoice) {
+        // and now handle "regular" return with browser
+        if (!Validate::isLoadedObject($cart) || !$cart->id_customer || !$cart->id_address_delivery || !$cart->id_address_invoice) {
             $this->doRedirect('order', ['step' => 1]);
         }
 
@@ -205,15 +206,11 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         // no existing order, proceed with order creation via module->validatePayment
         $mks_message = $module->validatePayment($cart, $customer, $params);
 
-        if (is_array($mks_message)) {
-            if ($mks_message['new_message'] === 'error') {
-                return [400, $mks_message['message']];
-            }
-
-            return [200, 'OK'];
+        if ($mks_message['new_message'] === 'error') {
+            return [400, $mks_message['message']];
         }
 
-        return [500, 'Unexpected error'];
+        return [200, 'OK'];
     }
 
     /**

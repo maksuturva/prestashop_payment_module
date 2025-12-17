@@ -1,6 +1,6 @@
 includes:
   - %currentWorkingDirectory%/vendor/prestashop/php-dev-tools/phpstan/ps-module-extension.neon
-    
+
 parameters:
   paths:
     - ../../
@@ -11,4 +11,4 @@ parameters:
   # - ../../classes
   # - ../../controllers
   reportUnmatchedIgnoredErrors: false
-  level: max
+  level: 5

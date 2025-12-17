@@ -297,8 +297,7 @@ abstract class MaksuturvaGatewayAbstract
         ];
 
         foreach ($delivery_fields as $k => $v) {
-            if ((!isset($this->payment_data[$k])) || mb_strlen(trim($this->payment_data[$k])) == 0
-                || is_null($this->payment_data[$k])
+            if ((!isset($this->payment_data[$k])) || mb_strlen(trim((string) $this->payment_data[$k])) == 0
             ) {
                 $this->payment_data[$k] = $this->payment_data[$v];
             }
@@ -584,7 +583,7 @@ abstract class MaksuturvaGatewayAbstract
     {
         /** @var string */
         $new_string = str_replace('"', '', $string);
-        if (!is_null($new_string) && mb_strlen($new_string) > 0) {
+        if (mb_strlen($new_string) > 0) {
             return $new_string;
         }
 

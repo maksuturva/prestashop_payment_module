@@ -33,7 +33,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
     protected $payment_init_success = false;
 
     /**
-     * @var array Gateway data for successful payment
+     * @var array<string, mixed> Gateway data for successful payment
      */
     protected $gateway_data = [];
 
@@ -85,7 +85,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
                 'gateway_url' => $gateway->getPaymentUrl(),
                 'gateway_fields' => $fields,
                 'cart_total' => $cart->getOrderTotal(true, Cart::BOTH),
-                'shop_name' => $this->context->shop->name,
+                'shop_name' => $this->context->shop ? $this->context->shop->name : '',
                 'csp_nonce' => $csp_nonce,
             ];
         } catch (Exception $e) {

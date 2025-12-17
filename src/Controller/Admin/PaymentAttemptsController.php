@@ -94,21 +94,27 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
 
     /**
      * Get filters from request
+     *
+     * @return array<string, string>
      */
     protected function getFilters(Request $request): array
     {
         return [
-            'cart_id' => $request->query->get('cart_id', ''),
-            'order_id' => $request->query->get('order_id', ''),
-            'pmt_id' => $request->query->get('pmt_id', ''),
-            'status' => $request->query->get('status', ''),
-            'date_from' => $request->query->get('date_from', ''),
-            'date_to' => $request->query->get('date_to', ''),
+            'cart_id' => (string) $request->query->get('cart_id', ''),
+            'order_id' => (string) $request->query->get('order_id', ''),
+            'pmt_id' => (string) $request->query->get('pmt_id', ''),
+            'status' => (string) $request->query->get('status', ''),
+            'date_from' => (string) $request->query->get('date_from', ''),
+            'date_to' => (string) $request->query->get('date_to', ''),
         ];
     }
 
     /**
      * Get payment attempts based on filters
+     *
+     * @param array<string, string> $filters
+     *
+     * @return array<int, array<string, mixed>>
      */
     protected function getPaymentAttempts(array $filters, int $page, int $pageSize): array
     {
@@ -123,7 +129,7 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
 
         $results = $db->executeS($query);
 
-        if (!$results) {
+        if (!is_array($results)) {
             return [];
         }
 
@@ -147,6 +153,8 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
 
     /**
      * Get total count of payment attempts based on filters
+     *
+     * @param array<string, string> $filters
      */
     protected function getTotalPaymentAttempts(array $filters): int
     {
@@ -162,6 +170,8 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
 
     /**
      * Apply filters to a query
+     *
+     * @param array<string, string> $filters
      */
     protected function applyFilters(\DbQuery $query, array $filters): void
     {
@@ -192,6 +202,8 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
 
     /**
      * Get status options for filter
+     *
+     * @return array<int|string, string>
      */
     protected function getStatusOptions(): array
     {
