@@ -92,10 +92,14 @@ class Maksuturva extends PaymentModule
     public function uninstall(): bool
     {
         if (!$this->deleteConfig()
+            || !$this->dropTables()
             || !parent::uninstall()
         ) {
             return false;
         }
+
+        // drop the payment attempts table
+
 
         return true;
     }
@@ -736,6 +740,13 @@ class Maksuturva extends PaymentModule
             KEY `idx_id_order` (`id_order`),
             KEY `idx_id_cart` (`id_cart`)
         ) ENGINE=' . bqSQL(_MYSQL_ENGINE_) . ' DEFAULT CHARSET=utf8';
+
+        return Db::getInstance()->execute($sql);
+    }
+
+    private function dropTables()
+    {
+        $sql = 'DROP TABLE IF EXISTS `' . bqSQL(_DB_PREFIX_) . 'mt_payment`';
 
         return Db::getInstance()->execute($sql);
     }
