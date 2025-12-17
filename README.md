@@ -1,3 +1,4 @@
+
 Svea payment module for PrestaShop
 ==================================
 
@@ -28,12 +29,13 @@ Development
 This module follow PrestaShop coding standards. Please run
 
 ```
-composer install --dev
-composer dump-autoload --optimize --no-dev --classmap-authoritative
-composer run autoindex
-composer run header-stamp
+composer install
 composer run lint
 composer run phpstan
+composer run header-stamp
+composer run autoindex
 ```
 
-Before committing your changes
+Before committing your changes.
+
+For more information about those tools see: https://github.com/PrestaShop/php-dev-tools

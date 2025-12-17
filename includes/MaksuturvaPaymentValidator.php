@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +20,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -28,15 +29,15 @@
  */
 class MaksuturvaPaymentValidator
 {
-    const ACTION_OK = 'ok';
-    const ACTION_DELAYED = 'delayed';
-    const ACTION_CANCEL = 'cancel';
-    const ACTION_ERROR = 'error';
+    public const ACTION_OK = 'ok';
+    public const ACTION_DELAYED = 'delayed';
+    public const ACTION_CANCEL = 'cancel';
+    public const ACTION_ERROR = 'error';
 
-    const STATUS_OK = 'ok';
-    const STATUS_DELAYED = 'delayed';
-    const STATUS_CANCEL = 'cancel';
-    const STATUS_ERROR = 'error';
+    public const STATUS_OK = 'ok';
+    public const STATUS_DELAYED = 'delayed';
+    public const STATUS_CANCEL = 'cancel';
+    public const STATUS_ERROR = 'error';
 
     /**
      * @var array all mandatory fields that must exist in the validated params

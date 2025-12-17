@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +20,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
@@ -32,7 +33,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
     protected $payment_init_success = false;
 
     /**
-     * @var array Gateway data for successful payment
+     * @var array<string, mixed> Gateway data for successful payment
      */
     protected $gateway_data = [];
 
@@ -50,11 +51,13 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
         // Validate cart and currency before creating payment attempt
         if (!Validate::isLoadedObject($cart)) {
             $this->redirectToOrder();
+
             return;
         }
 
         if (!$module->checkCurrency($cart)) {
             $this->redirectToOrder();
+
             return;
         }
 
@@ -62,6 +65,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
         $customer = new Customer($cart->id_customer);
         if (!Validate::isLoadedObject($customer)) {
             $this->redirectToOrder();
+
             return;
         }
 
@@ -81,7 +85,7 @@ class MaksuturvaPaymentModuleFrontController extends ModuleFrontController
                 'gateway_url' => $gateway->getPaymentUrl(),
                 'gateway_fields' => $fields,
                 'cart_total' => $cart->getOrderTotal(true, Cart::BOTH),
-                'shop_name' => $this->context->shop->name,
+                'shop_name' => $this->context->shop ? $this->context->shop->name : '',
                 'csp_nonce' => $csp_nonce,
             ];
         } catch (Exception $e) {

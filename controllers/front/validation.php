@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +20,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 class MaksuturvaValidationModuleFrontController extends ModuleFrontController
@@ -93,7 +94,8 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
             }
         }
 
-        if (!$cart || !$cart->id_customer || !$cart->id_address_delivery || !$cart->id_address_invoice) {
+        // and now handle "regular" return with browser
+        if (!Validate::isLoadedObject($cart) || !$cart->id_customer || !$cart->id_address_delivery || !$cart->id_address_invoice) {
             $this->doRedirect('order', ['step' => 1]);
         }
 
@@ -204,15 +206,11 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         // no existing order, proceed with order creation via module->validatePayment
         $mks_message = $module->validatePayment($cart, $customer, $params);
 
-        if (is_array($mks_message)) {
-            if ($mks_message['new_message'] === 'error') {
-                return [400, $mks_message['message']];
-            }
-
-            return [200, 'OK'];
+        if ($mks_message['new_message'] === 'error') {
+            return [400, $mks_message['message']];
         }
 
-        return [500, 'Unexpected error'];
+        return [200, 'OK'];
     }
 
     /**
@@ -229,7 +227,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         int $orderId,
         MaksuturvaPayment $paymentAttempt,
         $validator,
-        array $params
+        array $params,
     ): array {
         /** @var Maksuturva */
         $module = $this->module;

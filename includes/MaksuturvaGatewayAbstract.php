@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +20,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 
@@ -32,31 +33,31 @@
  */
 abstract class MaksuturvaGatewayAbstract
 {
-    const STATUS_QUERY_NOT_FOUND = '00';
-    const STATUS_QUERY_FAILED = '01';
-    const STATUS_QUERY_WAITING = '10';
-    const STATUS_QUERY_UNPAID = '11';
-    const STATUS_QUERY_UNPAID_DELIVERY = '15';
-    const STATUS_QUERY_PAID = '20';
-    const STATUS_QUERY_PAID_DELIVERY = '30';
-    const STATUS_QUERY_COMPENSATED = '40';
-    const STATUS_QUERY_PAYER_CANCELLED = '91';
-    const STATUS_QUERY_PAYER_CANCELLED_PARTIAL = '92';
-    const STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN = '93';
-    const STATUS_QUERY_PAYER_RECLAMATION = '95';
-    const STATUS_QUERY_CANCELLED = '99';
+    public const STATUS_QUERY_NOT_FOUND = '00';
+    public const STATUS_QUERY_FAILED = '01';
+    public const STATUS_QUERY_WAITING = '10';
+    public const STATUS_QUERY_UNPAID = '11';
+    public const STATUS_QUERY_UNPAID_DELIVERY = '15';
+    public const STATUS_QUERY_PAID = '20';
+    public const STATUS_QUERY_PAID_DELIVERY = '30';
+    public const STATUS_QUERY_COMPENSATED = '40';
+    public const STATUS_QUERY_PAYER_CANCELLED = '91';
+    public const STATUS_QUERY_PAYER_CANCELLED_PARTIAL = '92';
+    public const STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN = '93';
+    public const STATUS_QUERY_PAYER_RECLAMATION = '95';
+    public const STATUS_QUERY_CANCELLED = '99';
 
-    const EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED = 00;
-    const EXCEPTION_CODE_URL_GENERATION_ERRORS = 01;
-    const EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS = 02;
-    const EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100 = 03;
-    const EXCEPTION_CODE_FIELD_MISSING = 04;
-    const EXCEPTION_CODE_INVALID_ITEM = 05;
-    const EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED = 06;
-    const EXCEPTION_CODE_HASHES_DONT_MATCH = 07;
+    public const EXCEPTION_CODE_ALGORITHMS_NOT_SUPPORTED = 00;
+    public const EXCEPTION_CODE_URL_GENERATION_ERRORS = 01;
+    public const EXCEPTION_CODE_FIELD_ARRAY_GENERATION_ERRORS = 02;
+    public const EXCEPTION_CODE_REFERENCE_NUMBER_UNDER_100 = 03;
+    public const EXCEPTION_CODE_FIELD_MISSING = 04;
+    public const EXCEPTION_CODE_INVALID_ITEM = 05;
+    public const EXCEPTION_CODE_PHP_CURL_NOT_INSTALLED = 06;
+    public const EXCEPTION_CODE_HASHES_DONT_MATCH = 07;
 
-    const ROUTE_PAYMENT = '/NewPaymentExtended.pmt';
-    const ROUTE_STATUS_QUERY = '/PaymentStatusQuery.pmt';
+    public const ROUTE_PAYMENT = '/NewPaymentExtended.pmt';
+    public const ROUTE_STATUS_QUERY = '/PaymentStatusQuery.pmt';
 
     /**
      * @var string gateway URL for making new payments
@@ -121,37 +122,37 @@ abstract class MaksuturvaGatewayAbstract
      * @var array mandatory properties in the payment data
      */
     private static $mandatory_data = [
-        'pmt_action',               //alphanumeric  max-length: 50   min-length: 4   NEW_PAYMENT_EXTENDED
-        'pmt_version',              //alphanumeric  max-length: 4    min-length: 4   0004
-        'pmt_sellerid',             //alphanumeric  max-length: 15   -
-        'pmt_id',                   //alphanumeric  max-length: 20   -
-        'pmt_orderid',              //alphanumeric  max-length: 50   -
-        'pmt_reference',            //numeric       max-length: 20   min-length: 4   Reference number + check digit
-        'pmt_duedate',              //alphanumeric  max-length: 10   min-length: 10  dd.MM.yyyy
-        'pmt_amount',               //alphanumeric  max-length: 17   min-length: 4
-        'pmt_currency',             //alphanumeric  max-length: 3    min-length: 3   EUR
-        'pmt_okreturn',             //alphanumeric  max-length: 200  -
-        'pmt_errorreturn',          //alphanumeric  max-length: 200  -
-        'pmt_cancelreturn',         //alphanumeric  max-length: 200  -
-        'pmt_delayedpayreturn',     //alphanumeric  max-length: 200  -
-        'pmt_escrow',               //alpha         max-length: 1    min-length: 1   Maksuturva=Y, eMaksut=N
-        'pmt_escrowchangeallowed',  //alpha         max-length: 1    min-length: 1   N
-        'pmt_buyername',            //alphanumeric  max-length: 40   -
-        'pmt_buyeraddress',         //alphanumeric  max-length: 40   -
-        'pmt_buyerpostalcode',      //numeric       max-length: 5    -
-        'pmt_buyercity',            //alphanumeric  max-length: 40   -
-        'pmt_buyercountry',         //alpha         max-length: 2    -               Respecting the ISO 3166
-        'pmt_deliveryname',         //alphanumeric  max-length: 40   -
-        'pmt_deliveryaddress',      //alphanumeric  max-length: 40   -
-        'pmt_deliverypostalcode',   //numeric       max-length: 5    -
-        'pmt_deliverycountry',      //alpha         max-length: 2    -               Respecting the ISO 3166
-        'pmt_sellercosts',          //alphanumeric  max-length: 17   min-length: 4   n,nn
-        'pmt_rows',                 //numeric       max-length: 4    min-length: 1
-        'pmt_charset',              //alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
-        'pmt_charsethttp',          //alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
-        'pmt_hashversion',          //alphanumeric  max-length: 10   -               {SHA-512, SHA-256, SHA-1, MD5}
-        'pmt_keygeneration',        //numeric       max-length: 3    -
-//        'pmt_hash',                 //alphanumeric  max-length: 128  min-length: 32
+        'pmt_action',               // alphanumeric  max-length: 50   min-length: 4   NEW_PAYMENT_EXTENDED
+        'pmt_version',              // alphanumeric  max-length: 4    min-length: 4   0004
+        'pmt_sellerid',             // alphanumeric  max-length: 15   -
+        'pmt_id',                   // alphanumeric  max-length: 20   -
+        'pmt_orderid',              // alphanumeric  max-length: 50   -
+        'pmt_reference',            // numeric       max-length: 20   min-length: 4   Reference number + check digit
+        'pmt_duedate',              // alphanumeric  max-length: 10   min-length: 10  dd.MM.yyyy
+        'pmt_amount',               // alphanumeric  max-length: 17   min-length: 4
+        'pmt_currency',             // alphanumeric  max-length: 3    min-length: 3   EUR
+        'pmt_okreturn',             // alphanumeric  max-length: 200  -
+        'pmt_errorreturn',          // alphanumeric  max-length: 200  -
+        'pmt_cancelreturn',         // alphanumeric  max-length: 200  -
+        'pmt_delayedpayreturn',     // alphanumeric  max-length: 200  -
+        'pmt_escrow',               // alpha         max-length: 1    min-length: 1   Maksuturva=Y, eMaksut=N
+        'pmt_escrowchangeallowed',  // alpha         max-length: 1    min-length: 1   N
+        'pmt_buyername',            // alphanumeric  max-length: 40   -
+        'pmt_buyeraddress',         // alphanumeric  max-length: 40   -
+        'pmt_buyerpostalcode',      // numeric       max-length: 5    -
+        'pmt_buyercity',            // alphanumeric  max-length: 40   -
+        'pmt_buyercountry',         // alpha         max-length: 2    -               Respecting the ISO 3166
+        'pmt_deliveryname',         // alphanumeric  max-length: 40   -
+        'pmt_deliveryaddress',      // alphanumeric  max-length: 40   -
+        'pmt_deliverypostalcode',   // numeric       max-length: 5    -
+        'pmt_deliverycountry',      // alpha         max-length: 2    -               Respecting the ISO 3166
+        'pmt_sellercosts',          // alphanumeric  max-length: 17   min-length: 4   n,nn
+        'pmt_rows',                 // numeric       max-length: 4    min-length: 1
+        'pmt_charset',              // alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
+        'pmt_charsethttp',          // alphanumeric  max-length: 15   -               {ISO-8859-1, ISO-8859-15, UTF-8}
+        'pmt_hashversion',          // alphanumeric  max-length: 10   -               {SHA-512, SHA-256, SHA-1, MD5}
+        'pmt_keygeneration',        // numeric       max-length: 3    -
+        //        'pmt_hash',                 //alphanumeric  max-length: 128  min-length: 32
     ];
 
     /**
@@ -171,15 +172,15 @@ abstract class MaksuturvaGatewayAbstract
      * @var array mandatory properties for the payment data rows
      */
     private static $row_mandatory_data = [
-        'pmt_row_name',                  //alphanumeric  max-length: 40    -
-        'pmt_row_desc',                  //alphanumeric  max-length: 1000  min-length: 1
-        'pmt_row_quantity',              //numeric       max-length: 8     min-length: 1
-        'pmt_row_deliverydate',          //alphanumeric  max-length: 10    min-length: 10  dd.MM.yyyy
-        'pmt_row_price_gross',           //alphanumeric  max-length: 17    min-length: 4   n,nn
-        'pmt_row_price_net',             //alphanumeric  max-length: 17    min-length: 4   n,nn
-        'pmt_row_vat',                   //alphanumeric  max-length: 5     min-length: 4   n,nn
-        'pmt_row_discountpercentage',    //alphanumeric  max-length: 5     min-length: 4   n,nn
-        'pmt_row_type',                  //numeric       max-length: 5     min-length: 1
+        'pmt_row_name',                  // alphanumeric  max-length: 40    -
+        'pmt_row_desc',                  // alphanumeric  max-length: 1000  min-length: 1
+        'pmt_row_quantity',              // numeric       max-length: 8     min-length: 1
+        'pmt_row_deliverydate',          // alphanumeric  max-length: 10    min-length: 10  dd.MM.yyyy
+        'pmt_row_price_gross',           // alphanumeric  max-length: 17    min-length: 4   n,nn
+        'pmt_row_price_net',             // alphanumeric  max-length: 17    min-length: 4   n,nn
+        'pmt_row_vat',                   // alphanumeric  max-length: 5     min-length: 4   n,nn
+        'pmt_row_discountpercentage',    // alphanumeric  max-length: 5     min-length: 4   n,nn
+        'pmt_row_type',                  // numeric       max-length: 5     min-length: 1
     ];
 
     /**
@@ -223,7 +224,7 @@ abstract class MaksuturvaGatewayAbstract
         'pmt_deliverycity',
         'pmt_deliverycountry',
         'pmt_sellercosts',
-        //'pmt_row_* fields in specified order, one row at a time',
+        // 'pmt_row_* fields in specified order, one row at a time',
         // '<merchant’s secret key >'
     ];
 
@@ -296,8 +297,7 @@ abstract class MaksuturvaGatewayAbstract
         ];
 
         foreach ($delivery_fields as $k => $v) {
-            if ((!isset($this->payment_data[$k])) || mb_strlen(trim($this->payment_data[$k])) == 0
-                || is_null($this->payment_data[$k])
+            if ((!isset($this->payment_data[$k])) || mb_strlen(trim((string) $this->payment_data[$k])) == 0
             ) {
                 $this->payment_data[$k] = $this->payment_data[$v];
             }
@@ -411,13 +411,13 @@ abstract class MaksuturvaGatewayAbstract
         $sum = 0;
         $j = 0;
         for ($i = mb_strlen($str) - 1; $i >= 0; --$i) {
-            $sum += (int) mb_substr($str, $i, 1) * (int) ($multiples[$j % 3]);
+            $sum += (int) mb_substr($str, $i, 1) * (int) $multiples[$j % 3];
             ++$j;
         }
 
         $next_ten = ceil((int) $sum / 10) * 10;
 
-        return $str . (string) (abs($next_ten - $sum));
+        return $str . (string) abs($next_ten - $sum);
     }
 
     /**
@@ -457,8 +457,8 @@ abstract class MaksuturvaGatewayAbstract
             }
 
             // Test the validity of data as well, when the field exists.
-            if (isset($this->status_query_data[$field]) &&
-                ($data[$field] != $this->status_query_data[$field])
+            if (isset($this->status_query_data[$field])
+                && ($data[$field] != $this->status_query_data[$field])
             ) {
                 return false;
             }
@@ -583,7 +583,7 @@ abstract class MaksuturvaGatewayAbstract
     {
         /** @var string */
         $new_string = str_replace('"', '', $string);
-        if (!is_null($new_string) && mb_strlen($new_string) > 0) {
+        if (mb_strlen($new_string) > 0) {
             return $new_string;
         }
 

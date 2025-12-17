@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,13 +20,13 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
 {
-    const SANDBOX_SELLER_ID = 'testikauppias';
-    const SANDBOX_SECRET_KEY = '11223344556677889900';
+    public const SANDBOX_SELLER_ID = 'testikauppias';
+    public const SANDBOX_SECRET_KEY = '11223344556677889900';
 
     public $module;
     private $order_total = 0.00;
@@ -37,7 +38,7 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
      */
     private $paymentAttempt;
 
-    public function __construct(Maksuturva $module, Cart $order, MaksuturvaPayment $paymentAttempt = null)
+    public function __construct(Maksuturva $module, Cart $order, ?MaksuturvaPayment $paymentAttempt = null)
     {
         $this->module = $module;
         $this->paymentAttempt = $paymentAttempt;

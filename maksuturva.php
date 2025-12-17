@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,14 +20,14 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-if ((basename(__FILE__) === 'maksuturva.php')) {
+if (basename(__FILE__) === 'maksuturva.php') {
     $module_dir = dirname(__FILE__);
     require_once $module_dir . '/includes/MaksuturvaException.php';
     require_once $module_dir . '/includes/MaksuturvaGatewayException.php';
@@ -269,8 +270,8 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAID_DELIVERY:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_COMPENSATED:
-                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_PAYMENT')) {
-                                $order->setCurrentState($this->getConfig('PS_OS_PAYMENT'));
+                            if ($order->getCurrentState() !== (int) $this->getConfig('PS_OS_PAYMENT')) {
+                                $order->setCurrentState((int) $this->getConfig('PS_OS_PAYMENT'));
                             }
                             $payment->complete();
                             $msg = $this->l('The payment confirmation was received - payment accepted');
@@ -281,8 +282,8 @@ class Maksuturva extends PaymentModule
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_CANCELLED_PARTIAL_RETURN:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_PAYER_RECLAMATION:
                         case MaksuturvaGatewayImplementation::STATUS_QUERY_CANCELLED:
-                            if ($order->getCurrentState() !== $this->getConfig('PS_OS_CANCELED')) {
-                                $order->setCurrentState($this->getConfig('PS_OS_CANCELED'));
+                            if ($order->getCurrentState() !== (int) $this->getConfig('PS_OS_CANCELED')) {
+                                $order->setCurrentState((int) $this->getConfig('PS_OS_CANCELED'));
                             }
                             $payment->cancel();
                             $msg = $this->l('The payment was canceled in Maksuturva');
@@ -752,7 +753,7 @@ class Maksuturva extends PaymentModule
             'fi' => 'Odottaa vahvistusta Maksuturvalta',
         ];
 
-        $states = OrderState::getOrderStates($this->getConfig('PS_LANG_DEFAULT'));
+        $states = OrderState::getOrderStates((int) $this->getConfig('PS_LANG_DEFAULT'));
         foreach ($states as $state) {
             if (isset($state['name']) && in_array($state['name'], $translations)) {
                 return $this->setConfig('MAKSUTURVA_OS_AUTHORIZATION', (int) $state['id_order_state']);
@@ -846,7 +847,7 @@ class Maksuturva extends PaymentModule
                             'label' => $this->l('Communication URL'),
                             'name' => 'MAKSUTURVA_URL',
                             'required' => true,
-                            'desc' => 'https://test1.maksuturva.fi/' . ', ' . $this->l('for testing'),
+                            'desc' => 'https://test1.maksuturva.fi/, ' . $this->l('for testing'),
                         ],
                         [
                             'type' => 'text',
