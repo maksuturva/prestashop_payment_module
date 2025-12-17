@@ -1,0 +1,17 @@
+maksuturva_payment_attempts:
+  path: /maksuturva/payment-attempts
+  methods: [GET]
+  defaults:
+    _controller: 'Maksuturva\Controller\Admin\PaymentAttemptsController::indexAction'
+    _legacy_controller: AdminMaksuturvaPaymentAttempts
+    _legacy_link: AdminMaksuturvaPaymentAttempts
+
+maksuturva_payment_attempt_view:
+  path: /maksuturva/payment-attempts/{id}
+  methods: [GET]
+  defaults:
+    _controller: 'Maksuturva\Controller\Admin\PaymentAttemptsController::viewAction'
+    _legacy_controller: AdminMaksuturvaPaymentAttempts
+    _legacy_link: AdminMaksuturvaPaymentAttempts:view
+  requirements:
+    id: \d+

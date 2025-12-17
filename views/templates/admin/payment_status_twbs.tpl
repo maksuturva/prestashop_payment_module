@@ -41,7 +41,7 @@
 
         {if isset($mt_payment_attempts)}
             <h4>{l s='Payment Attempts' mod='maksuturva'}</h4>
-            <p class="text-muted">{l s='This order had multiple payment attempts:' mod='maksuturva'}</p>
+            <p class="text-muted">{l s='Payment attempts for this order:' mod='maksuturva'}</p>
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
