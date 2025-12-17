@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,14 +20,14 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-if ((basename(__FILE__) === 'maksuturva.php')) {
+if (basename(__FILE__) === 'maksuturva.php') {
     $module_dir = dirname(__FILE__);
     require_once $module_dir . '/includes/MaksuturvaException.php';
     require_once $module_dir . '/includes/MaksuturvaGatewayException.php';
@@ -846,7 +847,7 @@ class Maksuturva extends PaymentModule
                             'label' => $this->l('Communication URL'),
                             'name' => 'MAKSUTURVA_URL',
                             'required' => true,
-                            'desc' => 'https://test1.maksuturva.fi/' . ', ' . $this->l('for testing'),
+                            'desc' => 'https://test1.maksuturva.fi/, ' . $this->l('for testing'),
                         ],
                         [
                             'type' => 'text',

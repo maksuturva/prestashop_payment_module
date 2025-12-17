@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -19,7 +20,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  */
 if (!defined('_PS_VERSION_')) {
@@ -41,5 +42,5 @@ function upgrade_module_2_2_0($module)
         && $module->registerhook('displayAdminOrder')
         && $module->registerhook('displayOrderDetail')
         && $module->registerhook('actionPDFInvoiceRender')
-        ;
+    ;
 }
