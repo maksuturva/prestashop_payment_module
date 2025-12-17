@@ -16,7 +16,7 @@
         "preferred-install": "dist"
     },
     "require-dev": {
-        "prestashop/php-dev-tools": "^4.3",
+        "prestashop/php-dev-tools": "^5.0",
         "prestashop/phpstan-prestashop": "^2.0"
     },
     "scripts": {
