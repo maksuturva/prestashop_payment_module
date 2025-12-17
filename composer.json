@@ -3,16 +3,17 @@
     "description": "Svea payments integration for PrestaShop",
     "type": "prestashop-module",
     "autoload": {
-	"psr-4": {
-	},
-	"classmap": [
-	    "maksuturva.php"
-	],
-	"exclude-from-classmap": []
+        "psr-4": {
+            "Maksuturva\\": "src/"
+        },
+        "classmap": [
+            "maksuturva.php"
+        ],
+        "exclude-from-classmap": []
     },
     "config": {
-	"prepend-autoloader": false,
-	"preferred-install": "dist"
+        "prepend-autoloader": false,
+        "preferred-install": "dist"
     },
     "require-dev": {
         "prestashop/php-dev-tools": "^4.3",
@@ -25,5 +26,5 @@
         "phpstan": "_PS_ROOT_DIR_=../../ ./vendor/bin/phpstan analyse --memory-limit 1G"
     },
     "author": "PrestaShop",
-    "license": "OSL-3.0"
+    "license": "LGPL-2.1-only"
 }
