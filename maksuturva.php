@@ -702,7 +702,7 @@ class Maksuturva extends PaymentModule
             && $this->setConfig('MAKSUTURVA_SECRET_KEY_VERSION', '001')
             && $this->setConfig('MAKSUTURVA_URL', 'https://www.maksuturva.fi')
             && $this->setConfig('MAKSUTURVA_PMT_ID_PREFIX', '')
-            && $this->setConfig('MAKSUTURVA_SANDBOX', '1');
+            && $this->setConfig('MAKSUTURVA_SANDBOX', '0');
     }
 
     /**
