@@ -603,7 +603,7 @@ abstract class MaksuturvaGatewayAbstract
             }
         }
 
-        if ($clean_string !== null && $clean_string !== '' && mb_strlen($clean_string) > 0) {
+        if ($clean_string !== null && $clean_string !== '') {
             return $clean_string;
         }
 
