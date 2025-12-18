@@ -39,17 +39,21 @@ function upgrade_module_3_0_0($module)
     $db = Db::getInstance();
     $table = _DB_PREFIX_ . 'mt_payment';
 
-    // Check if id_cart column exists, if not add it
+    // Check existing table structure
     $columns = $db->executeS('SHOW COLUMNS FROM `' . bqSQL($table) . '`');
-    $has_id_cart = false;
-    $has_attempt = false;
-    $has_pmt_id = false;
-
     if (!is_array($columns)) {
         return false;
     }
 
+    $has_id_mt_payment = false;
+    $has_id_cart = false;
+    $has_attempt = false;
+    $has_pmt_id = false;
+
     foreach ($columns as $column) {
+        if ($column['Field'] === 'id_mt_payment') {
+            $has_id_mt_payment = true;
+        }
         if ($column['Field'] === 'id_cart') {
             $has_id_cart = true;
         }
@@ -58,6 +62,14 @@ function upgrade_module_3_0_0($module)
         }
         if ($column['Field'] === 'pmt_id') {
             $has_pmt_id = true;
+        }
+    }
+
+    // Add id_mt_payment as auto-increment primary key
+    if (!$has_id_mt_payment) {
+        // Add new primary key column
+        if (!$db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD COLUMN `id_mt_payment` int(10) unsigned NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id_mt_payment`)')) {
+            return false;
         }
     }
 
@@ -80,7 +92,7 @@ function upgrade_module_3_0_0($module)
         }
     }
 
-    // Update id_cart from orders table where it's 0 or NULL
+    // Update id_cart from orders table
     $db->execute(
         'UPDATE `' . bqSQL($table) . '` p
          INNER JOIN `' . bqSQL(_DB_PREFIX_) . 'orders` o ON o.id_order = p.id_order
@@ -88,49 +100,21 @@ function upgrade_module_3_0_0($module)
          WHERE p.id_cart = 0 OR p.id_cart IS NULL'
     );
 
-    // Get all rows to update pmt_id
-    $query = new DbQuery();
-    $query->select('id_mt_payment, id_order, id_cart, data_sent, pmt_id');
-    $query->from('mt_payment');
-
-    $rows = $db->executeS($query);
-    if ($rows === false) {
-        return false;
+    // Generate pmt_id for old records (from v2.3.0) where it's empty
+    // Old records had id_order as primary key, so one payment per order
+    // Generate pmt_id based on order_id to ensure uniqueness
+    $prefix = (string) Configuration::get('MAKSUTURVA_PMT_ID_PREFIX');
+    if (empty($prefix)) {
+        $prefix = '';
     }
 
-    // Update each row with proper pmt_id
-    /*
-    foreach ($rows as $row) {
-        // Skip if pmt_id is already set
-        if (!empty($row['pmt_id'])) {
-            continue;
-        }
+    $db->execute(
+        'UPDATE `' . bqSQL($table) . '`
+         SET pmt_id = CONCAT(\'' . pSQL($prefix) . '\', id_order)
+         WHERE pmt_id = \'\' OR pmt_id IS NULL'
+    );
 
-        $id_order = (int) $row['id_order'];
-        $id_cart = (int) $row['id_cart'];
-        $data_sent = isset($row['data_sent']) ? $row['data_sent'] : '';
-
-        // Try to extract pmt_id from data_sent JSON
-        $decoded = json_decode($data_sent, true);
-        if (is_array($decoded) && isset($decoded['pmt_id'])) {
-            $pmt_id = $decoded['pmt_id'];
-        } else {
-            // Generate pmt_id from cart or order ID
-            $prefix = (string) Configuration::get('MAKSUTURVA_PMT_ID_PREFIX');
-            $base = $id_cart > 0 ? $id_cart : $id_order;
-            $pmt_id = (string) $prefix . ((int) $base + 100);
-        }
-
-        // Update the row
-        $db->update(
-            'mt_payment',
-            ['pmt_id' => pSQL($pmt_id)],
-            'id_mt_payment = ' . (int) $row['id_mt_payment']
-        );
-    }
-    */
-
-    // Add indexes if they don't exist (ignore errors if they already exist)
+    // Add indexes
     $indexes = $db->executeS('SHOW INDEX FROM `' . bqSQL($table) . '`');
     $existing_indexes = [];
     if (is_array($indexes)) {
@@ -139,19 +123,20 @@ function upgrade_module_3_0_0($module)
         }
     }
 
-    if (!in_array('uniq_pmt_id', $existing_indexes)) {
-        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD UNIQUE KEY `uniq_pmt_id` (`pmt_id`)');
+    if (!in_array('idx_pmt_id', $existing_indexes)) {
+        // Use regular index instead of unique since we're dealing with historical data
+        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD INDEX `idx_pmt_id` (`pmt_id`)');
     }
 
     if (!in_array('idx_id_order', $existing_indexes)) {
-        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD KEY `idx_id_order` (`id_order`)');
+        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD INDEX `idx_id_order` (`id_order`)');
     }
 
     if (!in_array('idx_id_cart', $existing_indexes)) {
-        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD KEY `idx_id_cart` (`id_cart`)');
+        $db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD INDEX `idx_id_cart` (`id_cart`)');
     }
 
-    // Remove deprecated MAKSUTURVA_ENCODING setting (now hardcoded to UTF-8)
+    // Remove deprecated encoding setting
     Configuration::deleteByName('MAKSUTURVA_ENCODING');
 
     return true;
