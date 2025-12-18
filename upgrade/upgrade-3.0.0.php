@@ -102,7 +102,7 @@ function upgrade_module_3_0_0($module)
         }
     }
 
-    // Update id_cart from orders table
+    // Backfill id_cart from orders table
     $db->execute(
         'UPDATE `' . bqSQL($table) . '` p
          INNER JOIN `' . bqSQL(_DB_PREFIX_) . 'orders` o ON o.id_order = p.id_order
@@ -110,17 +110,21 @@ function upgrade_module_3_0_0($module)
          WHERE p.id_cart = 0 OR p.id_cart IS NULL'
     );
 
-    // Generate pmt_id for old records (from v2.3.0) where it's empty
-    // Old records had id_order as primary key, so one payment per order
-    // Generate pmt_id based on order_id to ensure uniqueness
-    $prefix = (string) Configuration::get('MAKSUTURVA_PMT_ID_PREFIX');
-    if (empty($prefix)) {
-        $prefix = '';
-    }
-
+    // Backfill pmt_id for old records (from v2.3.0)
+    // Extract pmt_id from JSON data_sent field
     $db->execute(
         'UPDATE `' . bqSQL($table) . '`
-         SET pmt_id = CONCAT(\'' . pSQL($prefix) . '\', id_cart*100)
+         SET pmt_id = JSON_UNQUOTE(JSON_EXTRACT(data_sent, \'$.pmt_id\'))
+         WHERE (pmt_id = \'\' OR pmt_id IS NULL)
+           AND data_sent IS NOT NULL
+           AND JSON_EXTRACT(data_sent, \'$.pmt_id\') IS NOT NULL'
+    );
+
+    // Fallback: for any rows that still don't have pmt_id (malformed JSON or missing field),
+    // generate a unique one using id_mt_payment with a recognizable prefix
+    $db->execute(
+        'UPDATE `' . bqSQL($table) . '`
+         SET pmt_id = CONCAT(\'MIGRATED_\', id_mt_payment)
          WHERE pmt_id = \'\' OR pmt_id IS NULL'
     );
 
