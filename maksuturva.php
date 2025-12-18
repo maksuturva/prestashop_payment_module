@@ -98,9 +98,6 @@ class Maksuturva extends PaymentModule
             return false;
         }
 
-        // drop the payment attempts table
-
-
         return true;
     }
 
