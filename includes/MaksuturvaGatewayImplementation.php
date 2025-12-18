@@ -83,17 +83,17 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             'pmt_cancelreturn' => $module->getPaymentUrl(['cancel' => 1]),
             'pmt_delayedpayreturn' => $module->getPaymentUrl(['delayed' => 1]),
             'pmt_amount' => $this->filterPrice($this->order_total),
-            'pmt_buyername' => $buyer_data['name'],
-            'pmt_buyeraddress' => $buyer_data['address'],
+            'pmt_buyername' => $this->filterCharacters($buyer_data['name']),
+            'pmt_buyeraddress' => $this->filterCharacters($buyer_data['address']),
             'pmt_buyerpostalcode' => $buyer_data['postal_code'],
-            'pmt_buyercity' => $buyer_data['city'],
+            'pmt_buyercity' => $this->filterCharacters($buyer_data['city']),
             'pmt_buyercountry' => $buyer_data['country'],
             'pmt_buyeremail' => $customer->email,
             'pmt_escrow' => 'Y',
-            'pmt_deliveryname' => $delivery_data['name'],
-            'pmt_deliveryaddress' => $delivery_data['address'],
+            'pmt_deliveryname' => $this->filterCharacters($delivery_data['name']),
+            'pmt_deliveryaddress' => $this->filterCharacters($delivery_data['address']),
             'pmt_deliverypostalcode' => $delivery_data['postal_code'],
-            'pmt_deliverycity' => $delivery_data['city'],
+            'pmt_deliverycity' => $this->filterCharacters($delivery_data['city']),
             'pmt_deliverycountry' => $delivery_data['country'],
             'pmt_sellercosts' => $this->filterPrice($this->seller_costs),
             'pmt_rows' => count($payment_row_data),
@@ -117,9 +117,9 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             $payment_row_product['pmt_row_quantity'] = $product['cart_quantity'];
 
             if (isset($product['reference']) && !empty($product['reference'])) {
-                $payment_row_product['pmt_row_articlenr'] = $product['reference'];
+                $payment_row_product['pmt_row_articlenr'] = $this->filterCharacters($product['reference']);
             } elseif (isset($product['ean13']) && !empty($product['ean13'])) {
-                $payment_row_product['pmt_row_articlenr'] = $product['ean13'];
+                $payment_row_product['pmt_row_articlenr'] = $this->filterCharacters($product['ean13']);
             }
 
             $payment_row_product['pmt_row_deliverydate'] = date('d.m.Y');
@@ -177,8 +177,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
             $shipping_vat = (($order_details['total_shipping'] / $order_details['total_shipping_tax_exc']) - 1) * 100;
 
             return [
-                'pmt_row_name' => trim($row_name),
-                'pmt_row_desc' => trim($row_name),
+                'pmt_row_name' => $this->filterCharacters(trim($row_name)),
+                'pmt_row_desc' => $this->filterCharacters(trim($row_name)),
                 'pmt_row_quantity' => 1,
                 'pmt_row_deliverydate' => date('d.m.Y'),
                 'pmt_row_price_gross' => $this->filterPrice($order_details['total_shipping']),
@@ -252,8 +252,8 @@ class MaksuturvaGatewayImplementation extends MaksuturvaGatewayAbstract
                 $row_desc = (!empty($discount['description']) ? $discount['description'] : $module->l('Discounts'));
 
                 $payment_rows_discount[] = [
-                    'pmt_row_name' => $row_name,
-                    'pmt_row_desc' => $row_desc,
+                    'pmt_row_name' => $this->filterCharacters($row_name),
+                    'pmt_row_desc' => $this->filterCharacters($row_desc),
                     'pmt_row_quantity' => 1,
                     'pmt_row_deliverydate' => date('d.m.Y'),
                     'pmt_row_price_gross' => $this->filterPrice($discount_value),

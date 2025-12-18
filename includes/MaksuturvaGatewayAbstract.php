@@ -573,7 +573,9 @@ abstract class MaksuturvaGatewayAbstract
     /**
      * Helper function to filter out problematic characters.
      *
-     * So far only quotation marks have been needed to filter out.
+     * Svea Payments accepts Latin-1 (ISO-8859-1) characters despite claiming UTF-8 support.
+     * This method preserves Nordic characters (ö, ä, å, etc.) and transliterates or removes
+     * characters outside Latin-1 range (Greek letters, mathematical symbols, etc.).
      *
      * @param string $string
      *
@@ -581,10 +583,28 @@ abstract class MaksuturvaGatewayAbstract
      */
     public function filterCharacters($string)
     {
-        /** @var string */
-        $new_string = str_replace('"', '', $string);
-        if (mb_strlen($new_string) > 0) {
-            return $new_string;
+        // First remove quotes
+        $string = str_replace('"', '', $string);
+
+        // Convert to Latin-1, preserving Nordic characters (ö, ä, å, etc.)
+        // TRANSLIT attempts to convert characters (Σ → S, etc.), IGNORE removes unconvertible ones
+        $latin1_string = iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $string);
+
+        // iconv may return false on error, fall back to original string with quotes removed
+        if ($latin1_string === false) {
+            $latin1_string = $string;
+            // Remove characters outside printable ASCII + Latin-1 extended range
+            $clean_string = preg_replace('/[^\x20-\x7E\x80-\xFF]/', '', $latin1_string);
+        } else {
+            // Convert back to UTF-8 for storage
+            $clean_string = iconv('ISO-8859-1', 'UTF-8', $latin1_string);
+            if ($clean_string === false) {
+                $clean_string = $latin1_string;
+            }
+        }
+
+        if ($clean_string !== null && $clean_string !== '' && mb_strlen($clean_string) > 0) {
+            return $clean_string;
         }
 
         return ' ';

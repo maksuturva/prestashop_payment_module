@@ -40,6 +40,7 @@ Major overhaul and M2M callback support!
 - CURLOPT_SSL_VERIFYPEER true
 - Fixed some comments and phpstan
 - More type hints and PHPDocs
+- Fix more characters that are not allowed in Svea (try to transliterate)
 
 ## [2.3.0] - 13.11.2023
 - PrestaShop 8.1 support
