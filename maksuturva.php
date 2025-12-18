@@ -156,18 +156,29 @@ class Maksuturva extends PaymentModule
             return [];
         }
 
-        // Don't create pmt_id yet - only when customer commits by clicking Pay
-        // This prevents wasted pmt_ids when customers just browse payment options
+        // Check if settings are valid before showing payment option
+        // Only show if sandbox is enabled OR all required settings are set
+        if (!$this->isSandbox() && (empty($this->getSellerId()) || empty($this->getSecretKey()) || empty($this->getSecretKeyVersion()))) {
+            return [];
+        }
+
+        // Build the payment option
         $action = $this->context->link->getModuleLink($this->name, 'payment', [], true);
 
         $pw_image_url = $this->getPathSSL() . 'views/img/Svea_logo.png';
+
+        // Add sandbox indicator to payment method name if in sandbox mode
+        $payment_name = $this->l('Maksuturva');
+        if ($this->isSandbox()) {
+            $payment_name .= ' ' . $this->l('(SANDBOX MODE)');
+        }
 
         $newOption = new PrestaShop\PrestaShop\Core\Payment\PaymentOption();
         /** @var string */
         $moduleName = $this->name;
         $newOption->setModuleName($moduleName)
             ->setAction($action)
-            ->setCallToActionText($this->l('Maksuturva'))
+            ->setCallToActionText($payment_name)
             ->setAdditionalInformation('<img src=' . $pw_image_url . ' class="img-fluid img-responsive"');
 
         return [$newOption];
