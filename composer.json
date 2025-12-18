@@ -15,9 +15,6 @@
         "prepend-autoloader": false,
         "preferred-install": "dist"
     },
-    "require": {
-        "php": ">=8.1"
-    },
     "require-dev": {
         "prestashop/php-dev-tools": "^5.0",
         "friendsofphp/php-cs-fixer": "^3.92",

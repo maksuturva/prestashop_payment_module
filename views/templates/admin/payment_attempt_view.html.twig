@@ -93,6 +93,10 @@
                             <td><code>{{ payment.pmt_id }}</code></td>
                         </tr>
                         <tr>
+                            <th>{{ 'Payment Reference'|trans({}, 'Modules.Maksuturva.Admin') }}</th>
+                            <td><code>{{ payment.pmt_reference }}</code></td>
+                        </tr>
+                        <tr>
                             <th>{{ 'Status'|trans({}, 'Admin.Global') }}</th>
                             <td><span class="badge badge-secondary">{{ payment.status }}</span></td>
                         </tr>

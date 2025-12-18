@@ -98,9 +98,6 @@ class Maksuturva extends PaymentModule
             return false;
         }
 
-        // drop the payment attempts table
-
-
         return true;
     }
 
@@ -112,16 +109,20 @@ class Maksuturva extends PaymentModule
         $html .= $this->displayForm();
 
         // Add link to payment attempts viewer
-        $attempts_url = $this->get('router')->generate('maksuturva_payment_attempts');
-        $html .= '<div class="alert alert-info">';
-        $html .= '<i class="icon-search"></i> ';
-        $html .= '<a href="' . $attempts_url . '" class="btn btn-default btn-sm pull-right">';
-        $html .= '<i class="icon-list"></i> ' . $this->l('View Payment Attempts');
-        $html .= '</a>';
-        $html .= '<strong>' . $this->l('Payment Attempts Viewer') . '</strong><br>';
-        $html .= $this->l('View and search all payment attempts, including failed and canceled payments.');
-        $html .= '<div class="clearfix"></div>';
-        $html .= '</div>';
+        try {
+            $attempts_url = $this->get('router')->generate('maksuturva_payment_attempts');
+            $html .= '<div class="alert alert-info">';
+            $html .= '<i class="icon-search"></i> ';
+            $html .= '<a href="' . $attempts_url . '" class="btn btn-default btn-sm pull-right">';
+            $html .= '<i class="icon-list"></i> ' . $this->l('View Payment Attempts');
+            $html .= '</a>';
+            $html .= '<strong>' . $this->l('Payment Attempts Viewer') . '</strong><br>';
+            $html .= $this->l('View and search all payment attempts, including failed and canceled payments.');
+            $html .= '<div class="clearfix"></div>';
+            $html .= '</div>';
+        } catch (Exception $e) {
+            // Router service not available, likely older prestasthop. Skip adding the link.
+        }
 
         return $html;
     }
@@ -351,6 +352,7 @@ class Maksuturva extends PaymentModule
             $attempts[] = [
                 'attempt' => $p->getAttempt(),
                 'pmt_id' => $p->getPmtId(),
+                'pmt_reference' => $p->getPmtReference(),
                 'status' => $attemptStatus,
                 'date' => $p->getDateAdd(),
             ];
@@ -359,7 +361,8 @@ class Maksuturva extends PaymentModule
         $smarty->assign([
             'this_path' => $this->getPath(),
             'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
-            'mt_pmt_id' => $payment->getPmtReference(),
+            'mt_pmt_id' => $payment->getPmtId(),
+            'mt_pmt_reference' => $payment->getPmtReference(),
             'mt_pmt_status_message' => $msg,
             'mt_pmt_class' => $class,
             'mt_payment_attempts' => $attempts,

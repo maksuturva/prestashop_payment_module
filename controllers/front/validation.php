@@ -223,12 +223,8 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
      *
      * @return array [status_code, message]
      */
-    private function updateExistingOrder(
-        int $orderId,
-        MaksuturvaPayment $paymentAttempt,
-        $validator,
-        array $params,
-    ): array {
+    private function updateExistingOrder(int $orderId, MaksuturvaPayment $paymentAttempt, $validator, array $params): array
+    {
         /** @var Maksuturva */
         $module = $this->module;
 
