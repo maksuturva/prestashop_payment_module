@@ -120,7 +120,7 @@ function upgrade_module_3_0_0($module)
 
     $db->execute(
         'UPDATE `' . bqSQL($table) . '`
-         SET pmt_id = CONCAT(\'' . pSQL($prefix) . '\', id_order)
+         SET pmt_id = CONCAT(\'' . pSQL($prefix) . '\', id_cart*100)
          WHERE pmt_id = \'\' OR pmt_id IS NULL'
     );
 
