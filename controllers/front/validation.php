@@ -227,7 +227,7 @@ class MaksuturvaValidationModuleFrontController extends ModuleFrontController
         int $orderId,
         MaksuturvaPayment $paymentAttempt,
         $validator,
-        array $params,
+        array $params
     ): array {
         /** @var Maksuturva */
         $module = $this->module;

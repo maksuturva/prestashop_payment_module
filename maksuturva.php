@@ -112,16 +112,20 @@ class Maksuturva extends PaymentModule
         $html .= $this->displayForm();
 
         // Add link to payment attempts viewer
-        $attempts_url = $this->get('router')->generate('maksuturva_payment_attempts');
-        $html .= '<div class="alert alert-info">';
-        $html .= '<i class="icon-search"></i> ';
-        $html .= '<a href="' . $attempts_url . '" class="btn btn-default btn-sm pull-right">';
-        $html .= '<i class="icon-list"></i> ' . $this->l('View Payment Attempts');
-        $html .= '</a>';
-        $html .= '<strong>' . $this->l('Payment Attempts Viewer') . '</strong><br>';
-        $html .= $this->l('View and search all payment attempts, including failed and canceled payments.');
-        $html .= '<div class="clearfix"></div>';
-        $html .= '</div>';
+        try {
+            $attempts_url = $this->get('router')->generate('maksuturva_payment_attempts');
+            $html .= '<div class="alert alert-info">';
+            $html .= '<i class="icon-search"></i> ';
+            $html .= '<a href="' . $attempts_url . '" class="btn btn-default btn-sm pull-right">';
+            $html .= '<i class="icon-list"></i> ' . $this->l('View Payment Attempts');
+            $html .= '</a>';
+            $html .= '<strong>' . $this->l('Payment Attempts Viewer') . '</strong><br>';
+            $html .= $this->l('View and search all payment attempts, including failed and canceled payments.');
+            $html .= '<div class="clearfix"></div>';
+            $html .= '</div>';
+        } catch (Exception $e) {
+            // Router service not available, likely older prestasthop. Skip adding the link.
+        }
 
         return $html;
     }
