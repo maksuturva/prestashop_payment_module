@@ -81,6 +81,7 @@ class PaymentAttemptsController extends FrameworkBundleAdminController
                     'order_id' => $payment->getOrderId(),
                     'attempt' => $payment->getAttempt(),
                     'pmt_id' => $payment->getPmtId(),
+                    'pmt_reference' => $payment->getPmtReference(),
                     'status' => $this->getStatusLabel($payment->getStatus()),
                     'date_add' => $payment->getDateAdd(),
                 ],

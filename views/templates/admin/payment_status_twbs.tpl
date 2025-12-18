@@ -30,6 +30,7 @@
     <div class="{$mt_pmt_class}">
         <div class="alert alert-info">
             <strong>{l s='Payment ID' mod='maksuturva'}:</strong> {$mt_pmt_id|escape:'html':'UTF-8'}<br>
+            <strong>{l s='Payment Reference' mod='maksuturva'}:</strong> {$mt_pmt_reference|escape:'html':'UTF-8'}<br>
             <strong>{l s='Status' mod='maksuturva'}:</strong> {$mt_pmt_status_message|escape:'html':'UTF-8'}
         </div>
 
@@ -40,14 +41,14 @@
         {/if}
 
         {if isset($mt_payment_attempts)}
-            <h4>{l s='Payment Attempts' mod='maksuturva'}</h4>
-            <p class="text-muted">{l s='Payment attempts for this order:' mod='maksuturva'}</p>
+            <h4>{l s='Payment Attempts for this order' mod='maksuturva'}</h4>
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
                         <tr>
                             <th>{l s='Attempt' mod='maksuturva'}</th>
                             <th>{l s='Payment ID' mod='maksuturva'}</th>
+                            <th>{l s='Payment Reference' mod='maksuturva'}</th>
                             <th>{l s='Status' mod='maksuturva'}</th>
                             <th>{l s='Date' mod='maksuturva'}</th>
                         </tr>
@@ -57,6 +58,7 @@
                             <tr>
                                 <td>#{$attempt.attempt|escape:'html':'UTF-8'}</td>
                                 <td>{$attempt.pmt_id|escape:'html':'UTF-8'}</td>
+                                <td>{$attempt.pmt_reference|escape:'html':'UTF-8'}</td>
                                 <td>{$attempt.status|escape:'html':'UTF-8'}</td>
                                 <td>{$attempt.date|escape:'html':'UTF-8'}</td>
                             </tr>

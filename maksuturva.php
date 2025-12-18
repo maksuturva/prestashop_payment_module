@@ -352,6 +352,7 @@ class Maksuturva extends PaymentModule
             $attempts[] = [
                 'attempt' => $p->getAttempt(),
                 'pmt_id' => $p->getPmtId(),
+                'pmt_reference' => $p->getPmtReference(),
                 'status' => $attemptStatus,
                 'date' => $p->getDateAdd(),
             ];
@@ -360,7 +361,8 @@ class Maksuturva extends PaymentModule
         $smarty->assign([
             'this_path' => $this->getPath(),
             'ps_version' => Tools::substr(_PS_VERSION_, 0, 3),
-            'mt_pmt_id' => $payment->getPmtReference(),
+            'mt_pmt_id' => $payment->getPmtId(),
+            'mt_pmt_reference' => $payment->getPmtReference(),
             'mt_pmt_status_message' => $msg,
             'mt_pmt_class' => $class,
             'mt_payment_attempts' => $attempts,
