@@ -3,15 +3,43 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [3.0.0] - 8.12.2025
+## [3.0.0] - 18.12.2025
+Major overhaul and M2M callback support!
+
 ### Added
-- Generate a unique payment attempt and `pmt_id` every time checkout is started to allow retries.
-- Store structured logs for payment requests and each callback received from Svea to ease debugging.
+- Log for payment attempts
+  - New view to see the payment attempts
+  - More informatiton on order page for the payment attempts for that order
+- Swedish translations
 
 ### Changed
-- Reworked the `mt_payment` table to keep cart level payment attempts that can later be linked to created orders.
-- Validation flow now relies on the stored payment attempt data instead of regenerating payloads on the fly.
-- Stylized return and confirm pages a bit
+- Multiple Payment Attempts Support
+  - **Reworked payment ID system** to support multiple payment attempts per cart
+  - Added `id_mt_payment` as auto-increment primary key (replacing `id_order`)
+  - Added `id_cart`, `attempt`, and `pmt_id` columns to payment table
+  - Added `logs` column for detailed payment attempt logging
+  - Payment ID formula now includes attempt number: `(cart_id + 100) × 10000 + attempt`
+  - Each cart can now have multiple payment attempts with unique pmt_id values
+- Machine-to-Machine (M2M) Callback Handling
+  - rewritten validation.php to properly handle M2M callbacks
+  - Proper handling of race conditions between M2M callback and browser return (there is still a really small race condition possibility but it should be minor)
+- Redirect to payment page
+  - Separate "to payment" page which initiates the payment
+  - no external resources and extra hardening on that page
+- If settings are not set the payment method wont be shown in storefront
+- Show indication of using Sandbox mode in storefront
+- Better error view with "try again" link
+- Checked fi and en translations
+- Removed encoding setting (everybody is utf-8 now)
+- Removed some old templates and code
+- Updated github workflow to use new actions
+- Updated composer dependencies
+- Updated LGPLGHeader to 2026
+
+### Fixes
+- CURLOPT_SSL_VERIFYPEER true
+- Fixed some comments and phpstan
+- More type hints and PHPDocs
 
 ## [2.3.0] - 13.11.2023
 - PrestaShop 8.1 support
