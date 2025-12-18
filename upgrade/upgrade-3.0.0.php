@@ -49,6 +49,7 @@ function upgrade_module_3_0_0($module)
     $has_id_cart = false;
     $has_attempt = false;
     $has_pmt_id = false;
+    $has_logs = false;
 
     foreach ($columns as $column) {
         if ($column['Field'] === 'id_mt_payment') {
@@ -62,6 +63,9 @@ function upgrade_module_3_0_0($module)
         }
         if ($column['Field'] === 'pmt_id') {
             $has_pmt_id = true;
+        }
+        if ($column['Field'] === 'logs') {
+            $has_logs = true;
         }
     }
 
@@ -88,6 +92,12 @@ function upgrade_module_3_0_0($module)
 
     if (!$has_pmt_id) {
         if (!$db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD COLUMN `pmt_id` varchar(40) NOT NULL DEFAULT \'\' AFTER `attempt`')) {
+            return false;
+        }
+    }
+
+    if (!$has_logs) {
+        if (!$db->execute('ALTER TABLE `' . bqSQL($table) . '` ADD COLUMN `logs` LONGTEXT NULL DEFAULT NULL AFTER `data_received`')) {
             return false;
         }
     }
