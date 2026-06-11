@@ -1,5 +1,5 @@
 {**
- * Copyright (C) 2023 Svea Payments Oy
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -18,7 +18,7 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
  *}
 {extends $layout}
@@ -29,24 +29,28 @@
 
     {if isset($error_message)}
         {if $error_message == 'error'}
-            <p class="alert alert-warning">{l s='An error occurred while processing the payment.' mod='maksuturva'}</p>
-            <div class="box order-confirmation">
-                <p>
-                    {l s='For any questions or for further information, please contact our' mod='maksuturva'}
-                    <a href="{$link->getPageLink('contact', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
-                </p>
-            </div>
+            <p class="alert alert-warning">{l s='There was an error processing the payment.' mod='maksuturva'}</p>
+            {if isset($error_message_detail)}
+                <p class="small text-muted">{$error_message_detail|escape:'html':'UTF-8'}</p>
+            {/if}
+        {elseif $error_message == 'cancel'}
+            <p class="alert alert-warning">{l s='You have cancelled the payment.' mod='maksuturva'}</p>
         {else}
-            <p class="alert alert-warning">{l s='Your order on %s has been canceled.' sprintf=[$shop_name] mod='maksuturva'}</p>
-            <div class="box order-confirmation">
-                <img src="{$this_path|escape:'html':'UTF-8'}/views/img/Svea_logo.png" class="img-fluid img-responsive" />
-                <p>
-                    {l s='For any questions or for further information, please contact our' mod='maksuturva'}
-                    <a href="{$link->getPageLink('contact', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
-                </p>
-            </div>
+            <p class="alert alert-warning">{$error_message|escape:'html':'UTF-8'}</p>
+            {if isset($error_message_detail)}
+                <p class="small text-muted">{$error_message_detail|escape:'html':'UTF-8'}</p>
+            {/if}
         {/if}
     {/if}
 
-{/block}
+    <div class="box order-confirmation">
+        <p>
+            <a class="btn btn-lg btn-primary" href="{$urls.pages.order}">{l s='Try again or choose another payment method' mod='maksuturva'}</a>
+        </p>
+        <p>
+            {l s='For any questions or for further information, please contact our' mod='maksuturva'}
+            <a href="{$link->getPageLink('contact', true)|escape:'html':'UTF-8'}">{l s='customer support' mod='maksuturva'}</a>.
+        </p>
+    </div>
 
+{/block}

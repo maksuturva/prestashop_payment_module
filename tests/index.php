@@ -1,5 +1,7 @@
-{**
- * Copyright (C) 2023 Svea Payments Oy
+<?php
+
+/**
+ * Copyright (C) 2026 Svea Payments Oy
  *
  * NOTICE OF LICENSE
  *
@@ -18,20 +20,15 @@
  * needs please refer to http://www.prestashop.com for more information.
  *
  * @author    Svea Payments Oy <info@svea.fi>
- * @copyright 2023 Svea Payments Oy
+ * @copyright 2026 Svea Payments Oy
  * @license   https://www.gnu.org/licenses/lgpl-2.1.html GNU Lesser General Public License (LGPLv2.1)
- *}
-<div class="row">
-    <div class="col-xs-12">
-        <p class="payment_module">
-            <a class="maksuturva"
-               href="{$link->getModuleLink('maksuturva', 'payment')|escape:'html':'UTF-8'}"
-               title="{l s='Pay with Maksuturva' mod='maksuturva'}">
-                <img src="{$this_path|escape:'html':'UTF-8'}/views/img/Svea_logo.png"
-                     alt="{l s='Pay with Maksuturva' mod='maksuturva'}"
-                     class="img-fluid img-responsive"/>
-                {l s='Pay with Maksuturva' mod='maksuturva'}
-            </a>
-        </p>
-    </div>
-</div>
+ */
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+
+header('Location: ../');
+exit;

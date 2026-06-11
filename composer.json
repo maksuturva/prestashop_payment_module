@@ -3,27 +3,38 @@
     "description": "Svea payments integration for PrestaShop",
     "type": "prestashop-module",
     "autoload": {
-	"psr-4": {
-	},
-	"classmap": [
-	    "maksuturva.php"
-	],
-	"exclude-from-classmap": []
+        "psr-4": {
+            "Maksuturva\\": "src/"
+        },
+        "classmap": [
+            "maksuturva.php"
+        ],
+        "exclude-from-classmap": []
     },
     "config": {
-	"prepend-autoloader": false,
-	"preferred-install": "dist"
+        "prepend-autoloader": false,
+        "preferred-install": "dist"
     },
     "require-dev": {
-        "prestashop/php-dev-tools": "^4.3",
-        "prestashop/phpstan-prestashop": "^2.0"
+        "prestashop/php-dev-tools": "^5.0",
+        "friendsofphp/php-cs-fixer": "^3.92",
+        "phpstan/phpstan": "^1.12",
+        "prestashop/header-stamp": "^2.6",
+        "prestashop/autoindex": "^2.1",
+        "squizlabs/php_codesniffer": "^4.0"
     },
     "scripts": {
         "autoindex": "./vendor/bin/autoindex prestashop:add:index",
         "lint": "./vendor/bin/php-cs-fixer fix",
         "header-stamp": "./vendor/bin/header-stamp --license=LGPLHeader.txt --exclude=vendor,tests,_dev",
-        "phpstan": "_PS_ROOT_DIR_=../../ ./vendor/bin/phpstan analyse --memory-limit 1G"
+        "phpstan": "_PS_ROOT_DIR_=../../ ./vendor/bin/phpstan --configuration=tests/phpstan/phpstan.neon analyse --memory-limit 1G"
     },
     "author": "PrestaShop",
-    "license": "OSL-3.0"
+    "license": "OSL-3.0",
+    "authors": [
+        {
+            "name": "PrestaShop SA",
+            "email": "contact@prestashop.com"
+        }
+    ]
 }
